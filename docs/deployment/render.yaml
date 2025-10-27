@@ -1,0 +1,45 @@
+# Render Blueprint (Infrastructure as Code)
+
+services:
+  - type: web
+    name: donaciones-api
+    runtime: docker
+    plan: starter
+    repo: https://github.com/your-org/your-repo
+    branch: main
+    rootDir: api
+    healthCheckPath: /healthz
+    envVars:
+      - key: ASPNETCORE_URLS
+        value: http://0.0.0.0:8080
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ConnectionStrings__Default
+        fromDatabase:
+          name: donaciones-db
+          property: connectionString
+      - key: JWT__Issuer
+        value: https://donaciones.example
+      - key: JWT__Audience
+        value: https://donaciones.example
+      - key: JWT__SigningKey
+        sync: false
+      - key: Cors__AllowedOrigins
+        value: https://donaciones.onrender.com
+    dockerContext: ./
+    dockerfilePath: api/Dockerfile
+
+  - type: static_site
+    name: donaciones-frontend
+    repo: https://github.com/your-org/your-repo
+    branch: main
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: build
+    envVars:
+      - key: REACT_APP_API_BASE_URL
+        value: https://donaciones-api.onrender.com
+
+databases:
+  - name: donaciones-db
+    plan: starter
