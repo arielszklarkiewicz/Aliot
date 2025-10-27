@@ -40,3 +40,8 @@ Thumbs.db
 
 # Others
 launchSettings.json
+
+frontend/node_modules/
+
+api/Donaciones.Api/bin/
+api/Donaciones.Api/obj/
