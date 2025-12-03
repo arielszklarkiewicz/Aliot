@@ -1,9 +1,14 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{A6C2B5E3-3B7E-4B3A-9F5C-6F2E8D9B1C77}"
+    ProjectSection(SolutionItems) = preProject
+        Dockerfile = Dockerfile
+    EndProjectSection
+EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "api", "api", "{D82C56D6-B2CD-F611-9E31-04638F7EC30E}"
-	ProjectSection(SolutionItems) = preProject
-		api\Dockerfile = api\Dockerfile
-	EndProjectSection
+    ProjectSection(SolutionItems) = preProject
+        api\Dockerfile = api\Dockerfile
+    EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Donaciones.Api", "api\Donaciones.Api\Donaciones.Api.csproj", "{3AFBC488-1FB5-4052-8986-AAF497C73EF6}"
 EndProject
