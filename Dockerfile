@@ -1,24 +1,23 @@
-# Imagen base
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
-
+# Etapa 1: Build
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 
-# Copiar los csproj
+# Copiar csproj
 COPY api/Donaciones.Api/Donaciones.Api.csproj api/Donaciones.Api/
 
-# Restaurar
+# Restaurar dependencias
 RUN dotnet restore api/Donaciones.Api/Donaciones.Api.csproj
 
-# Copiar todo el código
+# Copiar el resto del código
 COPY api/Donaciones.Api/ api/Donaciones.Api/
 
-# Compilar
+# Publicar en modo Release
 RUN dotnet publish api/Donaciones.Api/Donaciones.Api.csproj -c Release -o /app/publish
 
-# Imagen final
+# Etapa 2: Runtime
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
-
 WORKDIR /app
+
 COPY --from=build /app/publish .
 
 ENTRYPOINT ["dotnet", "Donaciones.Api.dll"]
