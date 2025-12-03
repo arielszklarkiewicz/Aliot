@@ -55,7 +55,7 @@ export default function DonorSummary() {
     });
   }, [allPayments, fromDate, toDate]);
 
-  async function createVirtualTransaction(currency, saldoAmount) {
+  async function createVirtualTransaction(currency, destination, saldoAmount) {
     if (!donorId) return;
     setCreatingVirtual(true);
     setError('');
@@ -70,7 +70,7 @@ export default function DonorSummary() {
           currency,
           amount: saldoAmount,
           paymentDate: today,
-          destination: 'Yeshiva',
+          destination,
           comment: 'Pago virtual para representar que esta en 0',
           isVirtual: true
         });
@@ -84,7 +84,7 @@ export default function DonorSummary() {
           perasha: '-',
           minian: '-',
           concept: '-',
-          destination: 'Yeshiva',
+          destination,
           comment: 'Donacion virtual para representar que esta en 0',
           isVirtual: true
         });
@@ -103,26 +103,30 @@ export default function DonorSummary() {
   }
 
   const balances = useMemo(() => {
-    // recompute balances by currency from filtered data
-    const map = new Map(); // currency -> {donationsTotal, paymentsTotal}
+    // recompute balances by destination+currency from filtered data
+    const map = new Map(); // "destination|currency" -> {donationsTotal, paymentsTotal}
     for (const d of filteredDonations) {
-      const key = (d.currency || '').toUpperCase();
-      const curr = map.get(key) || { donationsTotal: 0, paymentsTotal: 0 };
+      const key = `${d.destination || ''}|${(d.currency || '').toUpperCase()}`;
+      const curr = map.get(key) || { donationsTotal: 0, paymentsTotal: 0, destination: d.destination || '', currency: (d.currency || '').toUpperCase() };
       curr.donationsTotal += Math.trunc(Number(d.amount) || 0);
       map.set(key, curr);
     }
     for (const p of filteredPayments) {
-      const key = (p.currency || '').toUpperCase();
-      const curr = map.get(key) || { donationsTotal: 0, paymentsTotal: 0 };
+      const key = `${p.destination || ''}|${(p.currency || '').toUpperCase()}`;
+      const curr = map.get(key) || { donationsTotal: 0, paymentsTotal: 0, destination: p.destination || '', currency: (p.currency || '').toUpperCase() };
       curr.paymentsTotal += Math.trunc(Number(p.amount) || 0);
       map.set(key, curr);
     }
-    return Array.from(map.entries()).map(([currency, v]) => ({
-      currency,
+    return Array.from(map.values()).map(v => ({
+      destination: v.destination,
+      currency: v.currency,
       donationsTotal: v.donationsTotal,
       paymentsTotal: v.paymentsTotal,
       total: v.donationsTotal - v.paymentsTotal,
-    })).sort((a,b)=> a.currency.localeCompare(b.currency));
+    })).sort((a,b)=> {
+      const destCmp = a.destination.localeCompare(b.destination);
+      return destCmp !== 0 ? destCmp : a.currency.localeCompare(b.currency);
+    });
   }, [filteredDonations, filteredPayments]);
 
   return (
@@ -174,7 +178,9 @@ export default function DonorSummary() {
       {balances.length > 0 && (
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
           {balances.map(b => (
-            <div key={b.currency} style={{ border: '1px solid #e2e8f0', borderRadius: 12, padding: 12, minWidth: 220, background: '#fff' }}>
+            <div key={`${b.destination}|${b.currency}`} style={{ border: '1px solid #e2e8f0', borderRadius: 12, padding: 12, minWidth: 220, background: '#fff' }}>
+              <div style={{ fontSize: 12, color: '#64748b' }}>Destino</div>
+              <div style={{ fontWeight: 600, marginBottom: 8 }}>{b.destination === 'Other' ? 'Otro' : b.destination}</div>
               <div style={{ fontSize: 12, color: '#64748b' }}>Moneda</div>
               <div style={{ marginBottom: 8 }}>
                 {(() => {
@@ -205,7 +211,7 @@ export default function DonorSummary() {
               {!hasDateFilters && b.total !== 0 && (
                 <div style={{ marginTop: 12 }}>
                   <button
-                    onClick={() => createVirtualTransaction(b.currency, b.total)}
+                    onClick={() => createVirtualTransaction(b.currency, b.destination, b.total)}
                     disabled={creatingVirtual}
                     style={{
                       width: '100%',
