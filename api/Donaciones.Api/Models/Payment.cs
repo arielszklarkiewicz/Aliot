@@ -8,6 +8,7 @@ public record Payment
     public string Destination { get; set; } = string.Empty;
     public string? Collector { get; set; }
     public string? Comment { get; set; }
+    public bool IsVirtual { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset? UpdatedAt { get; set; }
 }

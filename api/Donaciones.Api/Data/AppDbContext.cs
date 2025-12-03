@@ -49,6 +49,7 @@ public class AppDbContext : DbContext
             e.Property(x => x.Destination).HasColumnName("destination").IsRequired();
             e.Property(x => x.DestinationOther).HasColumnName("destination_other");
             e.Property(x => x.Comment).HasColumnName("comment");
+            e.Property(x => x.IsVirtual).HasColumnName("is_virtual").HasDefaultValue(false);
             e.Property(x => x.CreatedAt).HasColumnName("created_at");
             e.Property(x => x.UpdatedAt).HasColumnName("updated_at");
 
@@ -71,6 +72,7 @@ public class AppDbContext : DbContext
             e.Property(x => x.Destination).HasColumnName("destination").IsRequired();
             e.Property(x => x.Collector).HasColumnName("collector");
             e.Property(x => x.Comment).HasColumnName("comment");
+            e.Property(x => x.IsVirtual).HasColumnName("is_virtual").HasDefaultValue(false);
             e.Property(x => x.CreatedAt).HasColumnName("created_at");
             e.Property(x => x.UpdatedAt).HasColumnName("updated_at");
 

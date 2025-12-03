@@ -200,6 +200,12 @@ namespace Donaciones.Api.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("donor_id");
 
+                    b.Property<bool>("IsVirtual")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_virtual");
+
                     b.Property<string>("Minian")
                         .IsRequired()
                         .HasColumnType("text")
@@ -256,6 +262,12 @@ namespace Donaciones.Api.Migrations
                     b.Property<Guid>("DonorId")
                         .HasColumnType("uuid")
                         .HasColumnName("donor_id");
+
+                    b.Property<bool>("IsVirtual")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_virtual");
 
                     b.Property<DateOnly>("PaymentDate")
                         .HasColumnType("date")
