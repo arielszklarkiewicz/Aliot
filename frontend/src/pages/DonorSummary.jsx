@@ -81,8 +81,9 @@ export default function DonorSummary() {
           currency,
           amount: Math.abs(saldoAmount),
           donationDate: today,
-          minian: 'Ashkenazi',
-          concept: '1. Cohen',
+          perasha: '-',
+          minian: '-',
+          concept: '-',
           destination: 'Yeshiva',
           comment: 'Donacion virtual para representar que esta en 0',
           isVirtual: true
