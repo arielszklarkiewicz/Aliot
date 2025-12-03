@@ -16,6 +16,9 @@ export default function DonorSummary() {
   const [error, setError] = useState('');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
+  const [filterDestination, setFilterDestination] = useState('');
+  const [filterCurrency, setFilterCurrency] = useState('');
+  const [filterIsVirtual, setFilterIsVirtual] = useState('');
   const [creatingVirtual, setCreatingVirtual] = useState(false);
 
   const hasDateFilters = fromDate || toDate;
@@ -42,18 +45,26 @@ export default function DonorSummary() {
       const date = new Date(d.donationDate);
       if (fromDate) { const f = new Date(fromDate); if (date < f) return false; }
       if (toDate) { const t = new Date(toDate); t.setHours(23,59,59,999); if (date > t) return false; }
+      if (filterDestination && d.destination !== filterDestination) return false;
+      if (filterCurrency && (d.currency || '').toUpperCase() !== filterCurrency.toUpperCase()) return false;
+      if (filterIsVirtual === 'yes' && !d.isVirtual) return false;
+      if (filterIsVirtual === 'no' && d.isVirtual) return false;
       return true;
     });
-  }, [allDonations, fromDate, toDate]);
+  }, [allDonations, fromDate, toDate, filterDestination, filterCurrency, filterIsVirtual]);
 
   const filteredPayments = useMemo(() => {
     return (allPayments || []).filter(p => {
       const date = new Date(p.paymentDate);
       if (fromDate) { const f = new Date(fromDate); if (date < f) return false; }
       if (toDate) { const t = new Date(toDate); t.setHours(23,59,59,999); if (date > t) return false; }
+      if (filterDestination && p.destination !== filterDestination) return false;
+      if (filterCurrency && (p.currency || '').toUpperCase() !== filterCurrency.toUpperCase()) return false;
+      if (filterIsVirtual === 'yes' && !p.isVirtual) return false;
+      if (filterIsVirtual === 'no' && p.isVirtual) return false;
       return true;
     });
-  }, [allPayments, fromDate, toDate]);
+  }, [allPayments, fromDate, toDate, filterDestination, filterCurrency, filterIsVirtual]);
 
   async function createVirtualTransaction(currency, destination, saldoAmount) {
     if (!donorId) return;
@@ -250,11 +261,12 @@ export default function DonorSummary() {
                   <th style={{ textAlign: 'left', borderBottom: '1px solid #eee', padding: 10 }}>Destino</th>
                   <th style={{ textAlign: 'left', borderBottom: '1px solid #eee', padding: 10 }}>Perashá</th>
                   <th style={{ textAlign: 'left', borderBottom: '1px solid #eee', padding: 10 }}>Comentario</th>
+                  <th style={{ textAlign: 'center', borderBottom: '1px solid #eee', padding: 10 }}>Virtual</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredDonations.length === 0 && (
-                  <tr><td colSpan={8} style={{ padding: 12, textAlign: 'center', color: '#666' }}>Sin donaciones</td></tr>
+                  <tr><td colSpan={9} style={{ padding: 12, textAlign: 'center', color: '#666' }}>Sin donaciones</td></tr>
                 )}
                 {filteredDonations.map(d => (
                   <tr key={d.id}>
@@ -277,6 +289,9 @@ export default function DonorSummary() {
                     <td style={{ borderBottom: '1px solid #f6f6f6', padding: 10 }}>{d.destination === 'Other' ? 'Otro' : d.destination}{d.destination === 'Other' && d.destinationOther ? ` (${d.destinationOther})` : ''}</td>
                     <td style={{ borderBottom: '1px solid #f6f6f6', padding: 10 }}>{d.perasha || '—'}</td>
                     <td style={{ borderBottom: '1px solid #f6f6f6', padding: 10 }}>{d.comment || '—'}</td>
+                    <td style={{ borderBottom: '1px solid #f6f6f6', padding: 10, textAlign: 'center' }}>
+                      {d.isVirtual ? <span style={{ display: 'inline-block', padding: '2px 8px', background: '#fff7e6', border: '1px solid #ffd591', color: '#ad6800', borderRadius: 4, fontSize: 11, fontWeight: 600 }}>SÍ</span> : '—'}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -294,11 +309,12 @@ export default function DonorSummary() {
                   <th style={{ textAlign: 'left', borderBottom: '1px solid #eee', padding: 10 }}>Moneda</th>
                   <th style={{ textAlign: 'left', borderBottom: '1px solid #eee', padding: 10 }}>Destino</th>
                   <th style={{ textAlign: 'left', borderBottom: '1px solid #eee', padding: 10 }}>Cobrador</th>
+                  <th style={{ textAlign: 'center', borderBottom: '1px solid #eee', padding: 10 }}>Virtual</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredPayments.length === 0 && (
-                  <tr><td colSpan={5} style={{ padding: 12, textAlign: 'center', color: '#666' }}>Sin pagos</td></tr>
+                  <tr><td colSpan={6} style={{ padding: 12, textAlign: 'center', color: '#666' }}>Sin pagos</td></tr>
                 )}
                 {filteredPayments.map(p => (
                   <tr key={p.id}>
@@ -318,6 +334,9 @@ export default function DonorSummary() {
                     </td>
                     <td style={{ borderBottom: '1px solid #f1f5f9', padding: 8 }}>{p.destination}</td>
                     <td style={{ borderBottom: '1px solid #f1f5f9', padding: 8 }}>{p.collector || '—'}</td>
+                    <td style={{ borderBottom: '1px solid #f1f5f9', padding: 8, textAlign: 'center' }}>
+                      {p.isVirtual ? <span style={{ display: 'inline-block', padding: '2px 8px', background: '#fff7e6', border: '1px solid #ffd591', color: '#ad6800', borderRadius: 4, fontSize: 11, fontWeight: 600 }}>SÍ</span> : '—'}
+                    </td>
                   </tr>
                 ))}
               </tbody>
