@@ -21,7 +21,7 @@ export default function DonorSummary() {
   const [filterIsVirtual, setFilterIsVirtual] = useState('');
   const [creatingVirtual, setCreatingVirtual] = useState(false);
 
-  const hasDateFilters = fromDate || toDate;
+  const hasAnyFilters = fromDate || toDate || filterDestination || filterCurrency || filterIsVirtual;
 
   useEffect(() => {
     async function load() {
@@ -159,48 +159,61 @@ export default function DonorSummary() {
     <div>
       <h3 style={{ marginBottom: 12 }}>Resumen de donante</h3>
 
-      <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap', marginBottom: 16 }}>
-        <div style={{ minWidth: 280 }}>
-          <label style={{ display: 'block', fontSize: 12, marginBottom: 4 }}>Seleccione donante</label>
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ minWidth: 280, marginBottom: 12 }}>
+          <label style={{ display: 'block', fontSize: 12, marginBottom: 4, fontWeight: 600 }}>Seleccione donante</label>
           <DonorAutocomplete value={donorId} onChange={(id)=> setDonorId(id)} />
         </div>
-        <div>
-          <label style={{ display: 'block', fontSize: 12, marginBottom: 4 }}>Desde</label>
-          <input type="date" value={fromDate} onChange={e=> setFromDate(e.target.value)} />
+        
+        <div style={{ border: '1px solid #e2e8f0', borderRadius: 8, padding: 12, background: '#f8fafc' }}>
+          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10, color: '#475569' }}>Filtros</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12 }}>
+            <div>
+              <label style={{ display: 'block', fontSize: 12, marginBottom: 4 }}>Desde</label>
+              <input type="date" value={fromDate} onChange={e=> setFromDate(e.target.value)} style={{ width: '100%', padding: '6px 8px', border: '1px solid #cbd5e1', borderRadius: 6 }} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: 12, marginBottom: 4 }}>Hasta</label>
+              <input type="date" value={toDate} onChange={e=> setToDate(e.target.value)} style={{ width: '100%', padding: '6px 8px', border: '1px solid #cbd5e1', borderRadius: 6 }} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: 12, marginBottom: 4 }}>Destino</label>
+              <select value={filterDestination} onChange={e=> setFilterDestination(e.target.value)} style={{ width: '100%', padding: '6px 8px', border: '1px solid #cbd5e1', borderRadius: 6, background: '#fff' }}>
+                <option value="">Todos</option>
+                {availableDestinations.map(dest => (
+                  <option key={dest} value={dest}>{dest === 'Other' ? 'Otro' : dest}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: 12, marginBottom: 4 }}>Moneda</label>
+              <select value={filterCurrency} onChange={e=> setFilterCurrency(e.target.value)} style={{ width: '100%', padding: '6px 8px', border: '1px solid #cbd5e1', borderRadius: 6, background: '#fff' }}>
+                <option value="">Todas</option>
+                {availableCurrencies.map(curr => (
+                  <option key={curr} value={curr}>{curr}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: 12, marginBottom: 4 }}>Virtual</label>
+              <select value={filterIsVirtual} onChange={e=> setFilterIsVirtual(e.target.value)} style={{ width: '100%', padding: '6px 8px', border: '1px solid #cbd5e1', borderRadius: 6, background: '#fff' }}>
+                <option value="">Todos</option>
+                <option value="yes">Sí</option>
+                <option value="no">No</option>
+              </select>
+            </div>
+            {(fromDate || toDate || filterDestination || filterCurrency || filterIsVirtual) && (
+              <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+                <button 
+                  onClick={()=> { setFromDate(''); setToDate(''); setFilterDestination(''); setFilterCurrency(''); setFilterIsVirtual(''); }} 
+                  style={{ width: '100%', padding: '6px 12px', border: '1px solid #cbd5e1', borderRadius: 6, background: '#fff', cursor: 'pointer', fontWeight: 500 }}
+                >
+                  Limpiar filtros
+                </button>
+              </div>
+            )}
+          </div>
         </div>
-        <div>
-          <label style={{ display: 'block', fontSize: 12, marginBottom: 4 }}>Hasta</label>
-          <input type="date" value={toDate} onChange={e=> setToDate(e.target.value)} />
-        </div>
-        <div>
-          <label style={{ display: 'block', fontSize: 12, marginBottom: 4 }}>Destino</label>
-          <select value={filterDestination} onChange={e=> setFilterDestination(e.target.value)} style={{ height: 32 }}>
-            <option value="">Todos</option>
-            {availableDestinations.map(dest => (
-              <option key={dest} value={dest}>{dest === 'Other' ? 'Otro' : dest}</option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label style={{ display: 'block', fontSize: 12, marginBottom: 4 }}>Moneda</label>
-          <select value={filterCurrency} onChange={e=> setFilterCurrency(e.target.value)} style={{ height: 32 }}>
-            <option value="">Todas</option>
-            {availableCurrencies.map(curr => (
-              <option key={curr} value={curr}>{curr}</option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label style={{ display: 'block', fontSize: 12, marginBottom: 4 }}>Virtual</label>
-          <select value={filterIsVirtual} onChange={e=> setFilterIsVirtual(e.target.value)} style={{ height: 32 }}>
-            <option value="">Todos</option>
-            <option value="yes">Sí</option>
-            <option value="no">No</option>
-          </select>
-        </div>
-        {(fromDate || toDate || filterDestination || filterCurrency || filterIsVirtual) && (
-          <button onClick={()=> { setFromDate(''); setToDate(''); setFilterDestination(''); setFilterCurrency(''); setFilterIsVirtual(''); }} style={{ height: 32 }}>Limpiar</button>
-        )}
       </div>
 
       {loading && <div>Cargando...</div>}
@@ -224,85 +237,122 @@ export default function DonorSummary() {
               <div style={{ color: '#0f172a' }}>{donor.observations}</div>
             </div>
           )}
+          {hasAnyFilters && (
+            <div style={{ marginTop: 10, padding: 10, background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: 8 }}>
+              <div style={{ fontSize: 12, color: '#9a3412', marginBottom: 4, fontWeight: 600 }}>Filtros aplicados:</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {fromDate && (
+                  <span style={{ display: 'inline-block', padding: '3px 8px', background: '#fff', border: '1px solid #fed7aa', borderRadius: 6, fontSize: 12, color: '#9a3412' }}>
+                    Desde: {fromDate}
+                  </span>
+                )}
+                {toDate && (
+                  <span style={{ display: 'inline-block', padding: '3px 8px', background: '#fff', border: '1px solid #fed7aa', borderRadius: 6, fontSize: 12, color: '#9a3412' }}>
+                    Hasta: {toDate}
+                  </span>
+                )}
+                {filterDestination && (
+                  <span style={{ display: 'inline-block', padding: '3px 8px', background: '#fff', border: '1px solid #fed7aa', borderRadius: 6, fontSize: 12, color: '#9a3412' }}>
+                    Destino: {filterDestination === 'Other' ? 'Otro' : filterDestination}
+                  </span>
+                )}
+                {filterCurrency && (
+                  <span style={{ display: 'inline-block', padding: '3px 8px', background: '#fff', border: '1px solid #fed7aa', borderRadius: 6, fontSize: 12, color: '#9a3412' }}>
+                    Moneda: {filterCurrency}
+                  </span>
+                )}
+                {filterIsVirtual && (
+                  <span style={{ display: 'inline-block', padding: '3px 8px', background: '#fff', border: '1px solid #fed7aa', borderRadius: 6, fontSize: 12, color: '#9a3412' }}>
+                    Virtual: {filterIsVirtual === 'yes' ? 'Sí' : 'No'}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
       {balances.length > 0 && (
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
-          {balances.map(b => (
-            <div key={`${b.destination}|${b.currency}`} style={{ border: '1px solid #e2e8f0', borderRadius: 12, padding: 12, minWidth: 220, background: '#fff' }}>
-              <div style={{ fontSize: 12, color: '#64748b' }}>Destino</div>
-              <div style={{ fontWeight: 600, marginBottom: 8 }}>{b.destination === 'Other' ? 'Otro' : b.destination}</div>
-              <div style={{ fontSize: 12, color: '#64748b' }}>Moneda</div>
-              <div style={{ marginBottom: 8 }}>
-                {(() => {
-                  const cur = (b.currency || '').toString();
-                  const curNorm = cur.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-                  const isUsd = curNorm === 'dolares' || curNorm === 'usd' || curNorm === 'dolares estadounidenses' || curNorm === 'u$s' || curNorm === 'us$';
-                  return (
-                    <span style={{ display:'inline-block', padding: '2px 8px', background: isUsd ? '#ecfdf5' : '#f0f5ff', border: isUsd ? '1px solid #a7f3d0' : '1px solid #d6e4ff', color: isUsd ? '#065f46' : '#1d39c4', borderRadius: 999, fontSize: 12, fontWeight: 600 }}>
-                      {b.currency}
+        <div style={{ marginBottom: 16 }}>
+          <h4 style={{ marginBottom: 8 }}>Totales</h4>
+          <div style={{ border: '1px solid #e2e8f0', borderRadius: 12, padding: 16, background: '#f8fafc' }}>
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+              {balances.map(b => (
+                <div key={`${b.destination}|${b.currency}`} style={{ border: '1px solid #e2e8f0', borderRadius: 12, padding: 12, minWidth: 220, background: '#fff' }}>
+                  <div style={{ fontSize: 12, color: '#64748b' }}>Destino</div>
+                  <div style={{ fontWeight: 600, marginBottom: 8 }}>{b.destination === 'Other' ? 'Otro' : b.destination}</div>
+                  <div style={{ fontSize: 12, color: '#64748b' }}>Moneda</div>
+                  <div style={{ marginBottom: 8 }}>
+                    {(() => {
+                      const cur = (b.currency || '').toString();
+                      const curNorm = cur.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+                      const isUsd = curNorm === 'dolares' || curNorm === 'usd' || curNorm === 'dolares estadounidenses' || curNorm === 'u$s' || curNorm === 'us$';
+                      return (
+                        <span style={{ display:'inline-block', padding: '2px 8px', background: isUsd ? '#ecfdf5' : '#f0f5ff', border: isUsd ? '1px solid #a7f3d0' : '1px solid #d6e4ff', color: isUsd ? '#065f46' : '#1d39c4', borderRadius: 999, fontSize: 12, fontWeight: 600 }}>
+                          {b.currency}
+                        </span>
+                      );
+                    })()}
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>Donaciones</span>
+                    <span>{fmt(b.donationsTotal)}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>Pagos</span>
+                    <span>{fmt(b.paymentsTotal)}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontWeight: 700 }}>
+                    <span>Saldo</span>
+                    <span style={{ color: b.total > 0 ? '#16a34a' : b.total < 0 ? '#dc2626' : '#000' }}>
+                      {fmt(b.total)}
                     </span>
-                  );
-                })()}
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span>Donaciones</span>
-                <span>{fmt(b.donationsTotal)}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span>Pagos</span>
-                <span>{fmt(b.paymentsTotal)}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontWeight: 700 }}>
-                <span>Saldo</span>
-                <span style={{ color: b.total > 0 ? '#16a34a' : b.total < 0 ? '#dc2626' : '#000' }}>
-                  {fmt(b.total)}
-                </span>
-              </div>
-              {!hasDateFilters && b.total !== 0 && (
-                <div style={{ marginTop: 12 }}>
-                  <button
-                    onClick={() => createVirtualTransaction(b.currency, b.destination, b.total)}
-                    disabled={creatingVirtual}
-                    style={{
-                      width: '100%',
-                      padding: '8px 12px',
-                      fontSize: 12,
-                      background: '#f1f5f9',
-                      border: '1px solid #cbd5e1',
-                      borderRadius: 6,
-                      cursor: creatingVirtual ? 'not-allowed' : 'pointer',
-                      fontWeight: 500,
-                      color: '#475569'
-                    }}
-                    title={b.total > 0 ? 'Crear pago virtual para llevar saldo a 0' : 'Crear donación virtual para llevar saldo a 0'}
-                  >
-                    {creatingVirtual ? 'Creando...' : (b.total > 0 ? '+ Pago virtual a 0' : '+ Donación virtual a 0')}
-                  </button>
+                  </div>
+                  {!hasAnyFilters && b.total !== 0 && (
+                    <div style={{ marginTop: 12 }}>
+                      <button
+                        onClick={() => createVirtualTransaction(b.currency, b.destination, b.total)}
+                        disabled={creatingVirtual}
+                        style={{
+                          width: '100%',
+                          padding: '8px 12px',
+                          fontSize: 12,
+                          background: '#f1f5f9',
+                          border: '1px solid #cbd5e1',
+                          borderRadius: 6,
+                          cursor: creatingVirtual ? 'not-allowed' : 'pointer',
+                          fontWeight: 500,
+                          color: '#475569'
+                        }}
+                        title={b.total > 0 ? 'Crear pago virtual para llevar saldo a 0' : 'Crear donación virtual para llevar saldo a 0'}
+                      >
+                        {creatingVirtual ? 'Creando...' : (b.total > 0 ? '+ Pago virtual a 0' : '+ Donación virtual a 0')}
+                      </button>
+                    </div>
+                  )}
                 </div>
-              )}
+              ))}
             </div>
-          ))}
+          </div>
         </div>
       )}
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 16 }}>
         <div>
           <h4 style={{ marginBottom: 8 }}>Donaciones</h4>
-          <div style={{ border: '1px solid #eee', borderRadius: 8, overflow: 'hidden', boxShadow: '0 4px 14px rgba(0,0,0,0.06)', background: '#fff' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <div style={{ border: '1px solid #eee', borderRadius: 8, boxShadow: '0 4px 14px rgba(0,0,0,0.06)', background: '#fff', overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 800 }}>
               <thead style={{ background: '#fafafa' }}>
                 <tr>
-                  <th style={{ textAlign: 'left', borderBottom: '1px solid #eee', padding: 10 }}>Fecha</th>
-                  <th style={{ textAlign: 'right', borderBottom: '1px solid #eee', padding: 10 }}>Monto</th>
-                  <th style={{ textAlign: 'left', borderBottom: '1px solid #eee', padding: 10 }}>Moneda</th>
-                  <th style={{ textAlign: 'left', borderBottom: '1px solid #eee', padding: 10 }}>Minián</th>
-                  <th style={{ textAlign: 'left', borderBottom: '1px solid #eee', padding: 10 }}>Concepto</th>
-                  <th style={{ textAlign: 'left', borderBottom: '1px solid #eee', padding: 10 }}>Destino</th>
-                  <th style={{ textAlign: 'left', borderBottom: '1px solid #eee', padding: 10 }}>Perashá</th>
-                  <th style={{ textAlign: 'left', borderBottom: '1px solid #eee', padding: 10 }}>Comentario</th>
-                  <th style={{ textAlign: 'center', borderBottom: '1px solid #eee', padding: 10 }}>Virtual</th>
+                  <th style={{ textAlign: 'left', borderBottom: '1px solid #eee', padding: 10, whiteSpace: 'nowrap' }}>Fecha</th>
+                  <th style={{ textAlign: 'right', borderBottom: '1px solid #eee', padding: 10, whiteSpace: 'nowrap' }}>Monto</th>
+                  <th style={{ textAlign: 'left', borderBottom: '1px solid #eee', padding: 10, whiteSpace: 'nowrap' }}>Moneda</th>
+                  <th style={{ textAlign: 'left', borderBottom: '1px solid #eee', padding: 10, whiteSpace: 'nowrap' }}>Minián</th>
+                  <th style={{ textAlign: 'left', borderBottom: '1px solid #eee', padding: 10, whiteSpace: 'nowrap' }}>Concepto</th>
+                  <th style={{ textAlign: 'left', borderBottom: '1px solid #eee', padding: 10, whiteSpace: 'nowrap' }}>Destino</th>
+                  <th style={{ textAlign: 'left', borderBottom: '1px solid #eee', padding: 10, whiteSpace: 'nowrap' }}>Perashá</th>
+                  <th style={{ textAlign: 'left', borderBottom: '1px solid #eee', padding: 10, whiteSpace: 'nowrap' }}>Comentario</th>
+                  <th style={{ textAlign: 'center', borderBottom: '1px solid #eee', padding: 10, whiteSpace: 'nowrap' }}>Virtual</th>
                 </tr>
               </thead>
               <tbody>
@@ -341,16 +391,16 @@ export default function DonorSummary() {
         </div>
         <div>
           <h4 style={{ marginBottom: 8 }}>Pagos</h4>
-          <div style={{ border: '1px solid #eee', borderRadius: 8, overflow: 'hidden', boxShadow: '0 4px 14px rgba(0,0,0,0.06)', background: '#fff' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <div style={{ border: '1px solid #eee', borderRadius: 8, boxShadow: '0 4px 14px rgba(0,0,0,0.06)', background: '#fff', overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 600 }}>
               <thead style={{ background: '#fafafa' }}>
                 <tr>
-                  <th style={{ textAlign: 'left', borderBottom: '1px solid #eee', padding: 10 }}>Fecha</th>
-                  <th style={{ textAlign: 'right', borderBottom: '1px solid #eee', padding: 10 }}>Monto</th>
-                  <th style={{ textAlign: 'left', borderBottom: '1px solid #eee', padding: 10 }}>Moneda</th>
-                  <th style={{ textAlign: 'left', borderBottom: '1px solid #eee', padding: 10 }}>Destino</th>
-                  <th style={{ textAlign: 'left', borderBottom: '1px solid #eee', padding: 10 }}>Cobrador</th>
-                  <th style={{ textAlign: 'center', borderBottom: '1px solid #eee', padding: 10 }}>Virtual</th>
+                  <th style={{ textAlign: 'left', borderBottom: '1px solid #eee', padding: 10, whiteSpace: 'nowrap' }}>Fecha</th>
+                  <th style={{ textAlign: 'right', borderBottom: '1px solid #eee', padding: 10, whiteSpace: 'nowrap' }}>Monto</th>
+                  <th style={{ textAlign: 'left', borderBottom: '1px solid #eee', padding: 10, whiteSpace: 'nowrap' }}>Moneda</th>
+                  <th style={{ textAlign: 'left', borderBottom: '1px solid #eee', padding: 10, whiteSpace: 'nowrap' }}>Destino</th>
+                  <th style={{ textAlign: 'left', borderBottom: '1px solid #eee', padding: 10, whiteSpace: 'nowrap' }}>Cobrador</th>
+                  <th style={{ textAlign: 'center', borderBottom: '1px solid #eee', padding: 10, whiteSpace: 'nowrap' }}>Virtual</th>
                 </tr>
               </thead>
               <tbody>
