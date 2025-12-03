@@ -72,7 +72,8 @@ dotnet ef database update
 4. Deploy - migrations apply automatically on startup
 
 **Migration Process:**
-- On first deployment: Creates all tables from scratch
+- On first deployment: Creates all tables from scratch and seeds default data
+- Default collectors: Ezra, Marcelo, Rab Dines, Kupa, Rab Pinjas Pasteloff, Rab Pinjas Corin, Transferencia, Elazar, Ari Grunblatt, Ari Szklarkiewicz
 - On subsequent deployments: Applies only new migrations incrementally
 - Database schema version tracked in `__EFMigrationsHistory` table
 

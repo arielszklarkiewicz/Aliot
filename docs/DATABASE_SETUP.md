@@ -87,7 +87,10 @@ dotnet run
 The application will automatically:
 1. Apply all pending migrations on startup
 2. Create necessary tables if they don't exist
-3. Seed default lookup data (concepts, destinations)
+3. Seed default lookup data:
+   - **Concepts**: 1. Cohen, 2. Levi, 3ro, 4to, 5to, 6to, 7mo, Mosif, Mashlim
+   - **Destinations**: Yeshiva, Ashkenazi Minian, Other
+   - **Collectors**: Ezra, Marcelo, Rab Dines, Kupa, Rab Pinjas Pasteloff, Rab Pinjas Corin, Transferencia, Elazar, Ari Grunblatt, Ari Szklarkiewicz
 
 ## Database Migrations
 

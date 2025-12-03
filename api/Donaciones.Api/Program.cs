@@ -109,8 +109,28 @@ app.MapGet("/api/lookups", async (AppDbContext db, CancellationToken ct) =>
         db.Destinations.AddRange(new[]
         {
             new Destination { Id = Guid.NewGuid(), Name = "Yeshiva", CreatedAt = DateTimeOffset.UtcNow },
-            new Destination { Id = Guid.NewGuid(), Name = "Ashkenazi Minian", CreatedAt = DateTimeOffset.UtcNow },
+            new Destination { Id = Guid.NewGuid(), Name = "Minian Ashkenazi", CreatedAt = DateTimeOffset.UtcNow },
+            new Destination { Id = Guid.NewGuid(), Name = "Colel Tzeirim", CreatedAt = DateTimeOffset.UtcNow },
+            new Destination { Id = Guid.NewGuid(), Name = "Colel Erev", CreatedAt = DateTimeOffset.UtcNow },
+            new Destination { Id = Guid.NewGuid(), Name = "Ohel Moshe", CreatedAt = DateTimeOffset.UtcNow },
+            new Destination { Id = Guid.NewGuid(), Name = "Seminario", CreatedAt = DateTimeOffset.UtcNow },
             new Destination { Id = Guid.NewGuid(), Name = "Other", CreatedAt = DateTimeOffset.UtcNow },
+        });
+    }
+    if (!await db.Collectors.AsNoTracking().AnyAsync(ct))
+    {
+        db.Collectors.AddRange(new[]
+        {
+            new Collector { Id = Guid.NewGuid(), Name = "Ezra", CreatedAt = DateTimeOffset.UtcNow },
+            new Collector { Id = Guid.NewGuid(), Name = "Marcelo", CreatedAt = DateTimeOffset.UtcNow },
+            new Collector { Id = Guid.NewGuid(), Name = "Rab Dines", CreatedAt = DateTimeOffset.UtcNow },
+            new Collector { Id = Guid.NewGuid(), Name = "Kupa", CreatedAt = DateTimeOffset.UtcNow },
+            new Collector { Id = Guid.NewGuid(), Name = "Rab Pinjas Pasteloff", CreatedAt = DateTimeOffset.UtcNow },
+            new Collector { Id = Guid.NewGuid(), Name = "Rab Pinjas Corin", CreatedAt = DateTimeOffset.UtcNow },
+            new Collector { Id = Guid.NewGuid(), Name = "Transferencia", CreatedAt = DateTimeOffset.UtcNow },
+            new Collector { Id = Guid.NewGuid(), Name = "Elazar", CreatedAt = DateTimeOffset.UtcNow },
+            new Collector { Id = Guid.NewGuid(), Name = "Ari Grunblatt", CreatedAt = DateTimeOffset.UtcNow },
+            new Collector { Id = Guid.NewGuid(), Name = "Ari Szklarkiewicz", CreatedAt = DateTimeOffset.UtcNow },
         });
     }
     await db.SaveChangesAsync(ct);
