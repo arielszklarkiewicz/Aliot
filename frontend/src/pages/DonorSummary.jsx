@@ -140,6 +140,21 @@ export default function DonorSummary() {
     });
   }, [filteredDonations, filteredPayments]);
 
+  // Get unique destinations and currencies for filter dropdowns
+  const availableDestinations = useMemo(() => {
+    const destinations = new Set();
+    allDonations.forEach(d => d.destination && destinations.add(d.destination));
+    allPayments.forEach(p => p.destination && destinations.add(p.destination));
+    return Array.from(destinations).sort();
+  }, [allDonations, allPayments]);
+
+  const availableCurrencies = useMemo(() => {
+    const currencies = new Set();
+    allDonations.forEach(d => d.currency && currencies.add((d.currency || '').toUpperCase()));
+    allPayments.forEach(p => p.currency && currencies.add((p.currency || '').toUpperCase()));
+    return Array.from(currencies).sort();
+  }, [allDonations, allPayments]);
+
   return (
     <div>
       <h3 style={{ marginBottom: 12 }}>Resumen de donante</h3>
@@ -157,8 +172,34 @@ export default function DonorSummary() {
           <label style={{ display: 'block', fontSize: 12, marginBottom: 4 }}>Hasta</label>
           <input type="date" value={toDate} onChange={e=> setToDate(e.target.value)} />
         </div>
-        {(fromDate || toDate) && (
-          <button onClick={()=> { setFromDate(''); setToDate(''); }} style={{ height: 32 }}>Limpiar</button>
+        <div>
+          <label style={{ display: 'block', fontSize: 12, marginBottom: 4 }}>Destino</label>
+          <select value={filterDestination} onChange={e=> setFilterDestination(e.target.value)} style={{ height: 32 }}>
+            <option value="">Todos</option>
+            {availableDestinations.map(dest => (
+              <option key={dest} value={dest}>{dest === 'Other' ? 'Otro' : dest}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label style={{ display: 'block', fontSize: 12, marginBottom: 4 }}>Moneda</label>
+          <select value={filterCurrency} onChange={e=> setFilterCurrency(e.target.value)} style={{ height: 32 }}>
+            <option value="">Todas</option>
+            {availableCurrencies.map(curr => (
+              <option key={curr} value={curr}>{curr}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label style={{ display: 'block', fontSize: 12, marginBottom: 4 }}>Virtual</label>
+          <select value={filterIsVirtual} onChange={e=> setFilterIsVirtual(e.target.value)} style={{ height: 32 }}>
+            <option value="">Todos</option>
+            <option value="yes">Sí</option>
+            <option value="no">No</option>
+          </select>
+        </div>
+        {(fromDate || toDate || filterDestination || filterCurrency || filterIsVirtual) && (
+          <button onClick={()=> { setFromDate(''); setToDate(''); setFilterDestination(''); setFilterCurrency(''); setFilterIsVirtual(''); }} style={{ height: 32 }}>Limpiar</button>
         )}
       </div>
 
