@@ -2,6 +2,7 @@ import axios from 'axios';
 
 // Use explicit backend base URL by default for development.
 // Can be overridden with REACT_APP_API_BASE_URL if needed.
+// In production, REACT_APP_API_BASE_URL MUST be set to avoid localhost
 const instance = axios.create({
   baseURL: process.env.REACT_APP_API_BASE_URL || 'http://localhost:5047',
 });
