@@ -57,6 +57,7 @@ public class PaymentService : IPaymentService
             Destination = dto.Destination!,
             Collector = dto.Collector,
             Comment = dto.Comment,
+            IsVirtual = dto.IsVirtual,
             CreatedAt = DateTimeOffset.UtcNow
         };
         _db.Payments.Add(entity);
@@ -78,6 +79,7 @@ public class PaymentService : IPaymentService
         entity.Destination = dto.Destination!;
         entity.Collector = dto.Collector;
         entity.Comment = dto.Comment;
+        entity.IsVirtual = dto.IsVirtual;
         entity.UpdatedAt = DateTimeOffset.UtcNow;
         await _db.SaveChangesAsync(ct);
         return entity;

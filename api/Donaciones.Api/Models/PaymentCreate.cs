@@ -7,4 +7,5 @@ public record PaymentCreate
     public string? Destination { get; set; }
     public string? Collector { get; set; }
     public string? Comment { get; set; }
+    public bool IsVirtual { get; set; }
 }

@@ -16,6 +16,9 @@ export default function DonorSummary() {
   const [error, setError] = useState('');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
+  const [creatingVirtual, setCreatingVirtual] = useState(false);
+
+  const hasDateFilters = fromDate || toDate;
 
   useEffect(() => {
     async function load() {
@@ -51,6 +54,52 @@ export default function DonorSummary() {
       return true;
     });
   }, [allPayments, fromDate, toDate]);
+
+  async function createVirtualTransaction(currency, saldoAmount) {
+    if (!donorId) return;
+    setCreatingVirtual(true);
+    setError('');
+    
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      
+      if (saldoAmount > 0) {
+        // Positive saldo means donor owes money -> create virtual payment
+        await axios.post('/api/payments', {
+          donorId,
+          currency,
+          amount: saldoAmount,
+          paymentDate: today,
+          destination: 'Yeshiva',
+          comment: 'Pago virtual para representar que esta en 0',
+          isVirtual: true
+        });
+      } else if (saldoAmount < 0) {
+        // Negative saldo means we owe donor -> create virtual donation
+        await axios.post('/api/donations', {
+          donorId,
+          currency,
+          amount: Math.abs(saldoAmount),
+          donationDate: today,
+          minian: 'Ashkenazi',
+          concept: '1. Cohen',
+          destination: 'Yeshiva',
+          comment: 'Donacion virtual para representar que esta en 0',
+          isVirtual: true
+        });
+      }
+      
+      // Reload summary
+      const { data } = await axios.get(`/api/donors/${donorId}/summary`);
+      setDonor(data.donor || null);
+      setAllDonations(data.donations || []);
+      setAllPayments(data.payments || []);
+    } catch (e) {
+      setError('Error al crear transacción virtual: ' + (e.response?.data?.error || e.message));
+    } finally {
+      setCreatingVirtual(false);
+    }
+  }
 
   const balances = useMemo(() => {
     // recompute balances by currency from filtered data
@@ -148,8 +197,32 @@ export default function DonorSummary() {
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontWeight: 700 }}>
                 <span>Saldo</span>
-                <span>{fmt(b.total)}</span>
+                <span style={{ color: b.total > 0 ? '#16a34a' : b.total < 0 ? '#dc2626' : '#000' }}>
+                  {fmt(b.total)}
+                </span>
               </div>
+              {!hasDateFilters && b.total !== 0 && (
+                <div style={{ marginTop: 12 }}>
+                  <button
+                    onClick={() => createVirtualTransaction(b.currency, b.total)}
+                    disabled={creatingVirtual}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      fontSize: 12,
+                      background: '#f1f5f9',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: 6,
+                      cursor: creatingVirtual ? 'not-allowed' : 'pointer',
+                      fontWeight: 500,
+                      color: '#475569'
+                    }}
+                    title={b.total > 0 ? 'Crear pago virtual para llevar saldo a 0' : 'Crear donación virtual para llevar saldo a 0'}
+                  >
+                    {creatingVirtual ? 'Creando...' : (b.total > 0 ? '+ Pago virtual a 0' : '+ Donación virtual a 0')}
+                  </button>
+                </div>
+              )}
             </div>
           ))}
         </div>

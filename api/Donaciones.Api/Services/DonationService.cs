@@ -82,6 +82,7 @@ public class DonationService : IDonationService
             Destination = dto.Destination!,
             DestinationOther = dto.DestinationOther,
             Comment = dto.Comment,
+            IsVirtual = dto.IsVirtual,
             CreatedAt = DateTimeOffset.UtcNow
         };
         _db.Donations.Add(entity);
@@ -107,6 +108,7 @@ public class DonationService : IDonationService
         entity.Destination = dto.Destination!;
         entity.DestinationOther = dto.DestinationOther;
         entity.Comment = dto.Comment;
+        entity.IsVirtual = dto.IsVirtual;
         entity.UpdatedAt = DateTimeOffset.UtcNow;
         await _db.SaveChangesAsync(ct);
         return entity;
