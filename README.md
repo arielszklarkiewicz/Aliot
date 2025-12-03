@@ -1,162 +1,170 @@
-# Donaciones & Pagos — Solution Outline
+# Donaciones & Pagos — Donation and Payment Management System
 
-This repository currently contains the complete solution outline for a future web application to manage Donations and Payments with the following stack:
-- Backend: .NET (C#)
-- Frontend: React
-- Hosting: Render.com (API + Static Site + Managed PostgreSQL)
+A web application to manage Donations and Payments built with:
+- **Backend**: .NET 9 (C#) with Entity Framework Core
+- **Frontend**: React
+- **Database**: PostgreSQL with automatic migrations
+- **Hosting**: Render.com (API + Static Site + Managed PostgreSQL)
 
-The app handles two main entities: Donations and Payments.
+## Quick Start
 
-This document includes:
-1) Database schema with tables, fields, relationships, indexes, constraints.
-2) Backend architecture: API endpoints, authentication, services, DTOs, validation.
-3) Frontend architecture: React components, forms, autocomplete, state mgmt, routing.
-4) Deployment setup for Render.com (including database hosting).
-5) Best-practices suggestions (validation, security, roles, audit logs).
+### Prerequisites
+- .NET 9 SDK
+- Node.js 18+ (for frontend)
+- PostgreSQL (optional for local development)
 
-See also:
-- docs/db/schema.sql (DDL)
-- docs/api/openapi.yaml (OpenAPI 3.0)
-- docs/frontend/README.md (component tree, state, UX)
-- docs/deployment/README.md (Render.com setup) and docs/deployment/render.yaml (IaC)
+### Running Locally
 
----
+**Option 1: With InMemory Database (No Setup)**
+```bash
+# Backend
+cd api/Donaciones.Api
+dotnet run
 
-1. Database Schema (Overview)
+# Frontend (in another terminal)
+cd frontend
+npm install
+npm start
+```
 
-Engine: PostgreSQL (Managed on Render.com)
+**Option 2: With PostgreSQL**
+```bash
+# Set connection string
+export ConnectionStrings__Default="Host=localhost;Database=donaciones;Username=postgres;Password=postgres"
 
-Core tables
-- donors: All people/entities that donate or make payments.
-- donations: A donation record with donor, currency, perasha, minian, concept, destination, date, comment.
-- payments: A payment record with donor, currency, collector, concept, date, comment.
-- lookups: minian types, donation concepts, destinations, currencies — implemented via enums and constrained text values.
-- autocomplete_terms: free-text terms used for autocomplete (perasha, collector), tracked with usage counts.
-- audit_logs: audit trail of create/update/delete actions.
-- users, roles, user_roles: application authentication/authorization (JWT-backed)
+# Backend
+cd api/Donaciones.Api
+dotnet run  # Migrations apply automatically
 
-Entity highlights
-- Currency: pesos, dollars (enum constraint)
-- Minian: Ashkenazi, Sefaradi, Netz (enum constraint)
-- Donation Concept: Cohen, Levi, 3rd, 4th, 5th, 6th, Mosif, Mashlim (enum constraint)
-- Destination: Yeshiva, Ashkenazi Minian, {others} (enum with an “Other” + other_text column)
-- Perasha and Collector: free text with autocomplete suggestions learned from prior entries
+# Frontend
+cd frontend
+npm install
+npm start
+```
 
-Indexes
-- donors(name), donations(donor_id, donation_date), payments(donor_id, payment_date)
-- GIN trigram indexes for perasha, collector for fast autocomplete
+Visit: http://localhost:3000
 
-See full DDL in docs/db/schema.sql.
+## Documentation
 
----
+- **[Database Setup Guide](docs/DATABASE_SETUP.md)** - PostgreSQL configuration, migrations, connection strings
+- **[Frontend Render Setup](frontend/RENDER_SETUP.md)** - React production environment configuration
+- **[API Environment Variables](api/.env.example)** - Backend configuration template
+- **[Original Design Docs](docs/)** - Database schema, API spec, deployment guides
 
-2. Backend Architecture (.NET)
+## Architecture Overview
 
-Tech
-- .NET 8 Web API
-- ASP.NET Core Minimal APIs or Controllers (Controllers recommended for clarity)
-- EF Core 8 for data access (Npgsql provider)
-- FluentValidation for DTO validation
-- JWT Bearer Auth (ASP.NET Core Authentication)
-- Serilog for logging
-- Swashbuckle for Swagger UI
+### Database
+- **PostgreSQL** with Entity Framework Core
+- **Automatic migrations** on application startup
+- **Fallback to InMemory** database for development
+- Tables: donors, donations, payments, concepts, destinations, collectors
 
-Layers
-- Domain: Entities + Enums
-- Infrastructure: EF Core DbContext, Migrations, Repositories
-- Application: Services (business logic), DTOs, Validation
-- API: Controllers, Mapping (AutoMapper), Auth
+### Backend (.NET 9)
+- ASP.NET Core Minimal APIs
+- Entity Framework Core for data access
+- JWT-based authentication (dummy for now)
+- Google OAuth support
+- CORS configuration via environment variables
 
-Key Endpoints (see docs/api/openapi.yaml)
-- Auth: POST /api/auth/login, GET /api/auth/me
-- Donors: CRUD, search by name (autocomplete)
-- Donations: CRUD, list by filters (date range, donor, currency, minian, concept, destination), export CSV
-- Payments: CRUD, list by filters (date range, donor, currency, collector), export CSV
-- Autocomplete: GET /api/autocomplete/perashot?q=, GET /api/autocomplete/collectors?q=
-- Lookups: GET for static lists (minian, concepts, destinations, currencies)
+### Frontend (React)
+- React 18 with functional components
+- Axios for API calls
+- React Router for navigation
+- Environment-based API URL configuration
 
-Validation
-- Required fields enforced via FluentValidation and data annotations
-- Enum values validated against allowed sets
-- Free-text lengths limited and normalized (trim, collapse whitespace)
-- Dates required; default timezone behavior documented
+## Key Features
 
-Authentication & Authorization
-- JWT Bearer with HS256
-- Roles: Admin, Staff, ReadOnly
-- Policies for Create/Edit/Delete operations
+- **Donor Management**: Track regular and occasional donors
+- **Donations**: Record donations with currency, concept, destination, minian
+- **Payments**: Track payments with collector information
+- **Autocomplete**: Smart autocomplete for perashot and collectors
+- **Admin Tools**: Manage concepts, destinations, and collectors
+- **Reports**: Donor balance reports by currency
+- **Google Sign-In**: Optional OAuth authentication
 
-Error Handling
-- Problem Details (RFC 7807) standardized errors
-- Global exception middleware
+## Deployment
 
-Audit
-- Save audit log entries on create/update/delete with user_id, table, record_id, diff snapshot
+### Render.com Setup
 
----
+1. **Create PostgreSQL Database**
+   - Follow instructions in [DATABASE_SETUP.md](docs/DATABASE_SETUP.md)
 
-3. Frontend Architecture (React)
+2. **Deploy Backend API**
+   - Set environment variable: `ConnectionStrings__Default` (PostgreSQL URL)
+   - Set environment variable: `Cors__AllowedOrigins` (frontend URL)
+   - Build command: `dotnet publish -c Release -o out`
+   - Start command: `cd out && ./Donaciones.Api`
 
-Tech
-- React 18 + TypeScript
-- React Router for routing
-- React Query (TanStack Query) for data fetching/cache
-- Formik + Yup for forms & validation
-- MUI (Material UI) for UI components
+3. **Deploy Frontend**
+   - Follow instructions in [frontend/RENDER_SETUP.md](frontend/RENDER_SETUP.md)
+   - Set environment variable: `REACT_APP_API_BASE_URL` (backend API URL)
+   - Build command: `npm run build`
+   - Publish directory: `build`
 
-Routes
-- /login
-- /donations (list, filters)
-- /donations/new, /donations/:id/edit
-- /payments (list, filters)
-- /payments/new, /payments/:id/edit
-- /donors (list, edit) (optional initially)
-- /reports/exports (optional)
+## Environment Variables
 
-Key Components
-- DonationForm: donor selector, currency select, date picker, perasha autocomplete, minian select, concept select, destination select (+ other text), comment
-- PaymentForm: donor selector, currency select, date picker, concept text, collector autocomplete, comment
-- Autocomplete components backed by API endpoints with debounced queries and caching
+### Backend (API)
+```bash
+ConnectionStrings__Default=postgresql://user:pass@host:5432/db  # Required for production
+Cors__AllowedOrigins=https://your-frontend.onrender.com        # Required
+Google__ClientId=your-google-client-id.apps.googleusercontent.com  # Optional
+```
 
-State Management
-- Server state via React Query (queries + mutations)
-- Local form state via Formik
-- Auth state via React Context + localStorage for token
+### Frontend
+```bash
+REACT_APP_API_BASE_URL=https://your-api.onrender.com  # Required for production
+REACT_APP_GOOGLE_CLIENT_ID=your-google-client-id      # Optional
+```
 
-See docs/frontend/README.md for more details.
+## Development
 
----
+### Database Migrations
 
-4. Deployment on Render.com
+Create new migration:
+```bash
+cd api/Donaciones.Api
+dotnet ef migrations add YourMigrationName
+```
 
-Services
-- PostgreSQL (Managed Render PostgreSQL)
-- Web Service (API): .NET 8 Docker or Build Command
-- Static Site (Frontend): React build output served as static site
+View migration SQL:
+```bash
+dotnet ef migrations script
+```
 
-Config
-- Environment variables: Connection string, JWT settings, CorsAllowedOrigins
-- Health checks: /healthz
-- render.yaml included under docs/deployment for Infrastructure-as-Code
+### Testing
 
-CI/CD
-- On push to main, Render auto-deploys services
+Backend:
+```bash
+cd api/Donaciones.Api
+dotnet test
+```
 
----
+Frontend:
+```bash
+cd frontend
+npm test
+```
 
-5. Best Practices
-- Input validation on both client and server
-- Enum constraints in DB to prevent invalid data
-- Principle of least privilege with roles
-- Audit logs for all data mutations
-- Rate limiting on autocomplete endpoints
-- Secure headers and CORS configuration
-- Backup & retention for PostgreSQL
-- Observability: structured logging, correlation IDs
+## Project Structure
 
----
+```
+Donaciones/
+├── api/
+│   └── Donaciones.Api/
+│       ├── Data/              # DbContext, migrations
+│       ├── Models/            # Entity models
+│       ├── Services/          # Business logic
+│       └── Program.cs         # API endpoints
+├── frontend/
+│   ├── src/
+│   │   ├── api/              # API client
+│   │   ├── components/       # React components
+│   │   └── pages/            # Page components
+│   └── public/
+├── docs/                     # Documentation
+└── README.md
+```
 
-Next Steps (implementation not yet committed)
-- Initialize .NET Web API project and EF Core models/migrations per schema
-- Initialize React app with the component structure and add auth + forms
-- Hook up Render.com services using docs/deployment/render.yaml
+## License
+
+Private project - All rights reserved

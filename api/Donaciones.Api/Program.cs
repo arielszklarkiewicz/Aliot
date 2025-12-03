@@ -47,11 +47,27 @@ builder.Services.AddScoped<IPaymentService, PaymentService>();
 
 var app = builder.Build();
 
-// Ensure DB exists (for dev and first run). In production with PostgreSQL, it will create basic tables when missing.
+// Apply database migrations automatically on startup
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    try { db.Database.EnsureCreated(); } catch { /* ignore if not possible */ }
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    try 
+    { 
+        logger.LogInformation("Applying database migrations...");
+        db.Database.Migrate();
+        logger.LogInformation("Database migrations applied successfully");
+    } 
+    catch (Exception ex) 
+    { 
+        logger.LogError(ex, "Error applying database migrations");
+        // For InMemory database, fall back to EnsureCreated
+        if (db.Database.IsInMemory())
+        {
+            logger.LogInformation("Using InMemory database, calling EnsureCreated");
+            db.Database.EnsureCreated();
+        }
+    }
 }
 
 // Pipeline
@@ -148,7 +164,7 @@ app.MapPost("/api/auth/google", async (GoogleLoginRequest req, IConfiguration co
         var token = Convert.ToBase64String(Guid.NewGuid().ToByteArray());
         return Results.Ok(new { accessToken = token, expiresIn = 3600, user });
     }
-    catch (Exception ex)
+    catch
     {
         return Results.Unauthorized();
     }
