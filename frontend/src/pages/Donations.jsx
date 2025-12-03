@@ -237,9 +237,11 @@ export default function Donations() {
           })()}
           <div style={{ display:'inline-flex', gap:6 }}>
             {[
+              { label: '+1.000', inc: 1000 },
               { label: '+10.000', inc: 10000 },
               { label: '+18.000', inc: 18000 },
               { label: '+26.000', inc: 26000 },
+              { label: '+52.000', inc: 52000 },
               { label: '+100.000', inc: 100000 }
             ].map(btn => (
               <button
