@@ -15,7 +15,7 @@ COPY api/Donaciones.Api/ api/Donaciones.Api/
 RUN dotnet publish api/Donaciones.Api/Donaciones.Api.csproj -c Release -o /app/publish
 
 # Etapa 2: Runtime
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime
 WORKDIR /app
 
 COPY --from=build /app/publish .
