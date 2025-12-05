@@ -36,6 +36,7 @@ export default function DonorBalances() {
             <thead style={{ background: '#fafafa' }}>
               <tr>
                 <th style={{ textAlign: 'left', borderBottom: '1px solid #eee', padding: 10 }}>Donante</th>
+                <th style={{ textAlign: 'left', borderBottom: '1px solid #eee', padding: 10 }}>Destino</th>
                 <th style={{ textAlign: 'left', borderBottom: '1px solid #eee', padding: 10 }}>Moneda</th>
                 <th style={{ textAlign: 'right', borderBottom: '1px solid #eee', padding: 10 }}>Donaciones</th>
                 <th style={{ textAlign: 'right', borderBottom: '1px solid #eee', padding: 10 }}>Pagos</th>
@@ -44,11 +45,12 @@ export default function DonorBalances() {
             </thead>
             <tbody>
               {items.length === 0 && (
-                <tr><td colSpan={5} style={{ padding: 12, textAlign: 'center', color: '#666' }}>Sin saldos</td></tr>
+                <tr><td colSpan={6} style={{ padding: 12, textAlign: 'center', color: '#666' }}>Sin saldos</td></tr>
               )}
               {items.map((r, i) => (
                 <tr key={`${r.donorId}-${r.currency}-${i}`}>
                   <td style={{ borderBottom: '1px solid #f6f6f6', padding: 10 }}>{r.donorName}</td>
+                  <td style={{ borderBottom: '1px solid #f6f6f6', padding: 10 }}>{r.destino || '-'}</td>
                   <td style={{ borderBottom: '1px solid #f6f6f6', padding: 10 }}>
                     {(() => {
                       const cur = (r.currency || '').toString();

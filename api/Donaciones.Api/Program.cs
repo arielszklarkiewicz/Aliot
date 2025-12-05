@@ -298,39 +298,40 @@ app.MapDelete("/api/payments/{id:guid}", async (IPaymentService svc, Guid id, Ca
     return ok ? Results.NoContent() : Results.NotFound();
 });
 
-// Reports: donors with non-zero saldo by currency (no date filter)
+// Reports: donors with non-zero saldo by currency and destination (no date filter)
 app.MapGet("/api/reports/donor-balances", async (AppDbContext db, CancellationToken ct) =>
 {
     var donations = await db.Donations.AsNoTracking()
-        .GroupBy(d => new { d.DonorId, Currency = d.Currency.ToLower() })
-        .Select(g => new { g.Key.DonorId, g.Key.Currency, Total = g.Sum(x => (decimal)x.Amount) })
+        .GroupBy(d => new { d.DonorId, Currency = d.Currency.ToLower(), d.Destination })
+        .Select(g => new { g.Key.DonorId, g.Key.Currency, g.Key.Destination, Total = g.Sum(x => (decimal)x.Amount) })
         .ToListAsync(ct);
 
     var payments = await db.Payments.AsNoTracking()
-        .GroupBy(p => new { p.DonorId, Currency = p.Currency.ToLower() })
-        .Select(g => new { g.Key.DonorId, g.Key.Currency, Total = g.Sum(x => (decimal)x.Amount) })
+        .GroupBy(p => new { p.DonorId, Currency = p.Currency.ToLower(), p.Destination })
+        .Select(g => new { g.Key.DonorId, g.Key.Currency, g.Key.Destination, Total = g.Sum(x => (decimal)x.Amount) })
         .ToListAsync(ct);
 
     var donors = await db.Donors.AsNoTracking()
         .Select(d => new { d.Id, d.FirstName, d.LastName })
         .ToListAsync(ct);
 
-    var keys = donations.Select(x => new { x.DonorId, x.Currency })
-        .Union(payments.Select(x => new { x.DonorId, x.Currency }))
+    var keys = donations.Select(x => new { x.DonorId, x.Currency, x.Destination })
+        .Union(payments.Select(x => new { x.DonorId, x.Currency, x.Destination }))
         .ToList();
 
     var rows = keys
         .Select(k =>
         {
             var d = donors.FirstOrDefault(dd => dd.Id == k.DonorId);
-            var donationsTotal = donations.FirstOrDefault(x => x.DonorId == k.DonorId && x.Currency == k.Currency)?.Total ?? 0m;
-            var paymentsTotal = payments.FirstOrDefault(x => x.DonorId == k.DonorId && x.Currency == k.Currency)?.Total ?? 0m;
+            var donationsTotal = donations.FirstOrDefault(x => x.DonorId == k.DonorId && x.Currency == k.Currency && x.Destination == k.Destination)?.Total ?? 0m;
+            var paymentsTotal = payments.FirstOrDefault(x => x.DonorId == k.DonorId && x.Currency == k.Currency && x.Destination == k.Destination)?.Total ?? 0m;
             var saldo = donationsTotal - paymentsTotal;
             return new
             {
                 donorId = k.DonorId,
                 donorName = d == null ? "(Desconocido)" : (string.IsNullOrWhiteSpace(d.LastName) ? d.FirstName : ($"{d.FirstName} {d.LastName}")),
                 currency = k.Currency,
+                destino = k.Destination,
                 donationsTotal,
                 paymentsTotal,
                 saldo
@@ -338,6 +339,7 @@ app.MapGet("/api/reports/donor-balances", async (AppDbContext db, CancellationTo
         })
         .Where(r => r.saldo != 0m)
         .OrderBy(r => r.donorName)
+        .ThenBy(r => r.destino)
         .ThenBy(r => r.currency)
         .ToList();
 
