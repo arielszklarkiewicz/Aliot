@@ -1,0 +1,43 @@
+services:
+  # Backend API (.NET)
+  - type: web
+    name: donaciones-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ConnectionStrings__Default
+        fromDatabase:
+          name: donaciones-db
+          property: connectionString
+      - key: Cors__AllowedOrigins
+        fromService:
+          type: web
+          name: donaciones-frontend
+          property: url
+    healthCheckPath: /healthz
+
+  # Frontend (React)
+  - type: web
+    name: donaciones-frontend
+    runtime: static
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: ./frontend/build
+    routes:
+      - type: rewrite
+        source: /.* 
+        destination: /index.html
+    envVars:
+      - key: REACT_APP_API_BASE_URL
+        fromService:
+          type: web
+          name: donaciones-api
+          property: url
+
+databases:
+  - name: donaciones-db
+    plan: starter
+    databaseName: donaciones
+    user: donaciones
