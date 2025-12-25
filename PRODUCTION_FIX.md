@@ -1,9 +1,19 @@
 # Production Deployment Issue - Diagnosis and Fix
 
-## Problem
-The frontend at https://aliot-1.onrender.com/ is not working because it's trying to call the API at `http://localhost:5047` instead of the production API URL.
+## Problems Found
 
-## Root Cause
+### 1. Login gives 404 Not Found
+The URL `https://aliot-1.onrender.com/login` returns "Not Found" because Render's static hosting isn't serving the SPA correctly.
+
+### 2. API calls going to localhost
+The frontend at https://aliot-1.onrender.com/ is trying to call the API at `http://localhost:5047` instead of the production API URL.
+
+## Root Causes
+
+### Issue 1: SPA Routing Not Configured
+Render static sites need the `_redirects` file to be in the published directory. The file exists at `frontend/public/_redirects` but Render might not be seeing it, or the site wasn't deployed using the Blueprint method.
+
+### Issue 2: Missing Environment Variable
 The React app build is missing the `REACT_APP_API_BASE_URL` environment variable, so it defaults to localhost as configured in `frontend/src/api/client.js`:
 
 ```javascript
@@ -70,10 +80,22 @@ After deploying:
 ## Current Status
 
 - ✅ Frontend is deployed and accessible at https://aliot-1.onrender.com/
+- ✅ `_redirects` file exists in `frontend/public/_redirects` for SPA routing
+- ❌ Routes like `/login` return 404 (SPA routing not working)
 - ❌ API is not accessible (or not deployed)
 - ❌ Frontend is configured to call localhost instead of production API
 - ❌ Login will fail because browser can't reach localhost:5047
 
+## Quick Fix
+
+The `aliot-1` service appears to be a manual deployment that's incomplete. The best solution is to **delete it and redeploy properly** using the Blueprint method which will:
+
+1. ✅ Configure SPA routing automatically
+2. ✅ Create both API and frontend services
+3. ✅ Link them with correct environment variables
+4. ✅ Set up the database
+5. ✅ Configure CORS properly
+
 ## Recommended Action
 
-Use **Option 1** (Blueprint deployment with render.yaml) for a clean, properly configured deployment with both services linked correctly.
+**Delete the `aliot-1` service and use Option 1** (Blueprint deployment with render.yaml) for a clean, properly configured deployment with both services, routing, and environment variables set correctly.
