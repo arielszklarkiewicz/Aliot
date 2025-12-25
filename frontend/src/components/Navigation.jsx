@@ -43,10 +43,9 @@ export default function Navigation() {
       id: 'operations',
       label: 'Operaciones',
       icon: '📋',
-      roles: ['Admin', 'DataEntry', 'ReadOnly'],
+      roles: ['Admin', 'DataEntry'],
       items: [
-        { path: '/donations', label: 'Nueva Donación', icon: '➕', roles: ['Admin', 'DataEntry'] },
-        { path: '/donations/list', label: 'Listado de Donaciones', icon: '📊', roles: ['Admin', 'DataEntry', 'ReadOnly'] },
+        { path: '/donations', label: 'Registrar Donación', icon: '➕', roles: ['Admin', 'DataEntry'] },
         { path: '/payments', label: 'Registrar Pago', icon: '💰', roles: ['Admin', 'DataEntry'] },
       ]
     },
@@ -56,6 +55,7 @@ export default function Navigation() {
       icon: '📈',
       roles: ['Admin', 'DataEntry', 'ReadOnly'],
       items: [
+        { path: '/donations/list', label: 'Listado de Donaciones', icon: '📊', roles: ['Admin', 'DataEntry', 'ReadOnly'] },
         { path: '/donors/summary', label: 'Resumen de Donante', icon: '👤', roles: ['Admin', 'DataEntry', 'ReadOnly'] },
         { path: '/reports/donor-balances', label: 'Saldos por Donante', icon: '💵', roles: ['Admin', 'DataEntry', 'ReadOnly'] },
       ]
