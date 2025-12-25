@@ -22,27 +22,100 @@ baseURL: process.env.REACT_APP_API_BASE_URL || 'http://localhost:5047',
 
 ## Solution
 
-### How to Deploy Using render.yaml (Blueprint)
+### Option 1: Use render.yaml (Infrastructure as Code)
 
-**If you don't see "Blueprint" option in Render:**
+Your project has a `render.yaml` file that defines all services! This is the best way to deploy.
 
-Render may have changed the UI. Here's the updated process:
+**render.yaml content:**
+```yaml
+services:
+  # Backend API (.NET)
+  - type: web
+    name: donaciones-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ConnectionStrings__Default
+        fromDatabase:
+          name: donaciones-db
+          property: connectionString
+      - key: Cors__AllowedOrigins
+        fromService:
+          type: web
+          name: donaciones-frontend
+          property: url
+    healthCheckPath: /healthz
 
-#### Method 1: Create from Repository (Recommended)
+  # Frontend (React)
+  - type: web
+    name: donaciones-frontend
+    runtime: static
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: ./frontend/build
+    envVars:
+      - key: REACT_APP_API_BASE_URL
+        fromService:
+          type: web
+          name: donaciones-api
+          property: url
 
-1. **Go to Render Dashboard**: https://dashboard.render.com
-2. **Click "New +"** button in the top right
-3. You should see options like:
-   - Web Service
-   - Static Site
-   - Private Service
-   - PostgreSQL
-   - **Look for "YAML"** or similar option
-4. If YAML option exists, select it and connect your GitHub repo
+databases:
+  - name: donaciones-db
+    plan: starter
+    databaseName: donaciones
+    user: donaciones
+```
 
-#### Method 2: Manual Approach (If YAML not available)
+**How to deploy with render.yaml:**
 
-Since Render's UI changes, you may need to create services manually:
+#### Method A: Via Render Dashboard (if available)
+
+1. Go to https://dashboard.render.com
+2. Click "New +"
+3. Look for one of these options:
+   - **"Blueprint"** or **"YAML"** or **"Infrastructure as Code"**
+   - If you see it, select it and connect your GitHub repo
+   - Render will read the `render.yaml` and create all services automatically
+
+#### Method B: Via Render CLI (Alternative)
+
+If the dashboard doesn't show Blueprint option:
+
+```bash
+# Install Render CLI
+npm install -g render-cli
+
+# Login
+render login
+
+# Deploy from render.yaml
+render up
+```
+
+#### Method C: Push to GitHub and Use Dashboard
+
+1. Make sure your `render.yaml` is in the root of your GitHub repo
+2. In Render Dashboard, when creating a new service:
+   - Select "Web Service" or "Static Site"
+   - Connect your GitHub repo
+   - Render should auto-detect the `render.yaml` file
+   - It may prompt you to deploy all services defined in the file
+
+**Benefits of using render.yaml:**
+- ✅ All services created at once
+- ✅ Environment variables automatically linked between services
+- ✅ Database automatically created and connected
+- ✅ CORS automatically configured with frontend URL
+- ✅ Easy to version control and redeploy
+
+---
+
+### Option 2: Manual Step-by-Step Deployment
+
+If render.yaml doesn't work, follow these manual steps:
 
 **Step 1: Create PostgreSQL Database**
 1. Click "New +" → "PostgreSQL"
@@ -147,14 +220,25 @@ After deploying:
 
 ## Quick Fix
 
-The `aliot-1` service appears to be a manual deployment that's incomplete. The best solution is to **delete it and redeploy properly** using the Blueprint method which will:
+The `aliot-1` service is incomplete. You have two options:
 
-1. ✅ Configure SPA routing automatically
-2. ✅ Create both API and frontend services
-3. ✅ Link them with correct environment variables
-4. ✅ Set up the database
-5. ✅ Configure CORS properly
+### Recommended: Use render.yaml (Option 1 above)
+This will create a complete deployment with proper routing and API connection.
+
+### Alternative: Keep aliot-1 and add API manually (Option 2 above)
+Follow the manual steps to create the missing API service and configure aliot-1.
 
 ## Recommended Action
 
-**Delete the `aliot-1` service and use Option 1** (Blueprint deployment with render.yaml) for a clean, properly configured deployment with both services, routing, and environment variables set correctly.
+**Best option: Deploy using your render.yaml file (Option 1)**
+- Your project already has everything configured
+- All services will be created and linked automatically
+- Proper routing, environment variables, and CORS will be set up
+- Try Methods A, B, or C from Option 1 above
+
+**Alternative: Fix aliot-1 manually (Option 2 + Alternative)**
+- Requires more manual configuration
+- You'll need to create API service and update aliot-1
+- Follow the detailed steps in Option 2
+
+The render.yaml approach is much faster and less error-prone!
