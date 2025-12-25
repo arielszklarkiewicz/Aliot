@@ -1178,6 +1178,8 @@ body {
   line-height: 1.6;
   padding-left: 32px;
   font-weight: 500;
+  white-space: pre-wrap;
+  word-wrap: break-word;
 }
 
 /* Active Filters Display */
