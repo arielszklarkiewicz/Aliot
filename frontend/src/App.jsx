@@ -11,6 +11,7 @@ import ConceptsAdmin from './pages/ConceptsAdmin';
 import DestinationsAdmin from './pages/DestinationsAdmin';
 import CollectorsAdmin from './pages/CollectorsAdmin';
 import DonorBalances from './pages/DonorBalances';
+import './styles/GlobalStyles.css';
 
 export default function App() {
   return (
