@@ -39,11 +39,12 @@ export default function UsersAdmin() {
     
     try {
       if (isNew) {
+        const roleMap = { Admin: 1, DataEntry: 2, ReadOnly: 3 };
         await axios.post('/api/auth/users', {
           email: edit.email,
           password: edit.password,
           fullName: edit.fullName,
-          role: edit.role
+          role: roleMap[edit.role] || 2
         });
       } else {
         await axios.put(`/api/admin/users/${edit.id}`, {
