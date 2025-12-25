@@ -65,6 +65,19 @@
   --transition-fast: 150ms ease-in-out;
   --transition-normal: 250ms ease-in-out;
   --transition-slow: 350ms ease-in-out;
+  
+  /* Additional Semantic Tokens */
+  --color-primary: #2563eb;
+  --color-primary-dark: #1d4ed8;
+  --color-primary-light: #dbeafe;
+  --color-text: #1f2937;
+  --color-text-secondary: #6b7280;
+  --color-text-muted: #9ca3af;
+  --color-border: #e5e7eb;
+  --color-border-light: #f3f4f6;
+  --color-bg-secondary: #f9fafb;
+  --color-success: #10b981;
+  --color-danger: #ef4444;
 }
 
 /* ============================================
@@ -1071,7 +1084,7 @@ body {
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
   color: white;
   font-weight: 800;
   font-size: 22px;
@@ -1079,9 +1092,10 @@ body {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
   border: 3px solid white;
   letter-spacing: 1px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .donor-details {
