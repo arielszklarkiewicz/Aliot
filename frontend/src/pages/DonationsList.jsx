@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import axios from '../api/client';
 import DonorAutocomplete from '../components/DonorAutocomplete';
 import useDebounced from '../hooks/useDebounced';
+import '../styles/DonationsListImproved.css';
 
 export default function DonationsList() {
   const [items, setItems] = useState([]);
