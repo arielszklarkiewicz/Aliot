@@ -15,7 +15,7 @@ import './styles/GlobalStyles.css';
 
 export default function App() {
   return (
-    <div style={{padding:20}}>
+    <>
       <SystemMap />
       <Routes>
         <Route path="/" element={<Navigate to="/donations/list" replace />} />
@@ -30,6 +30,6 @@ export default function App() {
         <Route path="/donors/summary" element={<DonorSummary />} />
         <Route path="/reports/donor-balances" element={<DonorBalances />} />
       </Routes>
-    </div>
+    </>
   );
 }

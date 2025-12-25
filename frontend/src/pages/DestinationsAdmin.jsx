@@ -90,19 +90,17 @@ export default function DestinationsAdmin() {
   };
 
   return (
-    <div>
-      {/* Hero Section */}
-      <div className="page-hero">
-        <div className="page-hero-content">
-          <div className="page-hero-text">
-            <h1>Administrar Destinos</h1>
-            <p>Gestione los destinos de donaciones y pagos</p>
-          </div>
+    <div className="page-container">
+      <div className="hero-section">
+        <div className="hero-content">
+          <h1 className="hero-title">Administrar Destinos</h1>
+          <p className="hero-subtitle">Gestione los destinos de donaciones y pagos</p>
         </div>
       </div>
 
-      {/* Add New Section */}
-      <div className="form-container">
+      <div className="content-wrapper">
+        {/* Add New Section */}
+        <div className="form-section">
         <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
           <input 
             className="search-input"
@@ -146,6 +144,7 @@ export default function DestinationsAdmin() {
           </table>
         </div>
       )}
+      </div>
     </div>
   );
 }

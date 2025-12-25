@@ -93,21 +93,19 @@ export default function Donations() {
   };
 
   return (
-    <div>
-      {/* Hero Section */}
-      <div className="page-hero">
-        <div className="page-hero-content">
-          <div className="page-hero-text">
-            <h1>Nueva Donación</h1>
-            <p>Registre una nueva donación en el sistema</p>
-          </div>
+    <div className="page-container">
+      <div className="hero-section">
+        <div className="hero-content">
+          <h1 className="hero-title">Nueva Donación</h1>
+          <p className="hero-subtitle">Registre una nueva donación en el sistema</p>
         </div>
       </div>
 
-      {successMsg && <div className="alert alert-success" role="status">{successMsg}</div>}
-      {errorMsg && <div className="alert alert-error" role="alert">{errorMsg}</div>}
-      {/* Upper section: Fecha, Perashá, Minián, Destino */}
-      <div className="form-container">
+      <div className="content-wrapper">
+        {successMsg && <div className="alert success" role="status">{successMsg}</div>}
+        {errorMsg && <div className="alert danger" role="alert">{errorMsg}</div>}
+        {/* Upper section: Fecha, Perashá, Minián, Destino */}
+        <div className="form-container">
         <div className="form-grid">
           <div className="form-group">
             <label htmlFor="donation-date">Fecha</label>
@@ -148,6 +146,7 @@ export default function Donations() {
               <label style={{fontWeight:600, minWidth:100}}>Donante</label>
               <div style={{display:'flex', alignItems:'center', gap:8, minWidth:0, flex:1}}>
                 <DonorAutocomplete
+                  id="donor-autocomplete"
                   value={donorId}
                   onChange={(id, donor)=>{
                     setDonorId(id);
@@ -198,9 +197,11 @@ export default function Donations() {
               </div>
             </div>
             <button
+              type="button"
               className="btn btn-secondary"
               onClick={()=>setOpenCreateDonor(true)}
               style={{ whiteSpace:'nowrap' }}
+              aria-label="Crear nuevo donante"
             >
               Crear donante
             </button>
@@ -313,17 +314,19 @@ export default function Donations() {
             type="button"
             className="btn btn-success btn-lg"
             onClick={createDonation}
+            aria-label="Crear nueva donación"
           >
             Crear donación
           </button>
         </div>
-      </div>
+        </div>
 
-      <DonorCreateModal
-        open={openCreateDonor}
-        onClose={()=>setOpenCreateDonor(false)}
-        onCreated={(donor)=>{ setDonorId(donor.id); setSelectedDonorName(donor.fullName || `${donor.firstName}${donor.lastName ? ' ' + donor.lastName : ''}`); }}
-      />
+        <DonorCreateModal
+          open={openCreateDonor}
+          onClose={()=>setOpenCreateDonor(false)}
+          onCreated={(donor)=>{ setDonorId(donor.id); setSelectedDonorName(donor.fullName || `${donor.firstName}${donor.lastName ? ' ' + donor.lastName : ''}`); }}
+        />
+      </div>
     </div>
   );
 }

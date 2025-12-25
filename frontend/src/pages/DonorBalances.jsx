@@ -25,17 +25,15 @@ export default function DonorBalances() {
   const fmt = (n) => (n ?? 0).toLocaleString('es-AR');
 
   return (
-    <div>
-      {/* Hero Section */}
-      <div className="page-hero">
-        <div className="page-hero-content">
-          <div className="page-hero-text">
-            <h1>Saldos por Donante</h1>
-            <p>Balance de donaciones y pagos por donante</p>
-          </div>
+    <div className="page-container">
+      <div className="hero-section">
+        <div className="hero-content">
+          <h1 className="hero-title">Saldos por Donante</h1>
+          <p className="hero-subtitle">Balance de donaciones y pagos por donante</p>
         </div>
       </div>
 
+      <div className="content-wrapper">
       {loading && <div className="loading-state">Cargando saldos...</div>}
       {error && <div className="alert alert-error">{error}</div>}
 
@@ -88,6 +86,7 @@ export default function DonorBalances() {
           </table>
         </div>
       )}
+      </div>
     </div>
   );
 }

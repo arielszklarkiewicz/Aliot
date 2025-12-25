@@ -61,24 +61,21 @@ export default function DonorsAdmin() {
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   return (
-    <div>
-      {/* Hero Section */}
-      <div className="page-hero">
-        <div className="page-hero-content">
-          <div className="page-hero-text">
-            <h1>Administración de Donantes</h1>
-            <p>Gestione los donantes registrados en el sistema</p>
-          </div>
-          <div className="page-hero-actions">
-            <button className="btn btn-primary" onClick={startNew}>
-              <span>➕</span> Nuevo donante
-            </button>
-          </div>
+    <div className="page-container">
+      <div className="hero-section">
+        <div className="hero-content">
+          <h1 className="hero-title">Administración de Donantes</h1>
+          <p className="hero-subtitle">Gestione los donantes registrados en el sistema</p>
         </div>
+        <button className="btn btn-primary" onClick={startNew}>
+          <span>➕</span> Nuevo donante
+        </button>
       </div>
 
-      {/* Search and Filters */}
-      <div className="controls-bar">
+      <div className="content-wrapper">
+
+        {/* Search and Filters */}
+        <div className="controls-bar">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           <div className="search-bar" style={{ flex: 1, minWidth: 250, marginBottom: 0 }}>
             <input 
@@ -256,6 +253,7 @@ export default function DonorsAdmin() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

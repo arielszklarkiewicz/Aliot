@@ -130,11 +130,11 @@ export default function DonationsList() {
   const hasActiveFilters = donorId || destination || from || to || perasha || searchQuery || !includeOccasional;
 
   return (
-    <div className="donations-list-container">
-      <div className="donations-hero">
+    <div className="page-container">
+      <div className="hero-section">
         <div className="hero-content">
-          <h1 className="page-title">Listado de Donaciones</h1>
-          <p className="page-subtitle">Explore todas las donaciones registradas en el sistema</p>
+          <h1 className="hero-title">Listado de Donaciones</h1>
+          <p className="hero-subtitle">Explore todas las donaciones registradas en el sistema</p>
         </div>
         <button 
           className="button-primary cta-donate" 
@@ -148,7 +148,8 @@ export default function DonationsList() {
         </button>
       </div>
 
-      <div className="stats-cards" role="region" aria-label="Estadísticas de donaciones">
+      <div className="content-wrapper">
+        <div className="stats-cards" role="region" aria-label="Estadísticas de donaciones">
         <div className="stat-card">
           <div className="stat-icon" style={{ background: '#e7f5ff' }}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1971c2" strokeWidth="2">
@@ -481,6 +482,7 @@ export default function DonationsList() {
             {[10, 20, 50, 100].map(s => (<option key={s} value={s}>{s}</option>))}
           </select>
         </div>
+      </div>
       </div>
     </div>
   );

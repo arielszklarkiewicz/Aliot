@@ -293,12 +293,12 @@ export default function Payments() {
           </button>
         </div>
       </div>
-      <DonorCreateModal
-        open={openCreateDonor}
-        onClose={()=>setOpenCreateDonor(false)}
-        onCreated={(donor)=>{ setDonorId(donor.id); setSelectedDonorName(donor.fullName || `${donor.firstName}${donor.lastName ? ' ' + donor.lastName : ''}`); }}
-      />
-    </div>
+        <DonorCreateModal
+          open={openCreateDonor}
+          onClose={()=>setOpenCreateDonor(false)}
+          onCreated={(donor)=>{ setDonorId(donor.id); setSelectedDonorName(donor.fullName || `${donor.firstName}${donor.lastName ? ' ' + donor.lastName : ''}`); }}
+        />
+      </div>
     </div>
   );
 }
