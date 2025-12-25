@@ -32,6 +32,7 @@ export default function Login() {
           try {
             const { data } = await axios.post(`/api/auth/google`, { idToken: response.credential });
             localStorage.setItem('token', data.accessToken);
+            window.dispatchEvent(new Event('storage'));
             navigate('/donations');
           } catch (e) {
             setError('Google login failed');
@@ -48,6 +49,7 @@ export default function Login() {
     try {
       const { data } = await axios.post(`/api/auth/login`, { email, password });
       localStorage.setItem('token', data.accessToken);
+      window.dispatchEvent(new Event('storage'));
       navigate('/donations');
     } catch (err) {
       setError('Invalid login');

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
+import ProtectedRoute from './components/ProtectedRoute';
 import Login from './pages/Login';
 import Donations from './pages/Donations';
 import DonationsList from './pages/DonationsList';
@@ -18,17 +19,17 @@ export default function App() {
     <>
       <SystemMap />
       <Routes>
-        <Route path="/" element={<Navigate to="/donations/list" replace />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/donations" element={<Donations />} />
-        <Route path="/donations/list" element={<DonationsList />} />
-        <Route path="/payments" element={<Payments />} />
-        <Route path="/admin/donors" element={<DonorsAdmin />} />
-        <Route path="/admin/concepts" element={<ConceptsAdmin />} />
-        <Route path="/admin/destinations" element={<DestinationsAdmin />} />
-        <Route path="/admin/collectors" element={<CollectorsAdmin />} />
-        <Route path="/donors/summary" element={<DonorSummary />} />
-        <Route path="/reports/donor-balances" element={<DonorBalances />} />
+        <Route path="/" element={<ProtectedRoute><Navigate to="/donations/list" replace /></ProtectedRoute>} />
+        <Route path="/donations" element={<ProtectedRoute><Donations /></ProtectedRoute>} />
+        <Route path="/donations/list" element={<ProtectedRoute><DonationsList /></ProtectedRoute>} />
+        <Route path="/payments" element={<ProtectedRoute><Payments /></ProtectedRoute>} />
+        <Route path="/admin/donors" element={<ProtectedRoute><DonorsAdmin /></ProtectedRoute>} />
+        <Route path="/admin/concepts" element={<ProtectedRoute><ConceptsAdmin /></ProtectedRoute>} />
+        <Route path="/admin/destinations" element={<ProtectedRoute><DestinationsAdmin /></ProtectedRoute>} />
+        <Route path="/admin/collectors" element={<ProtectedRoute><CollectorsAdmin /></ProtectedRoute>} />
+        <Route path="/donors/summary" element={<ProtectedRoute><DonorSummary /></ProtectedRoute>} />
+        <Route path="/reports/donor-balances" element={<ProtectedRoute><DonorBalances /></ProtectedRoute>} />
       </Routes>
     </>
   );

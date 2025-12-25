@@ -1,8 +1,10 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
 
 export default function SystemMap() {
   const loc = useLocation();
+  const { isAuthenticated, logout } = useAuth();
   const isActive = (path) => loc.pathname === path;
 
   const baseLinkStyle = {
@@ -31,27 +33,46 @@ export default function SystemMap() {
 
   return (
     <nav aria-label="Mapa del sistema" style={{display:'flex', flexWrap:'wrap', gap:12, alignItems:'flex-start', borderBottom:'1px solid var(--border)', paddingBottom:12, marginBottom:18}}>
-      <div className="nav-group" style={{display:'flex', alignItems:'center', gap:8, flexWrap:'wrap'}}>
-        <span className="nav-label pill" style={{fontSize:12, fontWeight:700, letterSpacing:.4, textTransform:'uppercase', color:'var(--muted)', padding:'6px 10px', border:'1px solid var(--border)', borderRadius:999}}>General</span>
-        <Link to="/donations" style={linkStyle('/donations')}>Donaciones</Link>
-        <Link to="/payments" style={linkStyle('/payments')}>Pagos</Link>
-        <Link to="/donors/summary" style={linkStyle('/donors/summary')}>Resumen de donante</Link>
-        <Link to="/donations/list" style={linkStyle('/donations/list')}>Listado de donaciones</Link>
-        <Link to="/reports/donor-balances" style={linkStyle('/reports/donor-balances')}>Saldos por Donante</Link>
-      </div>
+      {isAuthenticated && (
+        <>
+          <div className="nav-group" style={{display:'flex', alignItems:'center', gap:8, flexWrap:'wrap'}}>
+            <span className="nav-label pill" style={{fontSize:12, fontWeight:700, letterSpacing:.4, textTransform:'uppercase', color:'var(--muted)', padding:'6px 10px', border:'1px solid var(--border)', borderRadius:999}}>General</span>
+            <Link to="/donations" style={linkStyle('/donations')}>Donaciones</Link>
+            <Link to="/payments" style={linkStyle('/payments')}>Pagos</Link>
+            <Link to="/donors/summary" style={linkStyle('/donors/summary')}>Resumen de donante</Link>
+            <Link to="/donations/list" style={linkStyle('/donations/list')}>Listado de donaciones</Link>
+            <Link to="/reports/donor-balances" style={linkStyle('/reports/donor-balances')}>Saldos por Donante</Link>
+          </div>
 
-      <div aria-hidden="true" style={{flexBasis:'100%', height:0}} />
+          <div aria-hidden="true" style={{flexBasis:'100%', height:0}} />
 
-      <div className="nav-group" style={{display:'flex', alignItems:'center', gap:8, flexWrap:'wrap'}}>
-        <span className="nav-label pill" style={{fontSize:12, fontWeight:700, letterSpacing:.4, textTransform:'uppercase', color:'var(--muted)', padding:'6px 10px', border:'1px solid var(--border)', borderRadius:999}}>Administración</span>
-        <Link to="/admin/donors" style={linkStyle('/admin/donors')}>Donantes</Link>
-        <Link to="/admin/concepts" style={linkStyle('/admin/concepts')}>Conceptos</Link>
-        <Link to="/admin/destinations" style={linkStyle('/admin/destinations')}>Destinos</Link>
-        <Link to="/admin/collectors" style={linkStyle('/admin/collectors')}>Cobradores</Link>
-      </div>
+          <div className="nav-group" style={{display:'flex', alignItems:'center', gap:8, flexWrap:'wrap'}}>
+            <span className="nav-label pill" style={{fontSize:12, fontWeight:700, letterSpacing:.4, textTransform:'uppercase', color:'var(--muted)', padding:'6px 10px', border:'1px solid var(--border)', borderRadius:999}}>Administración</span>
+            <Link to="/admin/donors" style={linkStyle('/admin/donors')}>Donantes</Link>
+            <Link to="/admin/concepts" style={linkStyle('/admin/concepts')}>Conceptos</Link>
+            <Link to="/admin/destinations" style={linkStyle('/admin/destinations')}>Destinos</Link>
+            <Link to="/admin/collectors" style={linkStyle('/admin/collectors')}>Cobradores</Link>
+          </div>
+        </>
+      )}
 
       <div style={{marginLeft:'auto', display:'flex', gap:8}}>
-        <Link to="/login" style={linkStyle('/login')}>Ingresar</Link>
+        {isAuthenticated ? (
+          <button 
+            onClick={logout}
+            style={{
+              ...baseLinkStyle,
+              background: '#fff1f0',
+              border: '1px solid #ffccc7',
+              color: '#cf1322',
+              cursor: 'pointer'
+            }}
+          >
+            Cerrar Sesión
+          </button>
+        ) : (
+          <Link to="/login" style={linkStyle('/login')}>Ingresar</Link>
+        )}
       </div>
     </nav>
   );
