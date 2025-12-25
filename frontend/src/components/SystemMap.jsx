@@ -6,8 +6,10 @@ import { useCurrentUser } from '../hooks/useCurrentUser';
 export default function SystemMap() {
   const loc = useLocation();
   const { isAuthenticated, logout } = useAuth();
-  const { isAdmin } = useCurrentUser();
+  const { user, isAdmin, loading } = useCurrentUser();
   const isActive = (path) => loc.pathname === path;
+
+  const showAdminLinks = !loading && (isAdmin || user?.role === 'Admin');
 
   const baseLinkStyle = {
     padding: '8px 12px',
@@ -51,7 +53,7 @@ export default function SystemMap() {
           <div className="nav-group" style={{display:'flex', alignItems:'center', gap:8, flexWrap:'wrap'}}>
             <span className="nav-label pill" style={{fontSize:12, fontWeight:700, letterSpacing:.4, textTransform:'uppercase', color:'var(--muted)', padding:'6px 10px', border:'1px solid var(--border)', borderRadius:999}}>Administración</span>
             <Link to="/admin/donors" style={linkStyle('/admin/donors')}>Donantes</Link>
-            {isAdmin && (
+            {showAdminLinks && (
               <>
                 <Link to="/admin/concepts" style={linkStyle('/admin/concepts')}>Conceptos</Link>
                 <Link to="/admin/destinations" style={linkStyle('/admin/destinations')}>Destinos</Link>
@@ -66,7 +68,7 @@ export default function SystemMap() {
       <div style={{marginLeft:'auto', display:'flex', gap:8}}>
         {isAuthenticated ? (
           <>
-            {isAdmin && <Link to="/admin/users" style={linkStyle('/admin/users')}>👤 Usuarios</Link>}
+            {showAdminLinks && <Link to="/admin/users" style={linkStyle('/admin/users')}>👤 Usuarios</Link>}
             <button 
               onClick={logout}
               style={{
