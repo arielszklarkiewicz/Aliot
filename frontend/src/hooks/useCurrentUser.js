@@ -9,10 +9,12 @@ export function useCurrentUser() {
     const fetchUser = async () => {
       const token = localStorage.getItem('token');
       if (!token) {
+        setUser(null);
         setLoading(false);
         return;
       }
 
+      setLoading(true);
       try {
         const { data } = await axios.get('/api/auth/me');
         setUser(data);
@@ -25,6 +27,12 @@ export function useCurrentUser() {
     };
 
     fetchUser();
+    
+    // Re-fetch when storage event fires (after login)
+    const handleStorageChange = () => fetchUser();
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   const isAdmin = user?.role === 'Admin';

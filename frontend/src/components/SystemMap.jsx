@@ -9,7 +9,7 @@ export default function SystemMap() {
   const { user, isAdmin, loading } = useCurrentUser();
   const isActive = (path) => loc.pathname === path;
 
-  const showAdminLinks = !loading && (isAdmin || user?.role === 'Admin');
+  const showAdminLinks = !loading && isAdmin;
 
   const baseLinkStyle = {
     padding: '8px 12px',
