@@ -39,6 +39,29 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
             ClockSkew = TimeSpan.Zero
         };
+        
+        // Handle authentication failures
+        options.Events = new JwtBearerEvents
+        {
+            OnChallenge = context =>
+            {
+                context.HandleResponse();
+                
+                // Check if this is an API request
+                if (context.Request.Path.StartsWithSegments("/api"))
+                {
+                    context.Response.StatusCode = 401;
+                    context.Response.ContentType = "application/json";
+                    return context.Response.WriteAsJsonAsync(new { error = "Unauthorized", message = "Please login to access this resource" });
+                }
+                else
+                {
+                    // For non-API requests, redirect to login
+                    context.Response.Redirect("/login");
+                    return Task.CompletedTask;
+                }
+            }
+        };
     });
 
 builder.Services.AddAuthorization();
@@ -99,8 +122,8 @@ using (var scope = app.Services.CreateScope())
         if (!hasUsers)
         {
             logger.LogInformation("No users found. Creating default admin user...");
-            await authService.CreateUserAsync("admin", "admin123", UserRole.Admin, "System Administrator", "admin@donaciones.local");
-            logger.LogInformation("Default admin user created: username='admin', password='admin123' (CHANGE THIS!)");
+            await authService.CreateUserAsync("admin@admin.com", "admin123", UserRole.Admin, "System Administrator");
+            logger.LogInformation("Default admin user created: email='admin@admin.com', password='admin123' (CHANGE THIS!)");
         }
     } 
     catch (Exception ex) 
@@ -117,7 +140,7 @@ using (var scope = app.Services.CreateScope())
             if (!hasUsers)
             {
                 logger.LogInformation("Creating default admin user for in-memory database...");
-                await authService.CreateUserAsync("admin", "admin123", UserRole.Admin, "System Administrator", "admin@donaciones.local");
+                await authService.CreateUserAsync("admin@admin.com", "admin123", UserRole.Admin, "System Administrator");
             }
         }
     }
@@ -200,7 +223,7 @@ app.MapGet("/api/lookups", async (AppDbContext db, CancellationToken ct) =>
 // Auth endpoints
 app.MapPost("/api/auth/login", async (IAuthService authService, LoginCredentials req) =>
 {
-    var result = await authService.AuthenticateAsync(req.Username, req.Password);
+    var result = await authService.AuthenticateAsync(req.Email, req.Password);
     
     if (result == null)
         return Results.Unauthorized();
@@ -215,9 +238,8 @@ app.MapPost("/api/auth/login", async (IAuthService authService, LoginCredentials
         User = new UserInfo
         {
             Id = user.Id,
-            Username = user.Username,
-            FullName = user.FullName ?? user.Username,
             Email = user.Email,
+            FullName = user.FullName ?? user.Email,
             Role = user.Role.ToString(),
             Permissions = user.Role.GetPermissions().Select(p => p.ToString()).ToArray()
         }
@@ -233,13 +255,12 @@ app.MapPost("/api/auth/users", async (IAuthService authService, CreateUserReques
 {
     try
     {
-        var user = await authService.CreateUserAsync(req.Username, req.Password, req.Role, req.FullName, req.Email);
+        var user = await authService.CreateUserAsync(req.Email, req.Password, req.Role, req.FullName);
         return Results.Created($"/api/auth/users/{user.Id}", new
         {
             user.Id,
-            user.Username,
-            user.FullName,
             user.Email,
+            user.FullName,
             Role = user.Role.ToString(),
             user.IsActive
         });
@@ -283,9 +304,8 @@ app.MapGet("/api/auth/me", async (IAuthService authService, HttpContext httpCont
     return Results.Ok(new UserInfo
     {
         Id = user.Id,
-        Username = user.Username,
-        FullName = user.FullName ?? user.Username,
         Email = user.Email,
+        FullName = user.FullName ?? user.Email,
         Role = user.Role.ToString(),
         Permissions = user.Role.GetPermissions().Select(p => p.ToString()).ToArray()
     });

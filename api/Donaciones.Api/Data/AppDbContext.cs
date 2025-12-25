@@ -23,15 +23,14 @@ public class AppDbContext : DbContext
             e.ToTable("users");
             e.HasKey(x => x.Id);
             e.Property(x => x.Id).HasColumnName("id");
-            e.Property(x => x.Username).HasColumnName("username").IsRequired();
+            e.Property(x => x.Email).HasColumnName("email").IsRequired();
             e.Property(x => x.PasswordHash).HasColumnName("password_hash").IsRequired();
             e.Property(x => x.FullName).HasColumnName("full_name");
-            e.Property(x => x.Email).HasColumnName("email");
             e.Property(x => x.Role).HasColumnName("role").IsRequired();
             e.Property(x => x.IsActive).HasColumnName("is_active").HasDefaultValue(true);
             e.Property(x => x.CreatedAt).HasColumnName("created_at");
             e.Property(x => x.UpdatedAt).HasColumnName("updated_at");
-            e.HasIndex(x => x.Username).IsUnique();
+            e.HasIndex(x => x.Email).IsUnique();
         });
 
         // Donor

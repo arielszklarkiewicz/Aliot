@@ -11,8 +11,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Donaciones.Api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20251225152648_AddUserAuthentication")]
-    partial class AddUserAuthentication
+    [Migration("20251225153811_AddUserAuthenticationWithEmail")]
+    partial class AddUserAuthenticationWithEmail
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -169,6 +169,7 @@ namespace Donaciones.Api.Migrations
                         .HasColumnName("created_at");
 
                     b.Property<string>("Email")
+                        .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("email");
 
@@ -195,14 +196,9 @@ namespace Donaciones.Api.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
-                    b.Property<string>("Username")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("username");
-
                     b.HasKey("Id");
 
-                    b.HasIndex("Username")
+                    b.HasIndex("Email")
                         .IsUnique();
 
                     b.ToTable("users", (string)null);

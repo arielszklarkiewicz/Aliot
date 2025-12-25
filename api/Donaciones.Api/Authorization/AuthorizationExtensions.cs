@@ -50,6 +50,6 @@ public static class AuthorizationExtensions
 
     public static string? GetUsername(this ClaimsPrincipal user)
     {
-        return user.FindFirst(ClaimTypes.Name)?.Value;
+        return user.FindFirst(ClaimTypes.Email)?.Value;
     }
 }

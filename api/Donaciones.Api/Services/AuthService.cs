@@ -21,14 +21,14 @@ public class AuthService : IAuthService
         _logger = logger;
     }
 
-    public async Task<(string Token, User User)?> AuthenticateAsync(string username, string password, CancellationToken ct = default)
+    public async Task<(string Token, User User)?> AuthenticateAsync(string email, string password, CancellationToken ct = default)
     {
-        if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
+        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
             return null;
 
         var user = await _db.Users
             .AsNoTracking()
-            .FirstOrDefaultAsync(u => u.Username == username, ct);
+            .FirstOrDefaultAsync(u => u.Email.ToLower() == email.ToLower(), ct);
 
         if (user == null || !user.IsActive)
             return null;
@@ -47,29 +47,28 @@ public class AuthService : IAuthService
 
     public async Task<User?> GetUserByUsernameAsync(string username, CancellationToken ct = default)
     {
-        return await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Username == username, ct);
+        return await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Email == username, ct);
     }
 
-    public async Task<User> CreateUserAsync(string username, string password, UserRole role, string? fullName = null, string? email = null, CancellationToken ct = default)
+    public async Task<User> CreateUserAsync(string email, string password, UserRole role, string? fullName = null, string? unusedEmail = null, CancellationToken ct = default)
     {
-        if (string.IsNullOrWhiteSpace(username))
-            throw new ArgumentException("Username is required", nameof(username));
+        if (string.IsNullOrWhiteSpace(email))
+            throw new ArgumentException("Email is required", nameof(email));
 
         if (string.IsNullOrWhiteSpace(password))
             throw new ArgumentException("Password is required", nameof(password));
 
-        var existingUser = await _db.Users.FirstOrDefaultAsync(u => u.Username == username, ct);
+        var existingUser = await _db.Users.FirstOrDefaultAsync(u => u.Email.ToLower() == email.ToLower(), ct);
         if (existingUser != null)
-            throw new InvalidOperationException("Username already exists");
+            throw new InvalidOperationException("Email already exists");
 
         var user = new User
         {
             Id = Guid.NewGuid(),
-            Username = username,
+            Email = email.ToLower(),
             PasswordHash = HashPassword(password),
             Role = role,
             FullName = fullName,
-            Email = email,
             IsActive = true,
             CreatedAt = DateTimeOffset.UtcNow
         };
@@ -77,7 +76,7 @@ public class AuthService : IAuthService
         _db.Users.Add(user);
         await _db.SaveChangesAsync(ct);
 
-        _logger.LogInformation("User created: {Username} with role {Role}", username, role);
+        _logger.LogInformation("User created: {Email} with role {Role}", email, role);
         return user;
     }
 
@@ -94,7 +93,7 @@ public class AuthService : IAuthService
         user.UpdatedAt = DateTimeOffset.UtcNow;
         await _db.SaveChangesAsync(ct);
 
-        _logger.LogInformation("Password changed for user: {Username}", user.Username);
+        _logger.LogInformation("Password changed for user: {Email}", user.Email);
         return true;
     }
 
@@ -105,7 +104,8 @@ public class AuthService : IAuthService
             return null;
 
         user.FullName = fullName;
-        user.Email = email;
+        if (!string.IsNullOrWhiteSpace(email))
+            user.Email = email.ToLower();
         user.UpdatedAt = DateTimeOffset.UtcNow;
         await _db.SaveChangesAsync(ct);
 
@@ -122,7 +122,7 @@ public class AuthService : IAuthService
         user.UpdatedAt = DateTimeOffset.UtcNow;
         await _db.SaveChangesAsync(ct);
 
-        _logger.LogInformation("User {Username} active status set to: {IsActive}", user.Username, isActive);
+        _logger.LogInformation("User {Email} active status set to: {IsActive}", user.Email, isActive);
         return true;
     }
 
@@ -141,10 +141,9 @@ public class AuthService : IAuthService
         var claims = new[]
         {
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new Claim(ClaimTypes.Name, user.Username),
+            new Claim(ClaimTypes.Email, user.Email),
             new Claim(ClaimTypes.Role, user.Role.ToString()),
-            new Claim("fullName", user.FullName ?? user.Username),
-            new Claim("email", user.Email ?? string.Empty)
+            new Claim("fullName", user.FullName ?? user.Email)
         };
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret));

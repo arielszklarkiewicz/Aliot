@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Donaciones.Api.Migrations
 {
     /// <inheritdoc />
-    public partial class AddUserAuthentication : Migration
+    public partial class AddUserAuthenticationWithEmail : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -16,10 +16,9 @@ namespace Donaciones.Api.Migrations
                 columns: table => new
                 {
                     id = table.Column<Guid>(type: "uuid", nullable: false),
-                    username = table.Column<string>(type: "text", nullable: false),
+                    email = table.Column<string>(type: "text", nullable: false),
                     password_hash = table.Column<string>(type: "text", nullable: false),
                     full_name = table.Column<string>(type: "text", nullable: true),
-                    email = table.Column<string>(type: "text", nullable: true),
                     role = table.Column<int>(type: "integer", nullable: false),
                     is_active = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true),
                     created_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
@@ -31,9 +30,9 @@ namespace Donaciones.Api.Migrations
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_users_username",
+                name: "IX_users_email",
                 table: "users",
-                column: "username",
+                column: "email",
                 unique: true);
         }
 
