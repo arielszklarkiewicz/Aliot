@@ -97,6 +97,20 @@ public class AuthService : IAuthService
         return true;
     }
 
+    public async Task<bool> AdminChangePasswordAsync(Guid userId, string newPassword, CancellationToken ct = default)
+    {
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId, ct);
+        if (user == null)
+            return false;
+
+        user.PasswordHash = HashPassword(newPassword);
+        user.UpdatedAt = DateTimeOffset.UtcNow;
+        await _db.SaveChangesAsync(ct);
+
+        _logger.LogInformation("Password changed by admin for user: {Email}", user.Email);
+        return true;
+    }
+
     public async Task<User?> UpdateUserAsync(Guid userId, string? fullName, string? email, CancellationToken ct = default)
     {
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId, ct);
@@ -124,6 +138,34 @@ public class AuthService : IAuthService
 
         _logger.LogInformation("User {Email} active status set to: {IsActive}", user.Email, isActive);
         return true;
+    }
+
+    public async Task<bool> DeleteUserAsync(Guid userId, CancellationToken ct = default)
+    {
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId, ct);
+        if (user == null)
+            return false;
+
+        _db.Users.Remove(user);
+        await _db.SaveChangesAsync(ct);
+
+        _logger.LogInformation("User deleted: {Email}", user.Email);
+        return true;
+    }
+
+    public async Task<(List<User> Users, int Total)> ListUsersAsync(int page = 1, int pageSize = 20, CancellationToken ct = default)
+    {
+        var query = _db.Users.AsNoTracking();
+
+        var total = await query.CountAsync(ct);
+
+        var users = await query
+            .OrderBy(u => u.Email)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(ct);
+
+        return (users, total);
     }
 
     private string GenerateJwtToken(User user)

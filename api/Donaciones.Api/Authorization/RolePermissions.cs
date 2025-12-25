@@ -33,6 +33,9 @@ public static class RolePermissions
             Permission.ViewCollectors,
             Permission.ManageCollectors,
             
+            Permission.ViewUsers,
+            Permission.ManageUsers,
+            
             Permission.ViewReports,
             Permission.ViewDonorSummary
         },

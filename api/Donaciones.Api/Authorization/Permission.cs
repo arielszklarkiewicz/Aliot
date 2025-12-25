@@ -30,6 +30,10 @@ public enum Permission
     ViewCollectors,
     ManageCollectors,
     
+    // User management
+    ViewUsers,
+    ManageUsers,
+    
     // Reports
     ViewReports,
     

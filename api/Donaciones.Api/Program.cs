@@ -251,6 +251,46 @@ app.MapPost("/api/auth/login", async (IAuthService authService, LoginCredentials
 .WithOpenApi();
 
 // User management endpoints (Admin only)
+app.MapGet("/api/admin/users", async (IAuthService authService, int page = 1, int pageSize = 20, CancellationToken ct = default) =>
+{
+    var (users, total) = await authService.ListUsersAsync(page, pageSize, ct);
+    var items = users.Select(u => new
+    {
+        u.Id,
+        u.Email,
+        u.FullName,
+        Role = u.Role.ToString(),
+        u.IsActive,
+        u.CreatedAt,
+        u.UpdatedAt
+    });
+    return Results.Ok(new { items, total, page, pageSize });
+})
+.RequirePermission(Permission.ViewUsers)
+.WithName("ListUsers")
+.WithOpenApi();
+
+app.MapGet("/api/admin/users/{id:guid}", async (IAuthService authService, Guid id, CancellationToken ct) =>
+{
+    var user = await authService.GetUserByIdAsync(id, ct);
+    if (user == null)
+        return Results.NotFound();
+    
+    return Results.Ok(new
+    {
+        user.Id,
+        user.Email,
+        user.FullName,
+        Role = user.Role.ToString(),
+        user.IsActive,
+        user.CreatedAt,
+        user.UpdatedAt
+    });
+})
+.RequirePermission(Permission.ViewUsers)
+.WithName("GetUser")
+.WithOpenApi();
+
 app.MapPost("/api/auth/users", async (IAuthService authService, CreateUserRequest req) =>
 {
     try
@@ -274,8 +314,72 @@ app.MapPost("/api/auth/users", async (IAuthService authService, CreateUserReques
         return Results.BadRequest(new { error = ex.Message });
     }
 })
-.RequirePermission(Permission.ManageConcepts) // Only admins can create users
+.RequirePermission(Permission.ManageUsers)
 .WithName("CreateUser")
+.WithOpenApi();
+
+app.MapPut("/api/admin/users/{id:guid}", async (IAuthService authService, Guid id, UpdateUserRequest req, CancellationToken ct) =>
+{
+    var user = await authService.UpdateUserAsync(id, req.FullName, null, ct);
+    if (user == null)
+        return Results.NotFound();
+    
+    return Results.Ok(new
+    {
+        user.Id,
+        user.Email,
+        user.FullName,
+        Role = user.Role.ToString(),
+        user.IsActive
+    });
+})
+.RequirePermission(Permission.ManageUsers)
+.WithName("UpdateUser")
+.WithOpenApi();
+
+app.MapPost("/api/admin/users/{id:guid}/change-password", async (IAuthService authService, Guid id, AdminChangePasswordRequest req, CancellationToken ct) =>
+{
+    if (id != req.UserId)
+        return Results.BadRequest(new { error = "User ID mismatch" });
+    
+    var success = await authService.AdminChangePasswordAsync(req.UserId, req.NewPassword, ct);
+    if (!success)
+        return Results.NotFound();
+    
+    return Results.Ok(new { message = "Password changed successfully" });
+})
+.RequirePermission(Permission.ManageUsers)
+.WithName("AdminChangePassword")
+.WithOpenApi();
+
+app.MapPost("/api/admin/users/{id:guid}/toggle-active", async (IAuthService authService, Guid id, CancellationToken ct) =>
+{
+    var user = await authService.GetUserByIdAsync(id, ct);
+    if (user == null)
+        return Results.NotFound();
+    
+    var success = await authService.SetUserActiveStatusAsync(id, !user.IsActive, ct);
+    return Results.Ok(new { isActive = !user.IsActive, message = $"User {(user.IsActive ? "deactivated" : "activated")} successfully" });
+})
+.RequirePermission(Permission.ManageUsers)
+.WithName("ToggleUserActive")
+.WithOpenApi();
+
+app.MapDelete("/api/admin/users/{id:guid}", async (IAuthService authService, HttpContext httpContext, Guid id, CancellationToken ct) =>
+{
+    // Prevent deleting yourself
+    var currentUserId = httpContext.User.GetUserId();
+    if (currentUserId == id)
+        return Results.BadRequest(new { error = "Cannot delete your own account" });
+    
+    var success = await authService.DeleteUserAsync(id, ct);
+    if (!success)
+        return Results.NotFound();
+    
+    return Results.NoContent();
+})
+.RequirePermission(Permission.ManageUsers)
+.WithName("DeleteUser")
 .WithOpenApi();
 
 app.MapPost("/api/auth/change-password", async (IAuthService authService, HttpContext httpContext, ChangePasswordRequest req) =>
