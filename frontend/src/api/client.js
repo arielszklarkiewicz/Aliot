@@ -17,8 +17,15 @@ instance.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      window.location.href = '/login';
+      // Only redirect if user is already logged in (has token) and gets 401
+      // Don't redirect on login failures
+      const isLoginRequest = error.config?.url?.includes('/api/auth/login');
+      const hasToken = localStorage.getItem('token');
+      
+      if (hasToken && !isLoginRequest) {
+        localStorage.removeItem('token');
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }

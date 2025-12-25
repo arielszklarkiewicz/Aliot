@@ -29,13 +29,14 @@ export default function Login() {
       window.google.accounts.id.initialize({
         client_id: googleClientId,
         callback: async (response) => {
+          setError(''); // Clear previous errors
           try {
             const { data } = await axios.post(`/api/auth/google`, { idToken: response.credential });
             localStorage.setItem('token', data.accessToken);
             window.dispatchEvent(new Event('storage'));
             navigate('/donations');
           } catch (e) {
-            setError('Google login failed');
+            setError('Error al iniciar sesión con Google. Intente nuevamente');
           }
         },
         ux_mode: 'popup'
@@ -46,13 +47,20 @@ export default function Login() {
 
   const onSubmit = async (e) => {
     e.preventDefault();
+    setError(''); // Clear previous errors
     try {
       const { data } = await axios.post(`/api/auth/login`, { email, password });
       localStorage.setItem('token', data.accessToken);
       window.dispatchEvent(new Event('storage'));
       navigate('/donations');
     } catch (err) {
-      setError('Invalid login');
+      if (err.response?.status === 401) {
+        setError('Email o contraseña incorrectos');
+      } else if (err.response?.status === 403) {
+        setError('Cuenta desactivada. Contacte al administrador');
+      } else {
+        setError('Error al intentar iniciar sesión. Intente nuevamente');
+      }
     }
   };
   return (
