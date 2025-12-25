@@ -136,7 +136,10 @@ export default function Navigation() {
                   key={item.path}
                   to={item.path}
                   className={`nav-item ${isActive(item.path) ? 'active' : ''}`}
-                  onClick={() => setMobileMenuOpen(false)}
+                  onClick={(e) => {
+                    console.log('Navigation clicked:', item.path);
+                    setMobileMenuOpen(false);
+                  }}
                 >
                   <span className="item-icon">{item.icon}</span>
                   <span className="item-label">{item.label}</span>

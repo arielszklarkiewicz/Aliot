@@ -12,6 +12,7 @@ export default function DonationsList() {
 
   const [donorId, setDonorId] = useState('');
   const [destination, setDestination] = useState('');
+  const [minian, setMinian] = useState('');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [perasha, setPerasha] = useState('');
@@ -24,23 +25,33 @@ export default function DonationsList() {
   const debouncedSearch = useDebounced(searchQuery, 400);
 
   const [perashaSuggestions, setPerashaSuggestions] = useState([]);
-  const [lookups, setLookups] = useState({ destinations: [] });
+  const [lookups, setLookups] = useState({ destinations: [], minian: [] });
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showFilters, setShowFilters] = useState(false);
 
   const stats = useMemo(() => {
-    const totalAmount = items.reduce((sum, item) => {
+    const totals = items.reduce((acc, item) => {
+      if (item.matana) return acc;
       const amount = typeof item.amount === 'number' ? item.amount : 0;
-      return sum + amount;
-    }, 0);
-    return { totalAmount, donationCount: items.length };
+      const currency = (item.currency || '').toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+      
+      if (currency === 'dolares' || currency === 'usd' || currency === 'dolares estadounidenses' || currency === 'u$s' || currency === 'us$') {
+        acc.totalDolares += amount;
+      } else if (currency === 'pesos') {
+        acc.totalPesos += amount;
+      }
+      
+      return acc;
+    }, { totalPesos: 0, totalDolares: 0 });
+    
+    return { ...totals, donationCount: items.length };
   }, [items]);
 
   useEffect(() => {
     axios.get('/api/lookups').then(r => {
-      setLookups({ destinations: r.data.destinations || [] });
+      setLookups({ destinations: r.data.destinations || [], minian: r.data.minian || [] });
     }).catch(() => {});
   }, []);
 
@@ -58,6 +69,7 @@ export default function DonationsList() {
         page,
         pageSize,
         destination: destination || undefined,
+        minian: minian || undefined,
         donorId: donorId || undefined,
         isOccasionalDonor: includeOccasional ? undefined : false,
         from: from || undefined,
@@ -113,11 +125,12 @@ export default function DonationsList() {
 
   useEffect(() => { 
     load(); 
-  }, [page, pageSize, donorId, destination, from, to, debouncedPerasha, includeOccasional, debouncedSearch, sortBy, sortOrder]);
+  }, [page, pageSize, donorId, destination, minian, from, to, debouncedPerasha, includeOccasional, debouncedSearch, sortBy, sortOrder]);
 
   const clearFilters = () => {
     setDonorId(''); 
     setDestination(''); 
+    setMinian('');
     setFrom(''); 
     setTo(''); 
     setPerasha(''); 
@@ -127,7 +140,7 @@ export default function DonationsList() {
   };
 
   const totalPages = Math.max(1, Math.ceil((total || 0) / pageSize));
-  const hasActiveFilters = donorId || destination || from || to || perasha || searchQuery || !includeOccasional;
+  const hasActiveFilters = donorId || destination || minian || from || to || perasha || searchQuery || !includeOccasional;
 
   return (
     <div className="page-container">
@@ -159,7 +172,23 @@ export default function DonationsList() {
           </div>
           <div className="stat-content">
             <div className="stat-label">Total Recaudado</div>
-            <div className="stat-value">${new Intl.NumberFormat('es-AR').format(Math.round(stats.totalAmount))}</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              {stats.totalPesos > 0 && (
+                <div className="stat-value" style={{ fontSize: '1.25rem' }}>
+                  <span style={{ color: '#1971c2' }}>$</span> {new Intl.NumberFormat('es-AR').format(Math.round(stats.totalPesos))}
+                  <span style={{ fontSize: '0.875rem', color: '#666', marginLeft: '6px' }}>Pesos</span>
+                </div>
+              )}
+              {stats.totalDolares > 0 && (
+                <div className="stat-value" style={{ fontSize: '1.25rem' }}>
+                  <span style={{ color: '#16a34a' }}>U$S</span> {new Intl.NumberFormat('es-AR').format(Math.round(stats.totalDolares))}
+                  <span style={{ fontSize: '0.875rem', color: '#666', marginLeft: '6px' }}>Dólares</span>
+                </div>
+              )}
+              {stats.totalPesos === 0 && stats.totalDolares === 0 && (
+                <div className="stat-value">$0</div>
+              )}
+            </div>
           </div>
         </div>
         
@@ -230,7 +259,7 @@ export default function DonationsList() {
             <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
           </svg>
           Filtros
-          {hasActiveFilters && <span className="filter-badge">{[donorId, destination, from, to, perasha, searchQuery, !includeOccasional].filter(Boolean).length}</span>}
+          {hasActiveFilters && <span className="filter-badge">{[donorId, destination, minian, from, to, perasha, searchQuery, !includeOccasional].filter(Boolean).length}</span>}
         </button>
 
         <div className="sort-controls">
@@ -317,6 +346,19 @@ export default function DonationsList() {
               >
                 <option value="">Todos</option>
                 {lookups.destinations.map(d => (<option key={d} value={d}>{d}</option>))}
+              </select>
+            </div>
+            
+            <div className="filter-field">
+              <label htmlFor="minian-filter">Minián</label>
+              <select 
+                id="minian-filter"
+                value={minian} 
+                onChange={e => { setMinian(e.target.value); setPage(1); }}
+                aria-label="Filtrar por Minián"
+              >
+                <option value="">Todos</option>
+                {lookups.minian.map(m => (<option key={m} value={m}>{m}</option>))}
               </select>
             </div>
             
@@ -411,7 +453,11 @@ export default function DonationsList() {
                       {d.donorName || '—'}
                     </td>
                     <td data-label="Monto" className="amount-cell">
-                      {typeof d.amount === 'number' ? new Intl.NumberFormat('es-AR').format(Math.round(d.amount)) : d.amount}
+                      {d.matana ? (
+                        <span style={{ fontWeight: 600, color: '#722ed1' }}>Matana</span>
+                      ) : (
+                        typeof d.amount === 'number' ? new Intl.NumberFormat('es-AR').format(Math.round(d.amount)) : d.amount
+                      )}
                     </td>
                     <td data-label="Moneda">
                       <span className={'currency-badge ' + (isUsd ? 'usd' : 'other')}>

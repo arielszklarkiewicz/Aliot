@@ -67,6 +67,7 @@ public class AppDbContext : DbContext
             e.Property(x => x.DestinationOther).HasColumnName("destination_other");
             e.Property(x => x.Comment).HasColumnName("comment");
             e.Property(x => x.IsVirtual).HasColumnName("is_virtual").HasDefaultValue(false);
+            e.Property(x => x.Matana).HasColumnName("matana").HasDefaultValue(false);
             e.Property(x => x.CreatedAt).HasColumnName("created_at");
             e.Property(x => x.UpdatedAt).HasColumnName("updated_at");
 

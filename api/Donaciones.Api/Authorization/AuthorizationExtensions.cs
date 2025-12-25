@@ -48,7 +48,7 @@ public static class AuthorizationExtensions
         return Guid.TryParse(idClaim, out var id) ? id : null;
     }
 
-    public static string? GetUsername(this ClaimsPrincipal user)
+    public static string? GetUserEmail(this ClaimsPrincipal user)
     {
         return user.FindFirst(ClaimTypes.Email)?.Value;
     }

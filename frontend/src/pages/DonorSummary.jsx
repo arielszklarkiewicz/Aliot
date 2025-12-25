@@ -20,9 +20,10 @@ export default function DonorSummary() {
   const [filterDestination, setFilterDestination] = useState('');
   const [filterCurrency, setFilterCurrency] = useState('');
   const [filterIsVirtual, setFilterIsVirtual] = useState('');
+  const [filterMatana, setFilterMatana] = useState('');
   const [creatingVirtual, setCreatingVirtual] = useState(false);
 
-  const hasAnyFilters = fromDate || toDate || filterDestination || filterCurrency || filterIsVirtual;
+  const hasAnyFilters = fromDate || toDate || filterDestination || filterCurrency || filterIsVirtual || filterMatana;
 
   useEffect(() => {
     async function load() {
@@ -50,9 +51,11 @@ export default function DonorSummary() {
       if (filterCurrency && (d.currency || '').toUpperCase() !== filterCurrency.toUpperCase()) return false;
       if (filterIsVirtual === 'yes' && !d.isVirtual) return false;
       if (filterIsVirtual === 'no' && d.isVirtual) return false;
+      if (filterMatana === 'yes' && !d.matana) return false;
+      if (filterMatana === 'no' && d.matana) return false;
       return true;
     });
-  }, [allDonations, fromDate, toDate, filterDestination, filterCurrency, filterIsVirtual]);
+  }, [allDonations, fromDate, toDate, filterDestination, filterCurrency, filterIsVirtual, filterMatana]);
 
   const filteredPayments = useMemo(() => {
     return (allPayments || []).filter(p => {
@@ -115,17 +118,50 @@ export default function DonorSummary() {
   }
 
   const balances = useMemo(() => {
+    // Find the latest virtual payment date for each destination/currency combination
+    const lastVirtualPayments = new Map(); // "destination|currency" -> latest payment date
+    for (const p of filteredPayments) {
+      if (p.isVirtual) {
+        const key = `${p.destination || ''}|${(p.currency || '').toUpperCase()}`;
+        const existingDate = lastVirtualPayments.get(key);
+        const paymentDate = new Date(p.paymentDate);
+        if (!existingDate || paymentDate > existingDate) {
+          lastVirtualPayments.set(key, paymentDate);
+        }
+      }
+    }
+
     // recompute balances by destination+currency from filtered data
     const map = new Map(); // "destination|currency" -> {donationsTotal, paymentsTotal}
     for (const d of filteredDonations) {
       const key = `${d.destination || ''}|${(d.currency || '').toUpperCase()}`;
-      const curr = map.get(key) || { donationsTotal: 0, paymentsTotal: 0, destination: d.destination || '', currency: (d.currency || '').toUpperCase() };
-      curr.donationsTotal += Math.trunc(Number(d.amount) || 0);
+      const lastVirtualPaymentDate = lastVirtualPayments.get(key);
+      const donationDate = new Date(d.donationDate);
+      
+      // Skip donations that are at or before the last virtual payment (they are considered paid)
+      if (lastVirtualPaymentDate && donationDate <= lastVirtualPaymentDate) {
+        continue;
+      }
+
+      const curr = map.get(key) || { donationsTotal: 0, paymentsTotal: 0, matanaCount: 0, destination: d.destination || '', currency: (d.currency || '').toUpperCase() };
+      if (d.matana) {
+        curr.matanaCount += 1;
+      } else {
+        curr.donationsTotal += Math.trunc(Number(d.amount) || 0);
+      }
       map.set(key, curr);
     }
     for (const p of filteredPayments) {
       const key = `${p.destination || ''}|${(p.currency || '').toUpperCase()}`;
-      const curr = map.get(key) || { donationsTotal: 0, paymentsTotal: 0, destination: p.destination || '', currency: (p.currency || '').toUpperCase() };
+      const lastVirtualPaymentDate = lastVirtualPayments.get(key);
+      const paymentDate = new Date(p.paymentDate);
+      
+      // Skip payments that are at or before the last virtual payment
+      if (lastVirtualPaymentDate && paymentDate <= lastVirtualPaymentDate) {
+        continue;
+      }
+      
+      const curr = map.get(key) || { donationsTotal: 0, paymentsTotal: 0, matanaCount: 0, destination: p.destination || '', currency: (p.currency || '').toUpperCase() };
       curr.paymentsTotal += Math.trunc(Number(p.amount) || 0);
       map.set(key, curr);
     }
@@ -134,6 +170,7 @@ export default function DonorSummary() {
       currency: v.currency,
       donationsTotal: v.donationsTotal,
       paymentsTotal: v.paymentsTotal,
+      matanaCount: v.matanaCount,
       total: v.donationsTotal - v.paymentsTotal,
     })).sort((a,b)=> {
       const destCmp = a.destination.localeCompare(b.destination);
@@ -209,10 +246,18 @@ export default function DonorSummary() {
                   <option value="no">No</option>
                 </select>
               </div>
-              {(fromDate || toDate || filterDestination || filterCurrency || filterIsVirtual) && (
+              <div className="form-group">
+                <label className="form-label">Matana</label>
+                <select value={filterMatana} onChange={e=> setFilterMatana(e.target.value)} className="form-select">
+                  <option value="">Todos</option>
+                  <option value="yes">Sí</option>
+                  <option value="no">No</option>
+                </select>
+              </div>
+              {(fromDate || toDate || filterDestination || filterCurrency || filterIsVirtual || filterMatana) && (
                 <div className="form-group" style={{ display: 'flex', alignItems: 'flex-end' }}>
                   <button 
-                    onClick={()=> { setFromDate(''); setToDate(''); setFilterDestination(''); setFilterCurrency(''); setFilterIsVirtual(''); }} 
+                    onClick={()=> { setFromDate(''); setToDate(''); setFilterDestination(''); setFilterCurrency(''); setFilterIsVirtual(''); setFilterMatana(''); }} 
                     className="btn btn-secondary"
                     style={{ width: '100%' }}
                   >
@@ -274,6 +319,11 @@ export default function DonorSummary() {
                       Virtual: {filterIsVirtual === 'yes' ? 'Sí' : 'No'}
                     </span>
                   )}
+                  {filterMatana && (
+                    <span className="filter-tag">
+                      Matana: {filterMatana === 'yes' ? 'Sí' : 'No'}
+                    </span>
+                  )}
                 </div>
               </div>
             )}
@@ -318,6 +368,12 @@ export default function DonorSummary() {
                         {fmt(b.total)}
                       </span>
                     </div>
+                    {b.matanaCount > 0 && (
+                      <div className="balance-row" style={{ marginTop: '8px', borderTop: '1px solid #f0f0f0', paddingTop: '8px' }}>
+                        <span style={{ color: '#722ed1', fontWeight: 600 }}>Matana</span>
+                        <span style={{ color: '#722ed1', fontWeight: 600 }}>{b.matanaCount}</span>
+                      </div>
+                    )}
                   </div>
                   {!hasAnyFilters && b.total !== 0 && (
                     <button
@@ -361,7 +417,13 @@ export default function DonorSummary() {
                   {filteredDonations.map(d => (
                     <tr key={d.id}>
                       <td>{d.donationDate}</td>
-                      <td className="text-right">{fmt(d.amount)}</td>
+                      <td className="text-right">
+                        {d.matana ? (
+                          <span style={{ fontWeight: 600, color: '#722ed1' }}>Matana</span>
+                        ) : (
+                          fmt(d.amount)
+                        )}
+                      </td>
                       <td>
                         {(() => {
                           const cur = (d.currency || '').toString();

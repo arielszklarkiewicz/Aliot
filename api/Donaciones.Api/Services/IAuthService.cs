@@ -6,8 +6,7 @@ public interface IAuthService
 {
     Task<(string Token, User User)?> AuthenticateAsync(string email, string password, CancellationToken ct = default);
     Task<User?> GetUserByIdAsync(Guid userId, CancellationToken ct = default);
-    Task<User?> GetUserByUsernameAsync(string username, CancellationToken ct = default);
-    Task<User> CreateUserAsync(string email, string password, UserRole role, string? fullName = null, string? unusedEmail = null, CancellationToken ct = default);
+    Task<User> CreateUserAsync(string email, string password, UserRole role, string? fullName = null, CancellationToken ct = default);
     Task<bool> ChangePasswordAsync(Guid userId, string currentPassword, string newPassword, CancellationToken ct = default);
     Task<bool> AdminChangePasswordAsync(Guid userId, string newPassword, CancellationToken ct = default);
     Task<User?> UpdateUserAsync(Guid userId, string? fullName, string? email, CancellationToken ct = default);

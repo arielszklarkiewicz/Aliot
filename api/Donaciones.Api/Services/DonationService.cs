@@ -50,7 +50,8 @@ public class DonationService : IDonationService
                 Concept = d.Concept,
                 Destination = d.Destination,
                 DestinationOther = d.DestinationOther,
-                Comment = d.Comment
+                Comment = d.Comment,
+                Matana = d.Matana
             })
             .ToListAsync(ct);
         return (items, total);
@@ -61,13 +62,20 @@ public class DonationService : IDonationService
 
     public async Task<Donation?> CreateAsync(DonationCreate dto, CancellationToken ct)
     {
-        if (dto.DonorId == Guid.Empty || string.IsNullOrWhiteSpace(dto.Currency) || dto.Amount <= 0 ||
+        if (dto.DonorId == Guid.Empty || string.IsNullOrWhiteSpace(dto.Currency) ||
             string.IsNullOrWhiteSpace(dto.Minian) || string.IsNullOrWhiteSpace(dto.Concept) ||
             string.IsNullOrWhiteSpace(dto.Destination) || string.IsNullOrWhiteSpace(dto.Perasha))
             return null;
-        // Enforce integer-only amounts
-        if (decimal.Truncate(dto.Amount) != dto.Amount)
-            return null;
+        // For Matana, amount should be 0, otherwise enforce positive integer amounts
+        if (dto.Matana)
+        {
+            dto.Amount = 0;
+        }
+        else
+        {
+            if (dto.Amount <= 0 || decimal.Truncate(dto.Amount) != dto.Amount)
+                return null;
+        }
         if (dto.Destination == "Other" && string.IsNullOrWhiteSpace(dto.DestinationOther))
             return null;
         var entity = new Donation
@@ -84,6 +92,7 @@ public class DonationService : IDonationService
             DestinationOther = dto.DestinationOther,
             Comment = dto.Comment,
             IsVirtual = dto.IsVirtual,
+            Matana = dto.Matana,
             CreatedAt = DateTimeOffset.UtcNow
         };
         _db.Donations.Add(entity);
@@ -95,10 +104,17 @@ public class DonationService : IDonationService
     {
         var entity = await _db.Donations.FirstOrDefaultAsync(x => x.Id == id, ct);
         if (entity == null) return null;
-        // Enforce integer-only amounts
-        if (dto.Amount <= 0 || decimal.Truncate(dto.Amount) != dto.Amount) return null;
         // Require non-empty Perashá
         if (string.IsNullOrWhiteSpace(dto.Perasha)) return null;
+        // For Matana, amount should be 0, otherwise enforce positive integer amounts
+        if (dto.Matana)
+        {
+            dto.Amount = 0;
+        }
+        else
+        {
+            if (dto.Amount <= 0 || decimal.Truncate(dto.Amount) != dto.Amount) return null;
+        }
         entity.DonorId = dto.DonorId;
         entity.Currency = dto.Currency!;
         entity.Amount = dto.Amount;
@@ -110,6 +126,7 @@ public class DonationService : IDonationService
         entity.DestinationOther = dto.DestinationOther;
         entity.Comment = dto.Comment;
         entity.IsVirtual = dto.IsVirtual;
+        entity.Matana = dto.Matana;
         entity.UpdatedAt = DateTimeOffset.UtcNow;
         await _db.SaveChangesAsync(ct);
         return entity;

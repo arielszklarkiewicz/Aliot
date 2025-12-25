@@ -116,9 +116,18 @@ using (var scope = app.Services.CreateScope())
     var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
     try
     {
-        logger.LogInformation("Applying database migrations...");
-        db.Database.Migrate();
-        logger.LogInformation("Database migrations applied successfully");
+        // Only migrate if using a relational database (not InMemory)
+        if (db.Database.IsRelational())
+        {
+            logger.LogInformation("Applying database migrations...");
+            db.Database.Migrate();
+            logger.LogInformation("Database migrations applied successfully");
+        }
+        else
+        {
+            logger.LogInformation("Using InMemory database, calling EnsureCreated");
+            db.Database.EnsureCreated();
+        }
 
         // Seed default admin user if no users exist
         var hasUsers = await db.Users.AnyAsync();
@@ -132,22 +141,8 @@ using (var scope = app.Services.CreateScope())
     }
     catch (Exception ex)
     {
-        logger.LogError(ex, "Error applying database migrations");
-        // For InMemory database, fall back to EnsureCreated
-        if (db.Database.IsInMemory())
-        {
-            logger.LogInformation("Using InMemory database, calling EnsureCreated");
-            db.Database.EnsureCreated();
-
-            // Seed default admin user for in-memory database
-            var hasUsers = await db.Users.AnyAsync();
-            if (!hasUsers)
-            {
-                logger.LogInformation("Creating default admin user for in-memory database...");
-                await authService.CreateUserAsync("admin@admin.com", "admin123", UserRole.Admin,
-                    "System Administrator");
-            }
-        }
+        logger.LogError(ex, "Error during database initialization");
+        throw;
     }
 }
 
@@ -624,33 +619,54 @@ app.MapDelete("/api/payments/{id:guid}", async (IPaymentService svc, Guid id, Ca
 // Reports: donors with non-zero saldo by currency and destination (no date filter)
 app.MapGet("/api/reports/donor-balances", async (AppDbContext db, CancellationToken ct) =>
     {
-        var donations = await db.Donations.AsNoTracking()
-            .GroupBy(d => new { d.DonorId, Currency = d.Currency.ToLower(), d.Destination })
-            .Select(g => new
-                { g.Key.DonorId, g.Key.Currency, g.Key.Destination, Total = g.Sum(x => (decimal)x.Amount) })
-            .ToListAsync(ct);
-
-        var payments = await db.Payments.AsNoTracking()
-            .GroupBy(p => new { p.DonorId, Currency = p.Currency.ToLower(), p.Destination })
-            .Select(g => new
-                { g.Key.DonorId, g.Key.Currency, g.Key.Destination, Total = g.Sum(x => (decimal)x.Amount) })
-            .ToListAsync(ct);
-
+        // Get all donations and payments
+        var allDonations = await db.Donations.AsNoTracking().ToListAsync(ct);
+        var allPayments = await db.Payments.AsNoTracking().ToListAsync(ct);
         var donors = await db.Donors.AsNoTracking()
             .Select(d => new { d.Id, d.FirstName, d.LastName })
             .ToListAsync(ct);
 
-        var keys = donations.Select(x => new { x.DonorId, x.Currency, x.Destination })
-            .Union(payments.Select(x => new { x.DonorId, x.Currency, x.Destination }))
+        // Find last virtual payment date for each donor/currency/destination combination
+        var lastVirtualPayments = allPayments
+            .Where(p => p.IsVirtual)
+            .GroupBy(p => new { p.DonorId, Currency = p.Currency.ToLower(), p.Destination })
+            .Select(g => new { g.Key.DonorId, g.Key.Currency, g.Key.Destination, LastDate = g.Max(p => p.PaymentDate) })
+            .ToDictionary(x => (x.DonorId, x.Currency, x.Destination), x => x.LastDate);
+
+        // Calculate donations and payments considering virtual payment cutoff
+        var donationTotals = allDonations
+            .GroupBy(d => new { d.DonorId, Currency = d.Currency.ToLower(), d.Destination })
+            .Select(g => {
+                var key = (g.Key.DonorId, g.Key.Currency, g.Key.Destination);
+                var cutoffDate = lastVirtualPayments.ContainsKey(key) ? lastVirtualPayments[key] : (DateOnly?)null;
+                var total = g.Where(d => !cutoffDate.HasValue || d.DonationDate > cutoffDate.Value)
+                             .Sum(d => d.Matana ? 0 : d.Amount);
+                return new { g.Key.DonorId, g.Key.Currency, g.Key.Destination, Total = total };
+            })
+            .ToList();
+
+        var paymentTotals = allPayments
+            .GroupBy(p => new { p.DonorId, Currency = p.Currency.ToLower(), p.Destination })
+            .Select(g => {
+                var key = (g.Key.DonorId, g.Key.Currency, g.Key.Destination);
+                var cutoffDate = lastVirtualPayments.ContainsKey(key) ? lastVirtualPayments[key] : (DateOnly?)null;
+                var total = g.Where(p => !cutoffDate.HasValue || p.PaymentDate > cutoffDate.Value)
+                             .Sum(p => p.Amount);
+                return new { g.Key.DonorId, g.Key.Currency, g.Key.Destination, Total = total };
+            })
+            .ToList();
+
+        var keys = donationTotals.Select(x => new { x.DonorId, x.Currency, x.Destination })
+            .Union(paymentTotals.Select(x => new { x.DonorId, x.Currency, x.Destination }))
             .ToList();
 
         var rows = keys
             .Select(k =>
             {
                 var d = donors.FirstOrDefault(dd => dd.Id == k.DonorId);
-                var donationsTotal = donations.FirstOrDefault(x =>
+                var donationsTotal = donationTotals.FirstOrDefault(x =>
                     x.DonorId == k.DonorId && x.Currency == k.Currency && x.Destination == k.Destination)?.Total ?? 0m;
-                var paymentsTotal = payments.FirstOrDefault(x =>
+                var paymentsTotal = paymentTotals.FirstOrDefault(x =>
                     x.DonorId == k.DonorId && x.Currency == k.Currency && x.Destination == k.Destination)?.Total ?? 0m;
                 var saldo = donationsTotal - paymentsTotal;
                 return new

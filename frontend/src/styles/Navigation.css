@@ -161,6 +161,8 @@
   white-space: nowrap;
   flex: 1;
   min-width: fit-content;
+  cursor: pointer;
+  pointer-events: auto;
 }
 
 .nav-item:hover {

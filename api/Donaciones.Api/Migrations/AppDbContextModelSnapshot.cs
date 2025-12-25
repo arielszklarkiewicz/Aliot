@@ -253,6 +253,12 @@ namespace Donaciones.Api.Migrations
                         .HasDefaultValue(false)
                         .HasColumnName("is_virtual");
 
+                    b.Property<bool>("Matana")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("matana");
+
                     b.Property<string>("Minian")
                         .IsRequired()
                         .HasColumnType("text")

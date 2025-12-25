@@ -13,4 +13,5 @@ public record DonationListItem
     public string Destination { get; set; } = string.Empty;
     public string? DestinationOther { get; set; }
     public string? Comment { get; set; }
+    public bool Matana { get; set; }
 }

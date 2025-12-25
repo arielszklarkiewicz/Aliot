@@ -12,6 +12,9 @@ public record Donation
     public string? DestinationOther { get; set; }
     public string? Comment { get; set; }
     public bool IsVirtual { get; set; }
+    public bool Matana { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
+    public Guid CreatedBy { get; set; }
     public DateTimeOffset? UpdatedAt { get; set; }
+    public Guid? UpdatedBy { get; set; }
 }

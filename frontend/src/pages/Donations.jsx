@@ -21,6 +21,7 @@ export default function Donations() {
   const [perashaSuggestions, setPerashaSuggestions] = useState([]);
   const debouncedPerasha = useDebounced(perasha, 300);
   const [comment, setComment] = useState('');
+  const [matana, setMatana] = useState(false);
 
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
@@ -57,20 +58,23 @@ export default function Donations() {
 
   const createDonation = async () => {
     if (!donorId) { setErrorMsg('Seleccione o cree un donante primero'); return; }
-    const amt = parseInt((amount || '').toString().replace(/[^0-9]/g, ''), 10) || 0;
-    if (!isFinite(amt) || amt <= 0) { setErrorMsg('Ingrese un monto entero válido (> 0)'); return; }
+    if (!matana) {
+      const amt = parseInt((amount || '').toString().replace(/[^0-9]/g, ''), 10) || 0;
+      if (!isFinite(amt) || amt <= 0) { setErrorMsg('Ingrese un monto entero válido (> 0)'); return; }
+    }
     if (!perasha || !perasha.trim()) { setErrorMsg('La Perashá no puede estar vacía'); return; }
     try {
       await axios.post(`/api/donations`, {
         donorId,
         currency,
-        amount: amt,
+        amount: matana ? 0 : (parseInt((amount || '').toString().replace(/[^0-9]/g, ''), 10) || 0),
         donationDate: date,
         perasha,
         minian,
         concept,
         destination,
-        comment
+        comment,
+        matana
       });
       setSuccessMsg('Donación creada');
       setErrorMsg('');
@@ -80,6 +84,7 @@ export default function Donations() {
       setSelectedDonorObs('');
       setAmount('');
       setComment('');
+      setMatana(false);
       // mover el Concepto al siguiente valor de la lista (cíclico)
       setConcept(prev => {
         const list = lookups?.donationConcepts || [];
@@ -231,6 +236,7 @@ export default function Donations() {
                   setAmount(digits);
                 }}
                 style={{ flex:'0 1 220px' }}
+                disabled={matana}
               />
               {(() => {
                 const cur = (currency || '').toString();
@@ -283,6 +289,7 @@ export default function Donations() {
                       cursor:'pointer',
                       fontWeight:600
                     }}
+                    disabled={matana}
                   >{btn.label}</button>
                 ))}
                 <button
@@ -298,8 +305,23 @@ export default function Donations() {
                     fontWeight:600,
                     color:'#cf1322'
                   }}
+                  disabled={matana}
                 >Borrar</button>
               </div>
+            </div>
+            <div style={{ marginTop: 8 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={matana}
+                  onChange={e => {
+                    setMatana(e.target.checked);
+                    if (e.target.checked) setAmount('');
+                  }}
+                  style={{ width: 18, height: 18, cursor: 'pointer' }}
+                />
+                <span style={{ fontWeight: 600 }}>Matana (sin precio)</span>
+              </label>
             </div>
           </div>
 

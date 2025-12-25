@@ -81,8 +81,35 @@ public class DonorService : IDonorService
             donationsQry = donationsQry.Where(d => d.Currency.ToLower() == cl);
             paymentsQry = paymentsQry.Where(p => p.Currency.ToLower() == cl);
         }
-        var donationsTotal = await donationsQry.Select(d => (decimal?)d.Amount).SumAsync(ct) ?? 0m;
-        var paymentsTotal = await paymentsQry.Select(p => (decimal?)p.Amount).SumAsync(ct) ?? 0m;
+
+        var allDonations = await donationsQry.ToListAsync(ct);
+        var allPayments = await paymentsQry.ToListAsync(ct);
+
+        // Find last virtual payment date for each currency/destination combination
+        var lastVirtualPayments = allPayments
+            .Where(p => p.IsVirtual)
+            .GroupBy(p => new { Currency = p.Currency.ToLower(), p.Destination })
+            .Select(g => new { g.Key.Currency, g.Key.Destination, LastDate = g.Max(p => p.PaymentDate) })
+            .ToDictionary(x => (x.Currency, x.Destination), x => x.LastDate);
+
+        // Calculate donations considering virtual payment cutoff
+        var donationsTotal = allDonations
+            .Where(d => {
+                var key = (d.Currency.ToLower(), d.Destination);
+                var cutoffDate = lastVirtualPayments.ContainsKey(key) ? lastVirtualPayments[key] : (DateOnly?)null;
+                return !cutoffDate.HasValue || d.DonationDate > cutoffDate.Value;
+            })
+            .Sum(d => d.Matana ? 0 : d.Amount);
+
+        // Calculate payments considering virtual payment cutoff
+        var paymentsTotal = allPayments
+            .Where(p => {
+                var key = (p.Currency.ToLower(), p.Destination);
+                var cutoffDate = lastVirtualPayments.ContainsKey(key) ? lastVirtualPayments[key] : (DateOnly?)null;
+                return !cutoffDate.HasValue || p.PaymentDate > cutoffDate.Value;
+            })
+            .Sum(p => p.Amount);
+
         return new DonorBalance
         {
             DonorId = donorId,
@@ -97,17 +124,56 @@ public class DonorService : IDonorService
         var donorExists = await _db.Donors.AsNoTracking().AnyAsync(d => d.Id == donorId, ct);
         if (!donorExists) return Array.Empty<DonorCurrencyBalance>();
 
-        var donations = await _db.Donations.AsNoTracking()
+        var allDonations = await _db.Donations.AsNoTracking()
             .Where(d => d.DonorId == donorId)
-            .GroupBy(d => d.Currency.ToLower())
-            .Select(g => new { Currency = g.Key, Total = g.Sum(x => x.Amount) })
             .ToListAsync(ct);
 
-        var payments = await _db.Payments.AsNoTracking()
+        var allPayments = await _db.Payments.AsNoTracking()
             .Where(p => p.DonorId == donorId)
-            .GroupBy(p => p.Currency.ToLower())
-            .Select(g => new { Currency = g.Key, Total = g.Sum(x => x.Amount) })
             .ToListAsync(ct);
+
+        // Find last virtual payment date for each currency/destination combination
+        var lastVirtualPayments = allPayments
+            .Where(p => p.IsVirtual)
+            .GroupBy(p => new { Currency = p.Currency.ToLower(), p.Destination })
+            .Select(g => new { g.Key.Currency, g.Key.Destination, LastDate = g.Max(p => p.PaymentDate) })
+            .ToDictionary(x => (x.Currency, x.Destination), x => x.LastDate);
+
+        // Calculate donations considering virtual payment cutoff
+        var donations = allDonations
+            .GroupBy(d => d.Currency.ToLower())
+            .Select(g => {
+                var total = 0m;
+                foreach (var d in g)
+                {
+                    var key = (g.Key, d.Destination);
+                    var cutoffDate = lastVirtualPayments.ContainsKey(key) ? lastVirtualPayments[key] : (DateOnly?)null;
+                    if (!cutoffDate.HasValue || d.DonationDate > cutoffDate.Value)
+                    {
+                        total += d.Matana ? 0 : d.Amount;
+                    }
+                }
+                return new { Currency = g.Key, Total = total };
+            })
+            .ToList();
+
+        // Calculate payments considering virtual payment cutoff
+        var payments = allPayments
+            .GroupBy(p => p.Currency.ToLower())
+            .Select(g => {
+                var total = 0m;
+                foreach (var p in g)
+                {
+                    var key = (g.Key, p.Destination);
+                    var cutoffDate = lastVirtualPayments.ContainsKey(key) ? lastVirtualPayments[key] : (DateOnly?)null;
+                    if (!cutoffDate.HasValue || p.PaymentDate > cutoffDate.Value)
+                    {
+                        total += p.Amount;
+                    }
+                }
+                return new { Currency = g.Key, Total = total };
+            })
+            .ToList();
 
         var currencies = donations.Select(d => d.Currency).Union(payments.Select(p => p.Currency)).Distinct();
         var list = currencies

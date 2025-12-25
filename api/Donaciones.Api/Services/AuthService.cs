@@ -45,12 +45,7 @@ public class AuthService : IAuthService
         return await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId, ct);
     }
 
-    public async Task<User?> GetUserByUsernameAsync(string username, CancellationToken ct = default)
-    {
-        return await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Email == username, ct);
-    }
-
-    public async Task<User> CreateUserAsync(string email, string password, UserRole role, string? fullName = null, string? unusedEmail = null, CancellationToken ct = default)
+    public async Task<User> CreateUserAsync(string email, string password, UserRole role, string? fullName = null, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(email))
             throw new ArgumentException("Email is required", nameof(email));
