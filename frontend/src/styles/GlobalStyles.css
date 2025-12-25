@@ -776,6 +776,28 @@ body {
   color: var(--error-text);
 }
 
+/* Currency Badges - Blue for Pesos, Green for Dollars */
+.currency-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  border: 1px solid;
+}
+
+.currency-badge.currency-usd {
+  background: #d3f9d8;
+  border-color: #8ce99a;
+  color: #2b8a3e;
+}
+
+.currency-badge.currency-other {
+  background: #e7f5ff;
+  border-color: #a5d8ff;
+  color: #1864ab;
+}
+
 /* ============================================
    13. MOBILE CARDS (Responsive Tables)
    ============================================ */
@@ -1114,57 +1136,87 @@ body {
 
 .balances-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
 }
 
 .balance-card {
   border: 1px solid var(--color-border);
-  border-radius: 12px;
-  padding: 16px;
-  background: white;
-  box-shadow: var(--shadow-sm);
-  transition: box-shadow 0.2s;
+  border-radius: 16px;
+  padding: 20px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.balance-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--color-primary), var(--color-primary-dark));
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
 .balance-card:hover {
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  transform: translateY(-2px);
+  border-color: var(--color-primary-light);
+}
+
+.balance-card:hover::before {
+  opacity: 1;
 }
 
 .balance-header {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  margin-bottom: 12px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--color-border-light);
+  gap: 6px;
+  margin-bottom: 16px;
+  padding-bottom: 14px;
+  border-bottom: 2px solid var(--color-border-light);
 }
 
 .balance-label {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--color-text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  font-weight: 600;
+  letter-spacing: 1px;
+  font-weight: 700;
 }
 
 .balance-destination {
   font-weight: 700;
-  font-size: 16px;
+  font-size: 18px;
   color: var(--color-text);
+  letter-spacing: -0.02em;
 }
 
 .balance-currency-row {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-bottom: 16px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 18px;
+  padding: 8px;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid var(--color-border-light);
 }
 
 .balance-amounts {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
+  padding: 12px;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid var(--color-border-light);
 }
 
 .balance-row {
@@ -1173,23 +1225,47 @@ body {
   align-items: center;
   font-size: 14px;
   color: var(--color-text-secondary);
+  padding: 4px 0;
+}
+
+.balance-row span:first-child {
+  font-weight: 500;
+}
+
+.balance-row span:last-child {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
 .balance-row.balance-total {
-  margin-top: 8px;
-  padding-top: 12px;
-  border-top: 2px solid var(--color-border);
-  font-weight: 700;
+  margin-top: 12px;
+  padding: 12px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-radius: 8px;
+  border: none;
   font-size: 16px;
+  font-weight: 700;
+}
+
+.balance-row.balance-total span:first-child {
   color: var(--color-text);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 12px;
+}
+
+.balance-row.balance-total span:last-child {
+  font-size: 20px;
+  font-weight: 800;
 }
 
 .balance-positive {
-  color: var(--color-success) !important;
+  color: #2b8a3e !important;
 }
 
 .balance-negative {
-  color: var(--color-danger) !important;
+  color: #c92a2a !important;
 }
 
 /* Tables Section */
