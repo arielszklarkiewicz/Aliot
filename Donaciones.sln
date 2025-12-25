@@ -15,12 +15,51 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "frontend", "frontend", "{F4C4A2C9-9E1B-49D7-8A9F-9F7D1E5F9EAA}"
 	ProjectSection(SolutionItems) = preProject
 		frontend\package.json = frontend\package.json
+		frontend\README.md = frontend\README.md
+		frontend\.env.example = frontend\.env.example
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{E1234567-89AB-CDEF-0123-456789ABCDEF}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "pages", "pages", "{E2234567-89AB-CDEF-0123-456789ABCDEF}"
+	ProjectSection(SolutionItems) = preProject
+		frontend\src\pages\CollectorsAdmin.jsx = frontend\src\pages\CollectorsAdmin.jsx
+		frontend\src\pages\ConceptsAdmin.jsx = frontend\src\pages\ConceptsAdmin.jsx
+		frontend\src\pages\DestinationsAdmin.jsx = frontend\src\pages\DestinationsAdmin.jsx
+		frontend\src\pages\Donations.jsx = frontend\src\pages\Donations.jsx
+		frontend\src\pages\DonationsList.jsx = frontend\src\pages\DonationsList.jsx
+		frontend\src\pages\DonorBalances.jsx = frontend\src\pages\DonorBalances.jsx
+		frontend\src\pages\DonorSummary.jsx = frontend\src\pages\DonorSummary.jsx
+		frontend\src\pages\DonorsAdmin.jsx = frontend\src\pages\DonorsAdmin.jsx
+		frontend\src\pages\Home.jsx = frontend\src\pages\Home.jsx
+		frontend\src\pages\Login.jsx = frontend\src\pages\Login.jsx
+		frontend\src\pages\Payments.jsx = frontend\src\pages\Payments.jsx
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "components", "components", "{E3234567-89AB-CDEF-0123-456789ABCDEF}"
+	ProjectSection(SolutionItems) = preProject
+		frontend\src\components\DonorAutocomplete.jsx = frontend\src\components\DonorAutocomplete.jsx
+		frontend\src\components\DonorCreateModal.jsx = frontend\src\components\DonorCreateModal.jsx
+		frontend\src\components\Modal.jsx = frontend\src\components\Modal.jsx
+		frontend\src\components\SystemMap.jsx = frontend\src\components\SystemMap.jsx
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "styles", "styles", "{E4234567-89AB-CDEF-0123-456789ABCDEF}"
+	ProjectSection(SolutionItems) = preProject
+		frontend\src\styles\DonationsListImproved.css = frontend\src\styles\DonationsListImproved.css
+		frontend\src\styles\GlobalStyles.css = frontend\src\styles\GlobalStyles.css
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "public", "public", "{E5234567-89AB-CDEF-0123-456789ABCDEF}"
+	ProjectSection(SolutionItems) = preProject
 		frontend\public\index.html = frontend\public\index.html
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "root", "root", "{E6234567-89AB-CDEF-0123-456789ABCDEF}"
+	ProjectSection(SolutionItems) = preProject
 		frontend\src\App.jsx = frontend\src\App.jsx
 		frontend\src\index.jsx = frontend\src\index.jsx
 		frontend\src\styles.css = frontend\src\styles.css
-		frontend\.env.example = frontend\.env.example
-		frontend\README.md = frontend\README.md
 	EndProjectSection
 EndProject
 Global
@@ -51,5 +90,11 @@ Global
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{3AFBC488-1FB5-4052-8986-AAF497C73EF6} = {D82C56D6-B2CD-F611-9E31-04638F7EC30E}
+		{E1234567-89AB-CDEF-0123-456789ABCDEF} = {F4C4A2C9-9E1B-49D7-8A9F-9F7D1E5F9EAA}
+		{E5234567-89AB-CDEF-0123-456789ABCDEF} = {F4C4A2C9-9E1B-49D7-8A9F-9F7D1E5F9EAA}
+		{E6234567-89AB-CDEF-0123-456789ABCDEF} = {E1234567-89AB-CDEF-0123-456789ABCDEF}
+		{E2234567-89AB-CDEF-0123-456789ABCDEF} = {E1234567-89AB-CDEF-0123-456789ABCDEF}
+		{E3234567-89AB-CDEF-0123-456789ABCDEF} = {E1234567-89AB-CDEF-0123-456789ABCDEF}
+		{E4234567-89AB-CDEF-0123-456789ABCDEF} = {E1234567-89AB-CDEF-0123-456789ABCDEF}
 	EndGlobalSection
 EndGlobal
