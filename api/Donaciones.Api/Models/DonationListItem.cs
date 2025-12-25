@@ -3,6 +3,7 @@ public record DonationListItem
     public Guid Id { get; set; }
     public Guid DonorId { get; set; }
     public string DonorName { get; set; } = string.Empty;
+    public string? DonorObservations { get; set; }
     public string Currency { get; set; } = string.Empty;
     public decimal Amount { get; set; }
     public DateOnly DonationDate { get; set; }

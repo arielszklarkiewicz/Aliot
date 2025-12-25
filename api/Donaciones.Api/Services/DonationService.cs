@@ -40,7 +40,8 @@ public class DonationService : IDonationService
                 DonorId = d.DonorId,
                 DonorName = (o.LastName == null || o.LastName.Trim() == "")
                     ? (o.FirstName ?? "")
-                    : (((o.FirstName ?? "") + " " + o.LastName + " " + o.Observations)),
+                    : ((o.FirstName ?? "") + " " + o.LastName),
+                DonorObservations = o.Observations,
                 Currency = d.Currency,
                 Amount = d.Amount,
                 DonationDate = d.DonationDate,

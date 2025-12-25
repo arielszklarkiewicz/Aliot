@@ -435,8 +435,9 @@
 }
 
 .donor-name {
-  font-weight: 600;
+  font-weight: 400;
   color: #212529;
+  cursor: help;
 }
 
 .amount-cell {

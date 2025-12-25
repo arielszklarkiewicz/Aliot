@@ -407,7 +407,9 @@ export default function DonationsList() {
                 return (
                   <tr key={d.id} className="donation-row">
                     <td data-label="Fecha">{d.donationDate}</td>
-                    <td data-label="Donante" className="donor-name">{d.donorName || '—'}</td>
+                    <td data-label="Donante" className="donor-name" title={d.donorObservations || undefined}>
+                      {d.donorName || '—'}
+                    </td>
                     <td data-label="Monto" className="amount-cell">
                       {typeof d.amount === 'number' ? new Intl.NumberFormat('es-AR').format(Math.round(d.amount)) : d.amount}
                     </td>
