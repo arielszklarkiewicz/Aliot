@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import axios from '../api/client';
 import DonorAutocomplete from '../components/DonorAutocomplete';
+import '../styles/GlobalStyles.css';
 
 function fmt(amount) {
   if (amount == null) return '0';
@@ -156,282 +157,282 @@ export default function DonorSummary() {
   }, [allDonations, allPayments]);
 
   return (
-    <div>
-      <h3 style={{ marginBottom: 12 }}>Resumen de donante</h3>
-
-      <div style={{ marginBottom: 16 }}>
-        <div style={{ minWidth: 280, marginBottom: 12 }}>
-          <label style={{ display: 'block', fontSize: 12, marginBottom: 4, fontWeight: 600 }}>Seleccione donante</label>
-          <DonorAutocomplete value={donorId} onChange={(id)=> setDonorId(id)} />
-        </div>
-        
-        <div style={{ border: '1px solid #e2e8f0', borderRadius: 8, padding: 12, background: '#f8fafc' }}>
-          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10, color: '#475569' }}>Filtros</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12 }}>
-            <div>
-              <label style={{ display: 'block', fontSize: 12, marginBottom: 4 }}>Desde</label>
-              <input type="date" value={fromDate} onChange={e=> setFromDate(e.target.value)} style={{ width: '100%', padding: '6px 8px', border: '1px solid #cbd5e1', borderRadius: 6 }} />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: 12, marginBottom: 4 }}>Hasta</label>
-              <input type="date" value={toDate} onChange={e=> setToDate(e.target.value)} style={{ width: '100%', padding: '6px 8px', border: '1px solid #cbd5e1', borderRadius: 6 }} />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: 12, marginBottom: 4 }}>Destino</label>
-              <select value={filterDestination} onChange={e=> setFilterDestination(e.target.value)} style={{ width: '100%', padding: '6px 8px', border: '1px solid #cbd5e1', borderRadius: 6, background: '#fff' }}>
-                <option value="">Todos</option>
-                {availableDestinations.map(dest => (
-                  <option key={dest} value={dest}>{dest === 'Other' ? 'Otro' : dest}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: 12, marginBottom: 4 }}>Moneda</label>
-              <select value={filterCurrency} onChange={e=> setFilterCurrency(e.target.value)} style={{ width: '100%', padding: '6px 8px', border: '1px solid #cbd5e1', borderRadius: 6, background: '#fff' }}>
-                <option value="">Todas</option>
-                {availableCurrencies.map(curr => (
-                  <option key={curr} value={curr}>{curr}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: 12, marginBottom: 4 }}>Virtual</label>
-              <select value={filterIsVirtual} onChange={e=> setFilterIsVirtual(e.target.value)} style={{ width: '100%', padding: '6px 8px', border: '1px solid #cbd5e1', borderRadius: 6, background: '#fff' }}>
-                <option value="">Todos</option>
-                <option value="yes">Sí</option>
-                <option value="no">No</option>
-              </select>
-            </div>
-            {(fromDate || toDate || filterDestination || filterCurrency || filterIsVirtual) && (
-              <div style={{ display: 'flex', alignItems: 'flex-end' }}>
-                <button 
-                  onClick={()=> { setFromDate(''); setToDate(''); setFilterDestination(''); setFilterCurrency(''); setFilterIsVirtual(''); }} 
-                  style={{ width: '100%', padding: '6px 12px', border: '1px solid #cbd5e1', borderRadius: 6, background: '#fff', cursor: 'pointer', fontWeight: 500 }}
-                >
-                  Limpiar filtros
-                </button>
-              </div>
-            )}
-          </div>
+    <div className="page-container">
+      <div className="hero-section">
+        <div className="hero-content">
+          <h1 className="hero-title">Resumen de Donante</h1>
+          <p className="hero-subtitle">Consulte el historial completo de donaciones y pagos por donante</p>
         </div>
       </div>
 
-      {loading && <div>Cargando...</div>}
-      {error && <div style={{ color: 'red' }}>{error}</div>}
-
-      {donor && (
-        <div style={{ marginBottom: 16, border: '1px solid #e2e8f0', borderRadius: 12, padding: 16, background: '#f8fafc' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 40, height: 40, borderRadius: 999, background: '#0ea5e9', color: 'white', fontWeight: 700, display:'flex', alignItems:'center', justifyContent:'center' }}>
-              {String(donor.fullName || '').split(' ').map(s=>s[0]).join('').slice(0,2).toUpperCase()}
-            </div>
-            <div>
-              <div style={{ fontSize: 18, fontWeight: 700 }}>{donor.fullName}</div>
-              <div style={{ color: '#555' }}>{[donor.email, donor.phone].filter(Boolean).join(' • ')}</div>
+      <div className="content-wrapper">
+        <div className="form-section">
+          <div className="form-group">
+            <label className="form-label">Seleccione donante</label>
+            <DonorAutocomplete value={donorId} onChange={(id)=> setDonorId(id)} />
+          </div>
+          
+          <div className="filter-section">
+            <div className="filter-header">Filtros</div>
+            <div className="filter-grid">
+              <div className="form-group">
+                <label className="form-label">Desde</label>
+                <input type="date" value={fromDate} onChange={e=> setFromDate(e.target.value)} className="form-input" />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Hasta</label>
+                <input type="date" value={toDate} onChange={e=> setToDate(e.target.value)} className="form-input" />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Destino</label>
+                <select value={filterDestination} onChange={e=> setFilterDestination(e.target.value)} className="form-select">
+                  <option value="">Todos</option>
+                  {availableDestinations.map(dest => (
+                    <option key={dest} value={dest}>{dest === 'Other' ? 'Otro' : dest}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Moneda</label>
+                <select value={filterCurrency} onChange={e=> setFilterCurrency(e.target.value)} className="form-select">
+                  <option value="">Todas</option>
+                  {availableCurrencies.map(curr => (
+                    <option key={curr} value={curr}>{curr}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Virtual</label>
+                <select value={filterIsVirtual} onChange={e=> setFilterIsVirtual(e.target.value)} className="form-select">
+                  <option value="">Todos</option>
+                  <option value="yes">Sí</option>
+                  <option value="no">No</option>
+                </select>
+              </div>
+              {(fromDate || toDate || filterDestination || filterCurrency || filterIsVirtual) && (
+                <div className="form-group" style={{ display: 'flex', alignItems: 'flex-end' }}>
+                  <button 
+                    onClick={()=> { setFromDate(''); setToDate(''); setFilterDestination(''); setFilterCurrency(''); setFilterIsVirtual(''); }} 
+                    className="btn btn-secondary"
+                    style={{ width: '100%' }}
+                  >
+                    Limpiar filtros
+                  </button>
+                </div>
+              )}
             </div>
           </div>
-          {donor.address && <div style={{ color: '#555', marginTop: 8 }}>{donor.address}</div>}
-          {donor.observations && (
-            <div style={{ marginTop: 10, padding: 10, background: '#fff', border: '1px dashed #cbd5e1', borderRadius: 8 }}>
-              <div style={{ fontSize: 12, color: '#64748b', marginBottom: 4 }}>Comentarios del donante</div>
-              <div style={{ color: '#0f172a' }}>{donor.observations}</div>
-            </div>
-          )}
-          {hasAnyFilters && (
-            <div style={{ marginTop: 10, padding: 10, background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: 8 }}>
-              <div style={{ fontSize: 12, color: '#9a3412', marginBottom: 4, fontWeight: 600 }}>Filtros aplicados:</div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                {fromDate && (
-                  <span style={{ display: 'inline-block', padding: '3px 8px', background: '#fff', border: '1px solid #fed7aa', borderRadius: 6, fontSize: 12, color: '#9a3412' }}>
-                    Desde: {fromDate}
-                  </span>
-                )}
-                {toDate && (
-                  <span style={{ display: 'inline-block', padding: '3px 8px', background: '#fff', border: '1px solid #fed7aa', borderRadius: 6, fontSize: 12, color: '#9a3412' }}>
-                    Hasta: {toDate}
-                  </span>
-                )}
-                {filterDestination && (
-                  <span style={{ display: 'inline-block', padding: '3px 8px', background: '#fff', border: '1px solid #fed7aa', borderRadius: 6, fontSize: 12, color: '#9a3412' }}>
-                    Destino: {filterDestination === 'Other' ? 'Otro' : filterDestination}
-                  </span>
-                )}
-                {filterCurrency && (
-                  <span style={{ display: 'inline-block', padding: '3px 8px', background: '#fff', border: '1px solid #fed7aa', borderRadius: 6, fontSize: 12, color: '#9a3412' }}>
-                    Moneda: {filterCurrency}
-                  </span>
-                )}
-                {filterIsVirtual && (
-                  <span style={{ display: 'inline-block', padding: '3px 8px', background: '#fff', border: '1px solid #fed7aa', borderRadius: 6, fontSize: 12, color: '#9a3412' }}>
-                    Virtual: {filterIsVirtual === 'yes' ? 'Sí' : 'No'}
-                  </span>
-                )}
+        </div>
+
+        {loading && <div className="loading-state">Cargando...</div>}
+        {error && <div className="error-message">{error}</div>}
+
+        {donor && (
+          <div className="donor-info-card">
+            <div className="donor-avatar-row">
+              <div className="donor-avatar">
+                {String(donor.fullName || '').split(' ').map(s=>s[0]).join('').slice(0,2).toUpperCase()}
+              </div>
+              <div className="donor-details">
+                <div className="donor-name">{donor.fullName}</div>
+                <div className="donor-contact">{[donor.email, donor.phone].filter(Boolean).join(' • ')}</div>
               </div>
             </div>
-          )}
-        </div>
-      )}
+            {donor.address && <div className="donor-address">{donor.address}</div>}
+            {donor.observations && (
+              <div className="donor-observations">
+                <div className="observations-label">Comentarios del donante</div>
+                <div className="observations-text">{donor.observations}</div>
+              </div>
+            )}
+            {hasAnyFilters && (
+              <div className="active-filters">
+                <div className="active-filters-label">Filtros aplicados:</div>
+                <div className="filter-tags">
+                  {fromDate && (
+                    <span className="filter-tag">
+                      Desde: {fromDate}
+                    </span>
+                  )}
+                  {toDate && (
+                    <span className="filter-tag">
+                      Hasta: {toDate}
+                    </span>
+                  )}
+                  {filterDestination && (
+                    <span className="filter-tag">
+                      Destino: {filterDestination === 'Other' ? 'Otro' : filterDestination}
+                    </span>
+                  )}
+                  {filterCurrency && (
+                    <span className="filter-tag">
+                      Moneda: {filterCurrency}
+                    </span>
+                  )}
+                  {filterIsVirtual && (
+                    <span className="filter-tag">
+                      Virtual: {filterIsVirtual === 'yes' ? 'Sí' : 'No'}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
-      {balances.length > 0 && (
-        <div style={{ marginBottom: 16 }}>
-          <h4 style={{ marginBottom: 8 }}>Totales</h4>
-          <div style={{ border: '1px solid #e2e8f0', borderRadius: 12, padding: 16, background: '#f8fafc' }}>
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+        {balances.length > 0 && (
+          <div className="balances-section">
+            <h2 className="section-title">Totales por Destino y Moneda</h2>
+            <div className="balances-grid">
               {balances.map(b => (
-                <div key={`${b.destination}|${b.currency}`} style={{ border: '1px solid #e2e8f0', borderRadius: 12, padding: 12, minWidth: 220, background: '#fff' }}>
-                  <div style={{ fontSize: 12, color: '#64748b' }}>Destino</div>
-                  <div style={{ fontWeight: 600, marginBottom: 8 }}>{b.destination === 'Other' ? 'Otro' : b.destination}</div>
-                  <div style={{ fontSize: 12, color: '#64748b' }}>Moneda</div>
-                  <div style={{ marginBottom: 8 }}>
+                <div key={`${b.destination}|${b.currency}`} className="balance-card">
+                  <div className="balance-header">
+                    <span className="balance-label">Destino</span>
+                    <span className="balance-destination">{b.destination === 'Other' ? 'Otro' : b.destination}</span>
+                  </div>
+                  <div className="balance-currency-row">
+                    <span className="balance-label">Moneda</span>
                     {(() => {
                       const cur = (b.currency || '').toString();
                       const curNorm = cur.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
                       const isUsd = curNorm === 'dolares' || curNorm === 'usd' || curNorm === 'dolares estadounidenses' || curNorm === 'u$s' || curNorm === 'us$';
                       return (
-                        <span style={{ display:'inline-block', padding: '2px 8px', background: isUsd ? '#ecfdf5' : '#f0f5ff', border: isUsd ? '1px solid #a7f3d0' : '1px solid #d6e4ff', color: isUsd ? '#065f46' : '#1d39c4', borderRadius: 999, fontSize: 12, fontWeight: 600 }}>
+                        <span className={`currency-badge ${isUsd ? 'currency-usd' : 'currency-other'}`}>
                           {b.currency}
                         </span>
                       );
                     })()}
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>Donaciones</span>
-                    <span>{fmt(b.donationsTotal)}</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>Pagos</span>
-                    <span>{fmt(b.paymentsTotal)}</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontWeight: 700 }}>
-                    <span>Saldo</span>
-                    <span style={{ color: b.total > 0 ? '#16a34a' : b.total < 0 ? '#dc2626' : '#000' }}>
-                      {fmt(b.total)}
-                    </span>
+                  <div className="balance-amounts">
+                    <div className="balance-row">
+                      <span>Donaciones</span>
+                      <span>{fmt(b.donationsTotal)}</span>
+                    </div>
+                    <div className="balance-row">
+                      <span>Pagos</span>
+                      <span>{fmt(b.paymentsTotal)}</span>
+                    </div>
+                    <div className="balance-row balance-total">
+                      <span>Saldo</span>
+                      <span className={b.total > 0 ? 'balance-positive' : b.total < 0 ? 'balance-negative' : ''}>
+                        {fmt(b.total)}
+                      </span>
+                    </div>
                   </div>
                   {!hasAnyFilters && b.total !== 0 && (
-                    <div style={{ marginTop: 12 }}>
-                      <button
-                        onClick={() => createVirtualTransaction(b.currency, b.destination, b.total)}
-                        disabled={creatingVirtual}
-                        style={{
-                          width: '100%',
-                          padding: '8px 12px',
-                          fontSize: 12,
-                          background: '#f1f5f9',
-                          border: '1px solid #cbd5e1',
-                          borderRadius: 6,
-                          cursor: creatingVirtual ? 'not-allowed' : 'pointer',
-                          fontWeight: 500,
-                          color: '#475569'
-                        }}
-                        title={b.total > 0 ? 'Crear pago virtual para llevar saldo a 0' : 'Crear donación virtual para llevar saldo a 0'}
-                      >
-                        {creatingVirtual ? 'Creando...' : (b.total > 0 ? '+ Pago virtual a 0' : '+ Donación virtual a 0')}
-                      </button>
-                    </div>
+                    <button
+                      onClick={() => createVirtualTransaction(b.currency, b.destination, b.total)}
+                      disabled={creatingVirtual}
+                      className="btn btn-secondary btn-sm"
+                      style={{ width: '100%', marginTop: '12px' }}
+                      title={b.total > 0 ? 'Crear pago virtual para llevar saldo a 0' : 'Crear donación virtual para llevar saldo a 0'}
+                    >
+                      {creatingVirtual ? 'Creando...' : (b.total > 0 ? '+ Pago virtual a 0' : '+ Donación virtual a 0')}
+                    </button>
                   )}
                 </div>
               ))}
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 16 }}>
-        <div>
-          <h4 style={{ marginBottom: 8 }}>Donaciones</h4>
-          <div style={{ border: '1px solid #eee', borderRadius: 8, boxShadow: '0 4px 14px rgba(0,0,0,0.06)', background: '#fff', overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 800 }}>
-              <thead style={{ background: '#fafafa' }}>
-                <tr>
-                  <th style={{ textAlign: 'left', borderBottom: '1px solid #eee', padding: 10, whiteSpace: 'nowrap' }}>Fecha</th>
-                  <th style={{ textAlign: 'right', borderBottom: '1px solid #eee', padding: 10, whiteSpace: 'nowrap' }}>Monto</th>
-                  <th style={{ textAlign: 'left', borderBottom: '1px solid #eee', padding: 10, whiteSpace: 'nowrap' }}>Moneda</th>
-                  <th style={{ textAlign: 'left', borderBottom: '1px solid #eee', padding: 10, whiteSpace: 'nowrap' }}>Minián</th>
-                  <th style={{ textAlign: 'left', borderBottom: '1px solid #eee', padding: 10, whiteSpace: 'nowrap' }}>Concepto</th>
-                  <th style={{ textAlign: 'left', borderBottom: '1px solid #eee', padding: 10, whiteSpace: 'nowrap' }}>Destino</th>
-                  <th style={{ textAlign: 'left', borderBottom: '1px solid #eee', padding: 10, whiteSpace: 'nowrap' }}>Perashá</th>
-                  <th style={{ textAlign: 'left', borderBottom: '1px solid #eee', padding: 10, whiteSpace: 'nowrap' }}>Comentario</th>
-                  <th style={{ textAlign: 'center', borderBottom: '1px solid #eee', padding: 10, whiteSpace: 'nowrap' }}>Virtual</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredDonations.length === 0 && (
-                  <tr><td colSpan={9} style={{ padding: 12, textAlign: 'center', color: '#666' }}>Sin donaciones</td></tr>
-                )}
-                {filteredDonations.map(d => (
-                  <tr key={d.id}>
-                    <td style={{ borderBottom: '1px solid #f6f6f6', padding: 10 }}>{d.donationDate}</td>
-                    <td style={{ borderBottom: '1px solid #f6f6f6', padding: 10, textAlign: 'right' }}>{fmt(d.amount)}</td>
-                    <td style={{ borderBottom: '1px solid #f6f6f6', padding: 10 }}>
-                      {(() => {
-                        const cur = (d.currency || '').toString();
-                        const curNorm = cur.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-                        const isUsd = curNorm === 'dolares' || curNorm === 'usd' || curNorm === 'dolares estadounidenses' || curNorm === 'u$s' || curNorm === 'us$';
-                        return (
-                          <span style={{ display:'inline-block', padding: '2px 8px', background: isUsd ? '#ecfdf5' : '#f0f5ff', border: isUsd ? '1px solid #a7f3d0' : '1px solid #d6e4ff', color: isUsd ? '#065f46' : '#1d39c4', borderRadius: 999, fontSize: 12 }}>
-                            {d.currency}
-                          </span>
-                        );
-                      })()}
-                    </td>
-                    <td style={{ borderBottom: '1px solid #f6f6f6', padding: 10 }}>{d.minian}</td>
-                    <td style={{ borderBottom: '1px solid #f6f6f6', padding: 10 }}>{d.concept}</td>
-                    <td style={{ borderBottom: '1px solid #f6f6f6', padding: 10 }}>{d.destination === 'Other' ? 'Otro' : d.destination}{d.destination === 'Other' && d.destinationOther ? ` (${d.destinationOther})` : ''}</td>
-                    <td style={{ borderBottom: '1px solid #f6f6f6', padding: 10 }}>{d.perasha || '—'}</td>
-                    <td style={{ borderBottom: '1px solid #f6f6f6', padding: 10 }}>{d.comment || '—'}</td>
-                    <td style={{ borderBottom: '1px solid #f6f6f6', padding: 10, textAlign: 'center' }}>
-                      {d.isVirtual ? <span style={{ display: 'inline-block', padding: '2px 8px', background: '#fff7e6', border: '1px solid #ffd591', color: '#ad6800', borderRadius: 4, fontSize: 11, fontWeight: 600 }}>SÍ</span> : '—'}
-                    </td>
+        <div className="tables-section">
+          <div className="table-container">
+            <h2 className="section-title">Donaciones</h2>
+            <div className="table-wrapper">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Fecha</th>
+                    <th className="text-right">Monto</th>
+                    <th>Moneda</th>
+                    <th>Minián</th>
+                    <th>Concepto</th>
+                    <th>Destino</th>
+                    <th>Perashá</th>
+                    <th>Comentario</th>
+                    <th className="text-center">Virtual</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {filteredDonations.length === 0 && (
+                    <tr><td colSpan={9} className="empty-state">Sin donaciones</td></tr>
+                  )}
+                  {filteredDonations.map(d => (
+                    <tr key={d.id}>
+                      <td>{d.donationDate}</td>
+                      <td className="text-right">{fmt(d.amount)}</td>
+                      <td>
+                        {(() => {
+                          const cur = (d.currency || '').toString();
+                          const curNorm = cur.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+                          const isUsd = curNorm === 'dolares' || curNorm === 'usd' || curNorm === 'dolares estadounidenses' || curNorm === 'u$s' || curNorm === 'us$';
+                          return (
+                            <span className={`currency-badge ${isUsd ? 'currency-usd' : 'currency-other'}`}>
+                              {d.currency}
+                            </span>
+                          );
+                        })()}
+                      </td>
+                      <td>{d.minian}</td>
+                      <td>{d.concept}</td>
+                      <td>{d.destination === 'Other' ? 'Otro' : d.destination}{d.destination === 'Other' && d.destinationOther ? ` (${d.destinationOther})` : ''}</td>
+                      <td>{d.perasha || '—'}</td>
+                      <td>{d.comment || '—'}</td>
+                      <td className="text-center">
+                        {d.isVirtual ? <span className="badge badge-warning">SÍ</span> : '—'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
-        <div>
-          <h4 style={{ marginBottom: 8 }}>Pagos</h4>
-          <div style={{ border: '1px solid #eee', borderRadius: 8, boxShadow: '0 4px 14px rgba(0,0,0,0.06)', background: '#fff', overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 600 }}>
-              <thead style={{ background: '#fafafa' }}>
-                <tr>
-                  <th style={{ textAlign: 'left', borderBottom: '1px solid #eee', padding: 10, whiteSpace: 'nowrap' }}>Fecha</th>
-                  <th style={{ textAlign: 'right', borderBottom: '1px solid #eee', padding: 10, whiteSpace: 'nowrap' }}>Monto</th>
-                  <th style={{ textAlign: 'left', borderBottom: '1px solid #eee', padding: 10, whiteSpace: 'nowrap' }}>Moneda</th>
-                  <th style={{ textAlign: 'left', borderBottom: '1px solid #eee', padding: 10, whiteSpace: 'nowrap' }}>Destino</th>
-                  <th style={{ textAlign: 'left', borderBottom: '1px solid #eee', padding: 10, whiteSpace: 'nowrap' }}>Cobrador</th>
-                  <th style={{ textAlign: 'center', borderBottom: '1px solid #eee', padding: 10, whiteSpace: 'nowrap' }}>Virtual</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredPayments.length === 0 && (
-                  <tr><td colSpan={6} style={{ padding: 12, textAlign: 'center', color: '#666' }}>Sin pagos</td></tr>
-                )}
-                {filteredPayments.map(p => (
-                  <tr key={p.id}>
-                    <td style={{ borderBottom: '1px solid #f6f6f6', padding: 10 }}>{p.paymentDate}</td>
-                    <td style={{ borderBottom: '1px solid #f6f6f6', padding: 10, textAlign: 'right' }}>{fmt(p.amount)}</td>
-                    <td style={{ borderBottom: '1px solid #f6f6f6', padding: 10 }}>
-                      {(() => {
-                        const cur = (p.currency || '').toString();
-                        const curNorm = cur.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-                        const isUsd = curNorm === 'dolares' || curNorm === 'usd' || curNorm === 'dolares estadounidenses' || curNorm === 'u$s' || curNorm === 'us$';
-                        return (
-                          <span style={{ display:'inline-block', padding: '2px 8px', background: isUsd ? '#ecfdf5' : '#f0f5ff', border: isUsd ? '1px solid #a7f3d0' : '1px solid #d6e4ff', color: isUsd ? '#065f46' : '#1d39c4', borderRadius: 999, fontSize: 12 }}>
-                            {p.currency}
-                          </span>
-                        );
-                      })()}
-                    </td>
-                    <td style={{ borderBottom: '1px solid #f1f5f9', padding: 8 }}>{p.destination}</td>
-                    <td style={{ borderBottom: '1px solid #f1f5f9', padding: 8 }}>{p.collector || '—'}</td>
-                    <td style={{ borderBottom: '1px solid #f1f5f9', padding: 8, textAlign: 'center' }}>
-                      {p.isVirtual ? <span style={{ display: 'inline-block', padding: '2px 8px', background: '#fff7e6', border: '1px solid #ffd591', color: '#ad6800', borderRadius: 4, fontSize: 11, fontWeight: 600 }}>SÍ</span> : '—'}
-                    </td>
+
+          <div className="table-container">
+            <h2 className="section-title">Pagos</h2>
+            <div className="table-wrapper">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Fecha</th>
+                    <th className="text-right">Monto</th>
+                    <th>Moneda</th>
+                    <th>Destino</th>
+                    <th>Cobrador</th>
+                    <th className="text-center">Virtual</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {filteredPayments.length === 0 && (
+                    <tr><td colSpan={6} className="empty-state">Sin pagos</td></tr>
+                  )}
+                  {filteredPayments.map(p => (
+                    <tr key={p.id}>
+                      <td>{p.paymentDate}</td>
+                      <td className="text-right">{fmt(p.amount)}</td>
+                      <td>
+                        {(() => {
+                          const cur = (p.currency || '').toString();
+                          const curNorm = cur.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+                          const isUsd = curNorm === 'dolares' || curNorm === 'usd' || curNorm === 'dolares estadounidenses' || curNorm === 'u$s' || curNorm === 'us$';
+                          return (
+                            <span className={`currency-badge ${isUsd ? 'currency-usd' : 'currency-other'}`}>
+                              {p.currency}
+                            </span>
+                          );
+                        })()}
+                      </td>
+                      <td>{p.destination}</td>
+                      <td>{p.collector || '—'}</td>
+                      <td className="text-center">
+                        {p.isVirtual ? <span className="badge badge-warning">SÍ</span> : '—'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
