@@ -229,8 +229,8 @@ export default function Donations() {
                 type="text"
                 inputMode="numeric"
                 pattern="[0-9]*"
-                placeholder="Monto"
-                value={amount ? amount.replace(/\B(?=(\d{3})+(?!\d))/g, '.') : ''}
+                placeholder={matana ? "Matana - Sin monto" : "Monto"}
+                value={matana ? '' : (amount ? amount.replace(/\B(?=(\d{3})+(?!\d))/g, '.') : '')}
                 onChange={e=>{
                   const digits = (e.target.value || '').toString().replace(/[^0-9]/g, '');
                   setAmount(digits);
