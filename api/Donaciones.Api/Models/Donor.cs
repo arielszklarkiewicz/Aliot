@@ -11,7 +11,9 @@ public record Donor
     public string? Observations { get; set; }
     public bool IsOccasionalDonor { get; set; } // New attribute to flag occasional donors
     public DateTimeOffset CreatedAt { get; set; }
+    public Guid CreatedBy { get; set; }
     public DateTimeOffset? UpdatedAt { get; set; }
+    public Guid? UpdatedBy { get; set; }
 
     // Convenience, not mapped: combine first and last names
     public string FullName => string.IsNullOrWhiteSpace(LastName) ? FirstName : $"{FirstName} {LastName}";

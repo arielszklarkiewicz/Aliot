@@ -1,3 +1,4 @@
+using Donaciones.Api.Models;
 using Microsoft.EntityFrameworkCore;
 
 public class PaymentService : IPaymentService
@@ -40,7 +41,7 @@ public class PaymentService : IPaymentService
     public Task<Payment?> GetAsync(Guid id, CancellationToken ct)
         => _db.Payments.AsNoTracking().FirstOrDefaultAsync(p => p.Id == id, ct);
 
-    public async Task<Payment?> CreateAsync(PaymentCreate dto, CancellationToken ct)
+    public async Task<Payment?> CreateAsync(PaymentCreate dto, Guid userId, CancellationToken ct)
     {
         if (dto.DonorId == Guid.Empty || string.IsNullOrWhiteSpace(dto.Currency) || string.IsNullOrWhiteSpace(dto.Destination) || dto.Amount is null)
             return null;
@@ -58,14 +59,15 @@ public class PaymentService : IPaymentService
             Collector = dto.Collector,
             Comment = dto.Comment,
             IsVirtual = dto.IsVirtual,
-            CreatedAt = DateTimeOffset.UtcNow
+            CreatedAt = DateTimeOffset.UtcNow,
+            CreatedBy = userId
         };
         _db.Payments.Add(entity);
         await _db.SaveChangesAsync(ct);
         return entity;
     }
 
-    public async Task<Payment?> UpdateAsync(Guid id, PaymentCreate dto, CancellationToken ct)
+    public async Task<Payment?> UpdateAsync(Guid id, PaymentCreate dto, Guid userId, CancellationToken ct)
     {
         var entity = await _db.Payments.FirstOrDefaultAsync(x => x.Id == id, ct);
         if (entity == null) return null;
@@ -81,14 +83,28 @@ public class PaymentService : IPaymentService
         entity.Comment = dto.Comment;
         entity.IsVirtual = dto.IsVirtual;
         entity.UpdatedAt = DateTimeOffset.UtcNow;
+        entity.UpdatedBy = userId;
         await _db.SaveChangesAsync(ct);
         return entity;
     }
 
-    public async Task<bool> DeleteAsync(Guid id, CancellationToken ct)
+    public async Task<bool> DeleteAsync(Guid id, Guid userId, CancellationToken ct)
     {
         var entity = await _db.Payments.FirstOrDefaultAsync(x => x.Id == id, ct);
         if (entity == null) return false;
+        
+        // Log deletion
+        var deletionLog = new DeletionLog
+        {
+            Id = Guid.NewGuid(),
+            EntityType = "Payment",
+            EntityId = entity.Id,
+            EntityDetails = $"Donor: {entity.DonorId}, Amount: {entity.Amount} {entity.Currency}, Date: {entity.PaymentDate}",
+            DeletedBy = userId,
+            DeletedAt = DateTimeOffset.UtcNow
+        };
+        _db.DeletionLogs.Add(deletionLog);
+        
         _db.Payments.Remove(entity);
         await _db.SaveChangesAsync(ct);
         return true;

@@ -71,6 +71,7 @@ export default function Navigation() {
         { path: '/admin/destinations', label: 'Destinos', icon: '🎯', roles: ['Admin'] },
         { path: '/admin/collectors', label: 'Cobradores', icon: '🤝', roles: ['Admin'] },
         { path: '/admin/users', label: 'Usuarios del Sistema', icon: '👤', roles: ['Admin'] },
+        { path: '/admin/audit-log', label: 'Registro de Actividad', icon: '📋', roles: ['Admin'] },
       ]
     }
   ];

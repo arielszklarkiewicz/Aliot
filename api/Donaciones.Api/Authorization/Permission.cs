@@ -38,5 +38,8 @@ public enum Permission
     ViewReports,
     
     // Summary
-    ViewDonorSummary
+    ViewDonorSummary,
+    
+    // Audit Log
+    ViewAuditLog
 }

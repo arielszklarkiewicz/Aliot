@@ -12,6 +12,7 @@ public class AppDbContext : DbContext
     public DbSet<Concept> Concepts => Set<Concept>();
     public DbSet<Destination> Destinations => Set<Destination>();
     public DbSet<Collector> Collectors => Set<Collector>();
+    public DbSet<DeletionLog> DeletionLogs => Set<DeletionLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -29,7 +30,9 @@ public class AppDbContext : DbContext
             e.Property(x => x.Role).HasColumnName("role").IsRequired();
             e.Property(x => x.IsActive).HasColumnName("is_active").HasDefaultValue(true);
             e.Property(x => x.CreatedAt).HasColumnName("created_at");
+            e.Property(x => x.CreatedBy).HasColumnName("created_by");
             e.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            e.Property(x => x.UpdatedBy).HasColumnName("updated_by");
             e.HasIndex(x => x.Email).IsUnique();
         });
 
@@ -47,7 +50,9 @@ public class AppDbContext : DbContext
             e.Property(x => x.Observations).HasColumnName("observations");
             e.Property(x => x.IsOccasionalDonor).HasColumnName("is_occasional_donor");
             e.Property(x => x.CreatedAt).HasColumnName("created_at");
+            e.Property(x => x.CreatedBy).HasColumnName("created_by");
             e.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            e.Property(x => x.UpdatedBy).HasColumnName("updated_by");
         });
 
         // Donation
@@ -69,7 +74,9 @@ public class AppDbContext : DbContext
             e.Property(x => x.IsVirtual).HasColumnName("is_virtual").HasDefaultValue(false);
             e.Property(x => x.Matana).HasColumnName("matana").HasDefaultValue(false);
             e.Property(x => x.CreatedAt).HasColumnName("created_at");
+            e.Property(x => x.CreatedBy).HasColumnName("created_by");
             e.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            e.Property(x => x.UpdatedBy).HasColumnName("updated_by");
 
             e.HasOne<Donor>()
                 .WithMany()
@@ -92,7 +99,9 @@ public class AppDbContext : DbContext
             e.Property(x => x.Comment).HasColumnName("comment");
             e.Property(x => x.IsVirtual).HasColumnName("is_virtual").HasDefaultValue(false);
             e.Property(x => x.CreatedAt).HasColumnName("created_at");
+            e.Property(x => x.CreatedBy).HasColumnName("created_by");
             e.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            e.Property(x => x.UpdatedBy).HasColumnName("updated_by");
 
             e.HasOne<Donor>()
                 .WithMany()
@@ -108,7 +117,9 @@ public class AppDbContext : DbContext
             e.Property(x => x.Id).HasColumnName("id");
             e.Property(x => x.Name).HasColumnName("name").IsRequired();
             e.Property(x => x.CreatedAt).HasColumnName("created_at");
+            e.Property(x => x.CreatedBy).HasColumnName("created_by");
             e.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            e.Property(x => x.UpdatedBy).HasColumnName("updated_by");
             e.HasIndex(x => x.Name).IsUnique();
         });
 
@@ -120,7 +131,9 @@ public class AppDbContext : DbContext
             e.Property(x => x.Id).HasColumnName("id");
             e.Property(x => x.Name).HasColumnName("name").IsRequired();
             e.Property(x => x.CreatedAt).HasColumnName("created_at");
+            e.Property(x => x.CreatedBy).HasColumnName("created_by");
             e.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            e.Property(x => x.UpdatedBy).HasColumnName("updated_by");
             e.HasIndex(x => x.Name).IsUnique();
         });
 
@@ -132,8 +145,25 @@ public class AppDbContext : DbContext
             e.Property(x => x.Id).HasColumnName("id");
             e.Property(x => x.Name).HasColumnName("name").IsRequired();
             e.Property(x => x.CreatedAt).HasColumnName("created_at");
+            e.Property(x => x.CreatedBy).HasColumnName("created_by");
             e.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            e.Property(x => x.UpdatedBy).HasColumnName("updated_by");
             e.HasIndex(x => x.Name).IsUnique();
+        });
+
+        // Deletion Log
+        modelBuilder.Entity<DeletionLog>(e =>
+        {
+            e.ToTable("deletion_logs");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Id).HasColumnName("id");
+            e.Property(x => x.EntityType).HasColumnName("entity_type").IsRequired();
+            e.Property(x => x.EntityId).HasColumnName("entity_id").IsRequired();
+            e.Property(x => x.EntityDetails).HasColumnName("entity_details");
+            e.Property(x => x.DeletedBy).HasColumnName("deleted_by").IsRequired();
+            e.Property(x => x.DeletedAt).HasColumnName("deleted_at").IsRequired();
+            e.HasIndex(x => x.DeletedAt);
+            e.HasIndex(x => x.EntityType);
         });
     }
 }

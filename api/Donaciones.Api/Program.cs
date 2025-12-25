@@ -299,11 +299,12 @@ app.MapGet("/api/admin/users/{id:guid}", async (IAuthService authService, Guid i
     .WithName("GetUser")
     .WithOpenApi();
 
-app.MapPost("/api/auth/users", async (IAuthService authService, CreateUserRequest req) =>
+app.MapPost("/api/auth/users", async (IAuthService authService, HttpContext httpContext, CreateUserRequest req) =>
     {
         try
         {
-            var user = await authService.CreateUserAsync(req.Email, req.Password, req.Role, req.FullName);
+            var creatorUserId = httpContext.User.GetUserId();
+            var user = await authService.CreateUserAsync(req.Email, req.Password, req.Role, req.FullName, creatorUserId);
             return Results.Created($"/api/auth/users/{user.Id}", new
             {
                 user.Id,
@@ -327,9 +328,10 @@ app.MapPost("/api/auth/users", async (IAuthService authService, CreateUserReques
     .WithOpenApi();
 
 app.MapPut("/api/admin/users/{id:guid}",
-        async (IAuthService authService, Guid id, UpdateUserRequest req, CancellationToken ct) =>
+        async (IAuthService authService, HttpContext httpContext, Guid id, UpdateUserRequest req, CancellationToken ct) =>
         {
-            var user = await authService.UpdateUserAsync(id, req.FullName, null, ct);
+            var updaterUserId = httpContext.User.GetUserId();
+            var user = await authService.UpdateUserAsync(id, req.FullName, null, updaterUserId, ct);
             if (user == null)
                 return Results.NotFound();
 
@@ -446,9 +448,10 @@ app.MapGet("/api/donors", async (IDonorService svc, string? q, bool? isOccasiona
     })
     .RequirePermission(Permission.ViewDonors);
 
-app.MapPost("/api/donors", async (IDonorService svc, Donor donor, CancellationToken ct) =>
+app.MapPost("/api/donors", async (IDonorService svc, HttpContext httpContext, Donor donor, CancellationToken ct) =>
     {
-        var created = await svc.CreateAsync(donor, ct);
+        var userId = httpContext.User.GetUserId() ?? Guid.Empty;
+        var created = await svc.CreateAsync(donor, userId, ct);
         return Results.Created($"/api/donors/{created.Id}", created);
     })
     .RequirePermission(Permission.CreateDonors);
@@ -475,17 +478,19 @@ app.MapGet("/api/donors/{id:guid}/summary", async (IDonorService svc, Guid id, C
     })
     .RequirePermission(Permission.ViewDonorSummary);
 
-app.MapPut("/api/donors/{id:guid}", async (IDonorService svc, Guid id, Donor donor, CancellationToken ct) =>
+app.MapPut("/api/donors/{id:guid}", async (IDonorService svc, HttpContext httpContext, Guid id, Donor donor, CancellationToken ct) =>
     {
+        var userId = httpContext.User.GetUserId() ?? Guid.Empty;
         donor.Id = id;
-        var updated = await svc.UpdateAsync(id, donor, ct);
+        var updated = await svc.UpdateAsync(id, donor, userId, ct);
         return updated is not null ? Results.Ok(updated) : Results.NotFound();
     })
     .RequirePermission(Permission.EditDonors);
 
-app.MapDelete("/api/donors/{id:guid}", async (IDonorService svc, Guid id, CancellationToken ct) =>
+app.MapDelete("/api/donors/{id:guid}", async (IDonorService svc, HttpContext httpContext, Guid id, CancellationToken ct) =>
     {
-        var ok = await svc.DeleteAsync(id, ct);
+        var userId = httpContext.User.GetUserId() ?? Guid.Empty;
+        var ok = await svc.DeleteAsync(id, userId, ct);
         return ok ? Results.NoContent() : Results.NotFound();
     })
     .RequirePermission(Permission.DeleteDonors);
@@ -516,7 +521,8 @@ app.MapPost("/api/donations",
                 }
             }
 
-            var created = await svc.CreateAsync(dto, ct);
+            var userId = httpContext.User.GetUserId() ?? Guid.Empty;
+            var created = await svc.CreateAsync(dto, userId, ct);
             return created is not null
                 ? Results.Created($"/api/donations/{created.Id}", created)
                 : Results.BadRequest(new { error = "Validation failed" });
@@ -543,14 +549,16 @@ app.MapPut("/api/donations/{id:guid}",
                 }
             }
 
-            var updated = await svc.UpdateAsync(id, dto, ct);
+            var userId = httpContext.User.GetUserId() ?? Guid.Empty;
+            var updated = await svc.UpdateAsync(id, dto, userId, ct);
             return updated is not null ? Results.Ok(updated) : Results.NotFound();
         })
     .RequirePermission(Permission.EditDonations);
 
-app.MapDelete("/api/donations/{id:guid}", async (IDonationService svc, Guid id, CancellationToken ct) =>
+app.MapDelete("/api/donations/{id:guid}", async (IDonationService svc, HttpContext httpContext, Guid id, CancellationToken ct) =>
     {
-        var ok = await svc.DeleteAsync(id, ct);
+        var userId = httpContext.User.GetUserId() ?? Guid.Empty;
+        var ok = await svc.DeleteAsync(id, userId, ct);
         return ok ? Results.NoContent() : Results.NotFound();
     })
     .RequirePermission(Permission.DeleteDonations);
@@ -577,7 +585,8 @@ app.MapPost("/api/payments",
                 }
             }
 
-            var created = await svc.CreateAsync(dto, ct);
+            var userId = httpContext.User.GetUserId() ?? Guid.Empty;
+            var created = await svc.CreateAsync(dto, userId, ct);
             return created is not null
                 ? Results.Created($"/api/payments/{created.Id}", created)
                 : Results.BadRequest(new { error = "Validation failed" });
@@ -604,14 +613,16 @@ app.MapPut("/api/payments/{id:guid}",
                 }
             }
 
-            var updated = await svc.UpdateAsync(id, dto, ct);
+            var userId = httpContext.User.GetUserId() ?? Guid.Empty;
+            var updated = await svc.UpdateAsync(id, dto, userId, ct);
             return updated is not null ? Results.Ok(updated) : Results.NotFound();
         })
     .RequirePermission(Permission.EditPayments);
 
-app.MapDelete("/api/payments/{id:guid}", async (IPaymentService svc, Guid id, CancellationToken ct) =>
+app.MapDelete("/api/payments/{id:guid}", async (IPaymentService svc, HttpContext httpContext, Guid id, CancellationToken ct) =>
     {
-        var ok = await svc.DeleteAsync(id, ct);
+        var userId = httpContext.User.GetUserId() ?? Guid.Empty;
+        var ok = await svc.DeleteAsync(id, userId, ct);
         return ok ? Results.NoContent() : Results.NotFound();
     })
     .RequirePermission(Permission.DeletePayments);
@@ -733,27 +744,30 @@ app.MapGet("/api/admin/concepts", async (AppDbContext db, CancellationToken ct) 
     })
     .RequirePermission(Permission.ViewConcepts);
 
-app.MapPost("/api/admin/concepts", async (AppDbContext db, Concept dto, CancellationToken ct) =>
+app.MapPost("/api/admin/concepts", async (AppDbContext db, HttpContext httpContext, Concept dto, CancellationToken ct) =>
     {
         if (string.IsNullOrWhiteSpace(dto.Name)) return Results.BadRequest(new { error = "Name is required" });
         var exists = await db.Concepts.AnyAsync(x => x.Name.ToLower() == dto.Name.ToLower(), ct);
         if (exists) return Results.Conflict(new { error = "A concept with this name already exists" });
-        var entity = new Concept { Id = Guid.NewGuid(), Name = dto.Name.Trim(), CreatedAt = DateTimeOffset.UtcNow };
+        var userId = httpContext.User.GetUserId() ?? Guid.Empty;
+        var entity = new Concept { Id = Guid.NewGuid(), Name = dto.Name.Trim(), CreatedAt = DateTimeOffset.UtcNow, CreatedBy = userId };
         db.Concepts.Add(entity);
         await db.SaveChangesAsync(ct);
         return Results.Created($"/api/admin/concepts/{entity.Id}", entity);
     })
     .RequirePermission(Permission.ManageConcepts);
 
-app.MapPut("/api/admin/concepts/{id:guid}", async (AppDbContext db, Guid id, Concept dto, CancellationToken ct) =>
+app.MapPut("/api/admin/concepts/{id:guid}", async (AppDbContext db, HttpContext httpContext, Guid id, Concept dto, CancellationToken ct) =>
     {
         var entity = await db.Concepts.FirstOrDefaultAsync(x => x.Id == id, ct);
         if (entity is null) return Results.NotFound();
         if (string.IsNullOrWhiteSpace(dto.Name)) return Results.BadRequest(new { error = "Name is required" });
         var exists = await db.Concepts.AnyAsync(x => x.Id != id && x.Name.ToLower() == dto.Name.ToLower(), ct);
         if (exists) return Results.Conflict(new { error = "A concept with this name already exists" });
+        var userId = httpContext.User.GetUserId() ?? Guid.Empty;
         entity.Name = dto.Name.Trim();
         entity.UpdatedAt = DateTimeOffset.UtcNow;
+        entity.UpdatedBy = userId;
         await db.SaveChangesAsync(ct);
         return Results.Ok(entity);
     })
@@ -781,12 +795,13 @@ app.MapGet("/api/admin/destinations", async (AppDbContext db, CancellationToken 
     })
     .RequirePermission(Permission.ViewDestinations);
 
-app.MapPost("/api/admin/destinations", async (AppDbContext db, Destination dto, CancellationToken ct) =>
+app.MapPost("/api/admin/destinations", async (AppDbContext db, HttpContext httpContext, Destination dto, CancellationToken ct) =>
     {
         if (string.IsNullOrWhiteSpace(dto.Name)) return Results.BadRequest(new { error = "Name is required" });
         var exists = await db.Destinations.AnyAsync(x => x.Name.ToLower() == dto.Name.ToLower(), ct);
         if (exists) return Results.Conflict(new { error = "A destination with this name already exists" });
-        var entity = new Destination { Id = Guid.NewGuid(), Name = dto.Name.Trim(), CreatedAt = DateTimeOffset.UtcNow };
+        var userId = httpContext.User.GetUserId() ?? Guid.Empty;
+        var entity = new Destination { Id = Guid.NewGuid(), Name = dto.Name.Trim(), CreatedAt = DateTimeOffset.UtcNow, CreatedBy = userId };
         db.Destinations.Add(entity);
         await db.SaveChangesAsync(ct);
         return Results.Created($"/api/admin/destinations/{entity.Id}", entity);
@@ -794,15 +809,17 @@ app.MapPost("/api/admin/destinations", async (AppDbContext db, Destination dto, 
     .RequirePermission(Permission.ManageDestinations);
 
 app.MapPut("/api/admin/destinations/{id:guid}",
-        async (AppDbContext db, Guid id, Destination dto, CancellationToken ct) =>
+        async (AppDbContext db, HttpContext httpContext, Guid id, Destination dto, CancellationToken ct) =>
         {
             var entity = await db.Destinations.FirstOrDefaultAsync(x => x.Id == id, ct);
             if (entity is null) return Results.NotFound();
             if (string.IsNullOrWhiteSpace(dto.Name)) return Results.BadRequest(new { error = "Name is required" });
             var exists = await db.Destinations.AnyAsync(x => x.Id != id && x.Name.ToLower() == dto.Name.ToLower(), ct);
             if (exists) return Results.Conflict(new { error = "A destination with this name already exists" });
+            var userId = httpContext.User.GetUserId() ?? Guid.Empty;
             entity.Name = dto.Name.Trim();
             entity.UpdatedAt = DateTimeOffset.UtcNow;
+            entity.UpdatedBy = userId;
             await db.SaveChangesAsync(ct);
             return Results.Ok(entity);
         })
@@ -830,27 +847,30 @@ app.MapGet("/api/admin/collectors", async (AppDbContext db, CancellationToken ct
     })
     .RequirePermission(Permission.ViewCollectors);
 
-app.MapPost("/api/admin/collectors", async (AppDbContext db, Collector dto, CancellationToken ct) =>
+app.MapPost("/api/admin/collectors", async (AppDbContext db, HttpContext httpContext, Collector dto, CancellationToken ct) =>
     {
         if (string.IsNullOrWhiteSpace(dto.Name)) return Results.BadRequest(new { error = "Name is required" });
         var exists = await db.Collectors.AnyAsync(x => x.Name.ToLower() == dto.Name.ToLower(), ct);
         if (exists) return Results.Conflict(new { error = "A collector with this name already exists" });
-        var entity = new Collector { Id = Guid.NewGuid(), Name = dto.Name.Trim(), CreatedAt = DateTimeOffset.UtcNow };
+        var userId = httpContext.User.GetUserId() ?? Guid.Empty;
+        var entity = new Collector { Id = Guid.NewGuid(), Name = dto.Name.Trim(), CreatedAt = DateTimeOffset.UtcNow, CreatedBy = userId };
         db.Collectors.Add(entity);
         await db.SaveChangesAsync(ct);
         return Results.Created($"/api/admin/collectors/{entity.Id}", entity);
     })
     .RequirePermission(Permission.ManageCollectors);
 
-app.MapPut("/api/admin/collectors/{id:guid}", async (AppDbContext db, Guid id, Collector dto, CancellationToken ct) =>
+app.MapPut("/api/admin/collectors/{id:guid}", async (AppDbContext db, HttpContext httpContext, Guid id, Collector dto, CancellationToken ct) =>
     {
         var entity = await db.Collectors.FirstOrDefaultAsync(x => x.Id == id, ct);
         if (entity is null) return Results.NotFound();
         if (string.IsNullOrWhiteSpace(dto.Name)) return Results.BadRequest(new { error = "Name is required" });
         var exists = await db.Collectors.AnyAsync(x => x.Id != id && x.Name.ToLower() == dto.Name.ToLower(), ct);
         if (exists) return Results.Conflict(new { error = "A collector with this name already exists" });
+        var userId = httpContext.User.GetUserId() ?? Guid.Empty;
         entity.Name = dto.Name.Trim();
         entity.UpdatedAt = DateTimeOffset.UtcNow;
+        entity.UpdatedBy = userId;
         await db.SaveChangesAsync(ct);
         return Results.Ok(entity);
     })
@@ -869,5 +889,181 @@ app.MapDelete("/api/admin/collectors/{id:guid}", async (AppDbContext db, Guid id
         return Results.NoContent();
     })
     .RequirePermission(Permission.ManageCollectors);
+
+// Audit Log
+app.MapGet("/api/admin/audit-log", async (AppDbContext db, Guid? userId, string? entityType, DateOnly? from, DateOnly? to, int page = 1, int pageSize = 50, CancellationToken ct = default) =>
+    {
+        // Build activity log by aggregating all tables with audit fields
+        var activities = new List<object>();
+
+        // Helper to check if entity should be included
+        bool ShouldInclude(string entity) => string.IsNullOrWhiteSpace(entityType) || entity.Equals(entityType, StringComparison.OrdinalIgnoreCase);
+
+        // Get donations
+        if (ShouldInclude("Donation"))
+        {
+            var donationsQuery = db.Donations.AsNoTracking().AsQueryable();
+            if (userId.HasValue) donationsQuery = donationsQuery.Where(d => d.CreatedBy == userId.Value || d.UpdatedBy == userId.Value);
+            if (from.HasValue) donationsQuery = donationsQuery.Where(d => d.CreatedAt.Date >= from.Value.ToDateTime(TimeOnly.MinValue));
+            if (to.HasValue) donationsQuery = donationsQuery.Where(d => d.CreatedAt.Date <= to.Value.ToDateTime(TimeOnly.MinValue));
+            
+            var donations = await donationsQuery.ToListAsync(ct);
+            foreach (var d in donations)
+            {
+                activities.Add(new { Entity = "Donation", EntityId = d.Id, Action = "Created", UserId = d.CreatedBy, Timestamp = d.CreatedAt, Details = $"Donor: {d.DonorId}, Amount: {d.Amount} {d.Currency}" });
+                if (d.UpdatedAt.HasValue && d.UpdatedBy.HasValue)
+                    activities.Add(new { Entity = "Donation", EntityId = d.Id, Action = "Updated", UserId = d.UpdatedBy.Value, Timestamp = d.UpdatedAt.Value, Details = $"Donor: {d.DonorId}, Amount: {d.Amount} {d.Currency}" });
+            }
+        }
+
+        // Get payments
+        if (ShouldInclude("Payment"))
+        {
+            var paymentsQuery = db.Payments.AsNoTracking().AsQueryable();
+            if (userId.HasValue) paymentsQuery = paymentsQuery.Where(p => p.CreatedBy == userId.Value || p.UpdatedBy == userId.Value);
+            if (from.HasValue) paymentsQuery = paymentsQuery.Where(p => p.CreatedAt.Date >= from.Value.ToDateTime(TimeOnly.MinValue));
+            if (to.HasValue) paymentsQuery = paymentsQuery.Where(p => p.CreatedAt.Date <= to.Value.ToDateTime(TimeOnly.MinValue));
+            
+            var payments = await paymentsQuery.ToListAsync(ct);
+            foreach (var p in payments)
+            {
+                activities.Add(new { Entity = "Payment", EntityId = p.Id, Action = "Created", UserId = p.CreatedBy, Timestamp = p.CreatedAt, Details = $"Donor: {p.DonorId}, Amount: {p.Amount} {p.Currency}" });
+                if (p.UpdatedAt.HasValue && p.UpdatedBy.HasValue)
+                    activities.Add(new { Entity = "Payment", EntityId = p.Id, Action = "Updated", UserId = p.UpdatedBy.Value, Timestamp = p.UpdatedAt.Value, Details = $"Donor: {p.DonorId}, Amount: {p.Amount} {p.Currency}" });
+            }
+        }
+
+        // Get donors
+        if (ShouldInclude("Donor"))
+        {
+            var donorsQuery = db.Donors.AsNoTracking().AsQueryable();
+            if (userId.HasValue) donorsQuery = donorsQuery.Where(d => d.CreatedBy == userId.Value || d.UpdatedBy == userId.Value);
+            if (from.HasValue) donorsQuery = donorsQuery.Where(d => d.CreatedAt.Date >= from.Value.ToDateTime(TimeOnly.MinValue));
+            if (to.HasValue) donorsQuery = donorsQuery.Where(d => d.CreatedAt.Date <= to.Value.ToDateTime(TimeOnly.MinValue));
+            
+            var donors = await donorsQuery.ToListAsync(ct);
+            foreach (var d in donors)
+            {
+                activities.Add(new { Entity = "Donor", EntityId = d.Id, Action = "Created", UserId = d.CreatedBy, Timestamp = d.CreatedAt, Details = $"{d.FirstName} {d.LastName}" });
+                if (d.UpdatedAt.HasValue && d.UpdatedBy.HasValue)
+                    activities.Add(new { Entity = "Donor", EntityId = d.Id, Action = "Updated", UserId = d.UpdatedBy.Value, Timestamp = d.UpdatedAt.Value, Details = $"{d.FirstName} {d.LastName}" });
+            }
+        }
+
+        // Get concepts
+        if (ShouldInclude("Concept"))
+        {
+            var conceptsQuery = db.Concepts.AsNoTracking().AsQueryable();
+            if (userId.HasValue) conceptsQuery = conceptsQuery.Where(c => c.CreatedBy == userId.Value || c.UpdatedBy == userId.Value);
+            if (from.HasValue) conceptsQuery = conceptsQuery.Where(c => c.CreatedAt.Date >= from.Value.ToDateTime(TimeOnly.MinValue));
+            if (to.HasValue) conceptsQuery = conceptsQuery.Where(c => c.CreatedAt.Date <= to.Value.ToDateTime(TimeOnly.MinValue));
+            
+            var concepts = await conceptsQuery.ToListAsync(ct);
+            foreach (var c in concepts)
+            {
+                activities.Add(new { Entity = "Concept", EntityId = c.Id, Action = "Created", UserId = c.CreatedBy, Timestamp = c.CreatedAt, Details = c.Name });
+                if (c.UpdatedAt.HasValue && c.UpdatedBy.HasValue)
+                    activities.Add(new { Entity = "Concept", EntityId = c.Id, Action = "Updated", UserId = c.UpdatedBy.Value, Timestamp = c.UpdatedAt.Value, Details = c.Name });
+            }
+        }
+
+        // Get destinations
+        if (ShouldInclude("Destination"))
+        {
+            var destinationsQuery = db.Destinations.AsNoTracking().AsQueryable();
+            if (userId.HasValue) destinationsQuery = destinationsQuery.Where(d => d.CreatedBy == userId.Value || d.UpdatedBy == userId.Value);
+            if (from.HasValue) destinationsQuery = destinationsQuery.Where(d => d.CreatedAt.Date >= from.Value.ToDateTime(TimeOnly.MinValue));
+            if (to.HasValue) destinationsQuery = destinationsQuery.Where(d => d.CreatedAt.Date <= to.Value.ToDateTime(TimeOnly.MinValue));
+            
+            var destinations = await destinationsQuery.ToListAsync(ct);
+            foreach (var d in destinations)
+            {
+                activities.Add(new { Entity = "Destination", EntityId = d.Id, Action = "Created", UserId = d.CreatedBy, Timestamp = d.CreatedAt, Details = d.Name });
+                if (d.UpdatedAt.HasValue && d.UpdatedBy.HasValue)
+                    activities.Add(new { Entity = "Destination", EntityId = d.Id, Action = "Updated", UserId = d.UpdatedBy.Value, Timestamp = d.UpdatedAt.Value, Details = d.Name });
+            }
+        }
+
+        // Get collectors
+        if (ShouldInclude("Collector"))
+        {
+            var collectorsQuery = db.Collectors.AsNoTracking().AsQueryable();
+            if (userId.HasValue) collectorsQuery = collectorsQuery.Where(c => c.CreatedBy == userId.Value || c.UpdatedBy == userId.Value);
+            if (from.HasValue) collectorsQuery = collectorsQuery.Where(c => c.CreatedAt.Date >= from.Value.ToDateTime(TimeOnly.MinValue));
+            if (to.HasValue) collectorsQuery = collectorsQuery.Where(c => c.CreatedAt.Date <= to.Value.ToDateTime(TimeOnly.MinValue));
+            
+            var collectors = await collectorsQuery.ToListAsync(ct);
+            foreach (var c in collectors)
+            {
+                activities.Add(new { Entity = "Collector", EntityId = c.Id, Action = "Created", UserId = c.CreatedBy, Timestamp = c.CreatedAt, Details = c.Name });
+                if (c.UpdatedAt.HasValue && c.UpdatedBy.HasValue)
+                    activities.Add(new { Entity = "Collector", EntityId = c.Id, Action = "Updated", UserId = c.UpdatedBy.Value, Timestamp = c.UpdatedAt.Value, Details = c.Name });
+            }
+        }
+
+        // Get users (activities on user records)
+        if (ShouldInclude("User"))
+        {
+            var usersQuery = db.Users.AsNoTracking().Where(u => u.CreatedBy.HasValue || u.UpdatedBy.HasValue).AsQueryable();
+            if (userId.HasValue) usersQuery = usersQuery.Where(u => u.CreatedBy == userId.Value || u.UpdatedBy == userId.Value);
+            if (from.HasValue) usersQuery = usersQuery.Where(u => u.CreatedAt.Date >= from.Value.ToDateTime(TimeOnly.MinValue));
+            if (to.HasValue) usersQuery = usersQuery.Where(u => u.CreatedAt.Date <= to.Value.ToDateTime(TimeOnly.MinValue));
+            
+            var users = await usersQuery.ToListAsync(ct);
+            foreach (var u in users)
+            {
+                if (u.CreatedBy.HasValue)
+                    activities.Add(new { Entity = "User", EntityId = u.Id, Action = "Created", UserId = u.CreatedBy.Value, Timestamp = u.CreatedAt, Details = u.Email });
+                if (u.UpdatedAt.HasValue && u.UpdatedBy.HasValue)
+                    activities.Add(new { Entity = "User", EntityId = u.Id, Action = "Updated", UserId = u.UpdatedBy.Value, Timestamp = u.UpdatedAt.Value, Details = u.Email });
+            }
+        }
+
+        // Get deletion logs
+        var deletionLogsQuery = db.DeletionLogs.AsNoTracking().AsQueryable();
+        if (userId.HasValue) deletionLogsQuery = deletionLogsQuery.Where(d => d.DeletedBy == userId.Value);
+        if (!string.IsNullOrWhiteSpace(entityType)) deletionLogsQuery = deletionLogsQuery.Where(d => d.EntityType == entityType);
+        if (from.HasValue) deletionLogsQuery = deletionLogsQuery.Where(d => d.DeletedAt.Date >= from.Value.ToDateTime(TimeOnly.MinValue));
+        if (to.HasValue) deletionLogsQuery = deletionLogsQuery.Where(d => d.DeletedAt.Date <= to.Value.ToDateTime(TimeOnly.MinValue));
+        
+        var deletionLogs = await deletionLogsQuery.ToListAsync(ct);
+        foreach (var d in deletionLogs)
+        {
+            activities.Add(new { Entity = d.EntityType, EntityId = d.EntityId, Action = "Deleted", UserId = d.DeletedBy, Timestamp = d.DeletedAt, Details = d.EntityDetails ?? "" });
+        }
+
+        // Get all user info for display
+        var allUsers = await db.Users.AsNoTracking().ToDictionaryAsync(u => u.Id, u => new { u.Email, u.FullName }, ct);
+
+        // Sort by timestamp desc and paginate
+        var sortedActivities = activities
+            .OrderByDescending(a => ((dynamic)a).Timestamp)
+            .ToList();
+
+        var total = sortedActivities.Count;
+        var pagedActivities = sortedActivities
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(a =>
+            {
+                var activity = (dynamic)a;
+                var userInfo = allUsers.ContainsKey(activity.UserId) ? allUsers[activity.UserId] : null;
+                return new
+                {
+                    activity.Entity,
+                    activity.EntityId,
+                    activity.Action,
+                    activity.UserId,
+                    UserEmail = userInfo?.Email ?? "Unknown",
+                    UserName = userInfo?.FullName ?? userInfo?.Email ?? "Unknown",
+                    activity.Timestamp,
+                    activity.Details
+                };
+            })
+            .ToList();
+
+        return Results.Ok(new { items = pagedActivities, total, page, pageSize });
+    })
+    .RequirePermission(Permission.ViewAuditLog);
 
 app.Run();

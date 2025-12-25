@@ -33,16 +33,17 @@ public class DonorService : IDonorService
 
     public Task<Donor?> GetAsync(Guid id, CancellationToken ct) => _db.Donors.AsNoTracking().FirstOrDefaultAsync(d => d.Id == id, ct);
 
-    public async Task<Donor> CreateAsync(Donor donor, CancellationToken ct)
+    public async Task<Donor> CreateAsync(Donor donor, Guid userId, CancellationToken ct)
     {
         donor.Id = Guid.NewGuid();
         donor.CreatedAt = DateTimeOffset.UtcNow;
+        donor.CreatedBy = userId;
         _db.Donors.Add(donor);
         await _db.SaveChangesAsync(ct);
         return donor;
     }
 
-    public async Task<Donor?> UpdateAsync(Guid id, Donor donor, CancellationToken ct)
+    public async Task<Donor?> UpdateAsync(Guid id, Donor donor, Guid userId, CancellationToken ct)
     {
         var existing = await _db.Donors.FirstOrDefaultAsync(d => d.Id == id, ct);
         if (existing == null) return null;
@@ -54,14 +55,28 @@ public class DonorService : IDonorService
         existing.Observations = donor.Observations;
         existing.IsOccasionalDonor = donor.IsOccasionalDonor;
         existing.UpdatedAt = DateTimeOffset.UtcNow;
+        existing.UpdatedBy = userId;
         await _db.SaveChangesAsync(ct);
         return existing;
     }
 
-    public async Task<bool> DeleteAsync(Guid id, CancellationToken ct)
+    public async Task<bool> DeleteAsync(Guid id, Guid userId, CancellationToken ct)
     {
         var donor = await _db.Donors.FirstOrDefaultAsync(d => d.Id == id, ct);
         if (donor == null) return false;
+        
+        // Log deletion
+        var deletionLog = new DeletionLog
+        {
+            Id = Guid.NewGuid(),
+            EntityType = "Donor",
+            EntityId = donor.Id,
+            EntityDetails = $"{donor.FirstName} {donor.LastName}",
+            DeletedBy = userId,
+            DeletedAt = DateTimeOffset.UtcNow
+        };
+        _db.DeletionLogs.Add(deletionLog);
+        
         _db.Donors.Remove(donor);
         await _db.SaveChangesAsync(ct);
         return true;

@@ -810,6 +810,11 @@ body {
   color: var(--success-text);
 }
 
+.badge-info {
+  background-color: #dbeafe;
+  color: #1e40af;
+}
+
 .badge-warning {
   background-color: var(--warning-bg);
   color: var(--warning-text);
@@ -818,6 +823,11 @@ body {
 .badge-error {
   background-color: var(--error-bg);
   color: var(--error-text);
+}
+
+.badge-secondary {
+  background-color: var(--neutral-100);
+  color: var(--neutral-700);
 }
 
 /* Currency Badges - Blue for Pesos, Green for Dollars */

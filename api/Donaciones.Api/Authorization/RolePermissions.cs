@@ -37,7 +37,9 @@ public static class RolePermissions
             Permission.ManageUsers,
             
             Permission.ViewReports,
-            Permission.ViewDonorSummary
+            Permission.ViewDonorSummary,
+            
+            Permission.ViewAuditLog
         },
         
         [UserRole.DataEntry] = new HashSet<Permission>

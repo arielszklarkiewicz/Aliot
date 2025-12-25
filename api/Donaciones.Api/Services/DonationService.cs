@@ -1,3 +1,4 @@
+using Donaciones.Api.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace Donaciones.Api.Services;
@@ -60,7 +61,7 @@ public class DonationService : IDonationService
     public Task<Donation?> GetAsync(Guid id, CancellationToken ct)
         => _db.Donations.AsNoTracking().FirstOrDefaultAsync(d => d.Id == id, ct);
 
-    public async Task<Donation?> CreateAsync(DonationCreate dto, CancellationToken ct)
+    public async Task<Donation?> CreateAsync(DonationCreate dto, Guid userId, CancellationToken ct)
     {
         if (dto.DonorId == Guid.Empty || string.IsNullOrWhiteSpace(dto.Currency) ||
             string.IsNullOrWhiteSpace(dto.Minian) || string.IsNullOrWhiteSpace(dto.Concept) ||
@@ -93,14 +94,15 @@ public class DonationService : IDonationService
             Comment = dto.Comment,
             IsVirtual = dto.IsVirtual,
             Matana = dto.Matana,
-            CreatedAt = DateTimeOffset.UtcNow
+            CreatedAt = DateTimeOffset.UtcNow,
+            CreatedBy = userId
         };
         _db.Donations.Add(entity);
         await _db.SaveChangesAsync(ct);
         return entity;
     }
 
-    public async Task<Donation?> UpdateAsync(Guid id, DonationCreate dto, CancellationToken ct)
+    public async Task<Donation?> UpdateAsync(Guid id, DonationCreate dto, Guid userId, CancellationToken ct)
     {
         var entity = await _db.Donations.FirstOrDefaultAsync(x => x.Id == id, ct);
         if (entity == null) return null;
@@ -128,14 +130,28 @@ public class DonationService : IDonationService
         entity.IsVirtual = dto.IsVirtual;
         entity.Matana = dto.Matana;
         entity.UpdatedAt = DateTimeOffset.UtcNow;
+        entity.UpdatedBy = userId;
         await _db.SaveChangesAsync(ct);
         return entity;
     }
 
-    public async Task<bool> DeleteAsync(Guid id, CancellationToken ct)
+    public async Task<bool> DeleteAsync(Guid id, Guid userId, CancellationToken ct)
     {
         var entity = await _db.Donations.FirstOrDefaultAsync(x => x.Id == id, ct);
         if (entity == null) return false;
+        
+        // Log deletion
+        var deletionLog = new DeletionLog
+        {
+            Id = Guid.NewGuid(),
+            EntityType = "Donation",
+            EntityId = entity.Id,
+            EntityDetails = $"Donor: {entity.DonorId}, Amount: {entity.Amount} {entity.Currency}, Date: {entity.DonationDate}",
+            DeletedBy = userId,
+            DeletedAt = DateTimeOffset.UtcNow
+        };
+        _db.DeletionLogs.Add(deletionLog);
+        
         _db.Donations.Remove(entity);
         await _db.SaveChangesAsync(ct);
         return true;

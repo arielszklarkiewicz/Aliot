@@ -14,6 +14,7 @@ import DestinationsAdmin from './pages/DestinationsAdmin';
 import CollectorsAdmin from './pages/CollectorsAdmin';
 import DonorBalances from './pages/DonorBalances';
 import UsersAdmin from './pages/UsersAdmin';
+import AuditLog from './pages/AuditLog';
 import './styles/GlobalStyles.css';
 import './styles/Navigation.css';
 
@@ -32,6 +33,7 @@ export default function App() {
         <Route path="/admin/destinations" element={<ProtectedRoute><AdminRoute><DestinationsAdmin /></AdminRoute></ProtectedRoute>} />
         <Route path="/admin/collectors" element={<ProtectedRoute><AdminRoute><CollectorsAdmin /></AdminRoute></ProtectedRoute>} />
         <Route path="/admin/users" element={<ProtectedRoute><AdminRoute><UsersAdmin /></AdminRoute></ProtectedRoute>} />
+        <Route path="/admin/audit-log" element={<ProtectedRoute><AdminRoute><AuditLog /></AdminRoute></ProtectedRoute>} />
         <Route path="/donors/summary" element={<ProtectedRoute><DonorSummary /></ProtectedRoute>} />
         <Route path="/reports/donor-balances" element={<ProtectedRoute><DonorBalances /></ProtectedRoute>} />
       </Routes>

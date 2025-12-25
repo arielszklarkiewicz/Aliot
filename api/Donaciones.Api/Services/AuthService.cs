@@ -45,7 +45,7 @@ public class AuthService : IAuthService
         return await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId, ct);
     }
 
-    public async Task<User> CreateUserAsync(string email, string password, UserRole role, string? fullName = null, CancellationToken ct = default)
+    public async Task<User> CreateUserAsync(string email, string password, UserRole role, string? fullName = null, Guid? createdBy = null, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(email))
             throw new ArgumentException("Email is required", nameof(email));
@@ -65,7 +65,8 @@ public class AuthService : IAuthService
             Role = role,
             FullName = fullName,
             IsActive = true,
-            CreatedAt = DateTimeOffset.UtcNow
+            CreatedAt = DateTimeOffset.UtcNow,
+            CreatedBy = createdBy
         };
 
         _db.Users.Add(user);
@@ -106,7 +107,7 @@ public class AuthService : IAuthService
         return true;
     }
 
-    public async Task<User?> UpdateUserAsync(Guid userId, string? fullName, string? email, CancellationToken ct = default)
+    public async Task<User?> UpdateUserAsync(Guid userId, string? fullName, string? email, Guid? updatedBy = null, CancellationToken ct = default)
     {
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId, ct);
         if (user == null)
@@ -116,6 +117,7 @@ public class AuthService : IAuthService
         if (!string.IsNullOrWhiteSpace(email))
             user.Email = email.ToLower();
         user.UpdatedAt = DateTimeOffset.UtcNow;
+        user.UpdatedBy = updatedBy;
         await _db.SaveChangesAsync(ct);
 
         return user;
