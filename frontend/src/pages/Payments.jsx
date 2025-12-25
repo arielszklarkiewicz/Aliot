@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from '../api/client';
 import DonorAutocomplete from '../components/DonorAutocomplete';
 import DonorCreateModal from '../components/DonorCreateModal';
+import '../styles/GlobalStyles.css';
 
 export default function Payments() {
   const [donorId, setDonorId] = useState('');
@@ -86,43 +87,41 @@ export default function Payments() {
   };
 
   return (
-    <div>
-      {/* Hero Section */}
-      <div className="page-hero">
-        <div className="page-hero-content">
-          <div className="page-hero-text">
-            <h1>Nuevo Pago</h1>
-            <p>Registre un nuevo pago en el sistema</p>
-          </div>
+    <div className="page-container">
+      <div className="hero-section">
+        <div className="hero-content">
+          <h1 className="hero-title">Nuevo Pago</h1>
+          <p className="hero-subtitle">Registre un nuevo pago en el sistema</p>
         </div>
       </div>
 
-      {successMsg && <div className="alert alert-success" role="status">{successMsg}</div>}
-      {errorMsg && <div className="alert alert-error" role="alert">{errorMsg}</div>}
-      
-      <div className="form-container">
-        <div className="form-grid">
-          <div className="form-group">
-            <label htmlFor="payment-date">Fecha</label>
-            <input id="payment-date" type="date" value={date} onChange={e=>setDate(e.target.value)} />
-          </div>
+      <div className="content-wrapper">
+        {successMsg && <div className="alert alert-success" role="status">{successMsg}</div>}
+        {errorMsg && <div className="alert alert-error" role="alert">{errorMsg}</div>}
+        
+        <div className="form-section">
+          <div className="form-grid">
+            <div className="form-group">
+              <label htmlFor="payment-date" className="form-label">Fecha</label>
+              <input id="payment-date" type="date" value={date} onChange={e=>setDate(e.target.value)} className="form-input" />
+            </div>
 
           <div className="form-group">
-            <label htmlFor="payment-destination">Destino</label>
-            <select id="payment-destination" value={destination} onChange={e=>setDestination(e.target.value)}>
+            <label htmlFor="payment-destination" className="form-label">Destino</label>
+            <select id="payment-destination" value={destination} onChange={e=>setDestination(e.target.value)} className="form-select">
               {lookups.destinations.map(d => (<option key={d} value={d}>{d}</option>))}
             </select>
           </div>
 
           <div className="form-group">
-            <label htmlFor="payment-collector">Cobrador</label>
-            <select id="payment-collector" value={collector} onChange={e=>setCollector(e.target.value)} onFocus={loadCollectors}>
+            <label htmlFor="payment-collector" className="form-label">Cobrador</label>
+            <select id="payment-collector" value={collector} onChange={e=>setCollector(e.target.value)} onFocus={loadCollectors} className="form-select">
               {collectors.map(c => (<option key={c} value={c}>{c}</option>))}
             </select>
           </div>
         </div>
 
-        <hr style={{ margin: '24px 0', border: 'none', borderTop: '1px solid var(--neutral-200)' }} />
+        <div className="form-divider"></div>
 
         <div style={{marginBottom:16}}>
           <div style={{marginBottom:8, display:'flex', alignItems:'center', gap:8, justifyContent:'space-between', flexWrap:'wrap'}}>
@@ -191,8 +190,8 @@ export default function Payments() {
 
         <div className="form-grid">
           <div className="form-group">
-            <label htmlFor="payment-amount">Monto</label>
-            <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
+            <label htmlFor="payment-amount" className="form-label">Monto</label>
+            <div className="amount-input-row">
               <input
                 id="payment-amount"
                 type="text"
@@ -204,6 +203,7 @@ export default function Payments() {
                   const digits = (e.target.value || '').toString().replace(/[^0-9]/g, '');
                   setAmount(digits);
                 }}
+                className="form-input"
                 style={{ flex:'0 1 220px' }}
               />
               {(() => {
@@ -278,18 +278,18 @@ export default function Payments() {
           </div>
 
           <div className="form-group">
-            <label htmlFor="payment-comment">Comentarios</label>
-            <textarea id="payment-comment" placeholder="Comentarios" value={comment} onChange={e=>setComment(e.target.value)} style={{minWidth:220}} />
+            <label htmlFor="payment-comment" className="form-label">Comentarios</label>
+            <textarea id="payment-comment" placeholder="Comentarios" value={comment} onChange={e=>setComment(e.target.value)} className="form-textarea" style={{minHeight: '100px'}} />
           </div>
         </div>
 
         <div className="form-actions">
           <button
             type="button"
-            className="btn btn-success btn-lg"
+            className="btn btn-primary btn-lg"
             onClick={createPayment}
           >
-            Crear pago
+            Crear Pago
           </button>
         </div>
       </div>
@@ -298,6 +298,7 @@ export default function Payments() {
         onClose={()=>setOpenCreateDonor(false)}
         onCreated={(donor)=>{ setDonorId(donor.id); setSelectedDonorName(donor.fullName || `${donor.firstName}${donor.lastName ? ' ' + donor.lastName : ''}`); }}
       />
+    </div>
     </div>
   );
 }
