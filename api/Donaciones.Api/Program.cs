@@ -907,12 +907,25 @@ app.MapGet("/api/admin/audit-log", async (AppDbContext db, Guid? userId, string?
             if (from.HasValue) donationsQuery = donationsQuery.Where(d => d.CreatedAt.Date >= from.Value.ToDateTime(TimeOnly.MinValue));
             if (to.HasValue) donationsQuery = donationsQuery.Where(d => d.CreatedAt.Date <= to.Value.ToDateTime(TimeOnly.MinValue));
             
-            var donations = await donationsQuery.ToListAsync(ct);
+            var donations = await donationsQuery
+                .Join(db.Donors.AsNoTracking(), d => d.DonorId, donor => donor.Id, (d, donor) => new
+                {
+                    d.Id,
+                    d.CreatedBy,
+                    d.CreatedAt,
+                    d.UpdatedBy,
+                    d.UpdatedAt,
+                    d.Amount,
+                    d.Currency,
+                    DonorName = string.IsNullOrWhiteSpace(donor.LastName) ? donor.FirstName : $"{donor.FirstName} {donor.LastName}"
+                })
+                .ToListAsync(ct);
+            
             foreach (var d in donations)
             {
-                activities.Add(new { Entity = "Donation", EntityId = d.Id, Action = "Created", UserId = d.CreatedBy, Timestamp = d.CreatedAt, Details = $"Donor: {d.DonorId}, Amount: {d.Amount} {d.Currency}" });
+                activities.Add(new { Entity = "Donation", EntityId = d.Id, Action = "Created", UserId = d.CreatedBy, Timestamp = d.CreatedAt, Details = $"Donor: {d.DonorName}, Amount: {d.Amount} {d.Currency}" });
                 if (d.UpdatedAt.HasValue && d.UpdatedBy.HasValue)
-                    activities.Add(new { Entity = "Donation", EntityId = d.Id, Action = "Updated", UserId = d.UpdatedBy.Value, Timestamp = d.UpdatedAt.Value, Details = $"Donor: {d.DonorId}, Amount: {d.Amount} {d.Currency}" });
+                    activities.Add(new { Entity = "Donation", EntityId = d.Id, Action = "Updated", UserId = d.UpdatedBy.Value, Timestamp = d.UpdatedAt.Value, Details = $"Donor: {d.DonorName}, Amount: {d.Amount} {d.Currency}" });
             }
         }
 
@@ -924,12 +937,25 @@ app.MapGet("/api/admin/audit-log", async (AppDbContext db, Guid? userId, string?
             if (from.HasValue) paymentsQuery = paymentsQuery.Where(p => p.CreatedAt.Date >= from.Value.ToDateTime(TimeOnly.MinValue));
             if (to.HasValue) paymentsQuery = paymentsQuery.Where(p => p.CreatedAt.Date <= to.Value.ToDateTime(TimeOnly.MinValue));
             
-            var payments = await paymentsQuery.ToListAsync(ct);
+            var payments = await paymentsQuery
+                .Join(db.Donors.AsNoTracking(), p => p.DonorId, donor => donor.Id, (p, donor) => new
+                {
+                    p.Id,
+                    p.CreatedBy,
+                    p.CreatedAt,
+                    p.UpdatedBy,
+                    p.UpdatedAt,
+                    p.Amount,
+                    p.Currency,
+                    DonorName = string.IsNullOrWhiteSpace(donor.LastName) ? donor.FirstName : $"{donor.FirstName} {donor.LastName}"
+                })
+                .ToListAsync(ct);
+            
             foreach (var p in payments)
             {
-                activities.Add(new { Entity = "Payment", EntityId = p.Id, Action = "Created", UserId = p.CreatedBy, Timestamp = p.CreatedAt, Details = $"Donor: {p.DonorId}, Amount: {p.Amount} {p.Currency}" });
+                activities.Add(new { Entity = "Payment", EntityId = p.Id, Action = "Created", UserId = p.CreatedBy, Timestamp = p.CreatedAt, Details = $"Donor: {p.DonorName}, Amount: {p.Amount} {p.Currency}" });
                 if (p.UpdatedAt.HasValue && p.UpdatedBy.HasValue)
-                    activities.Add(new { Entity = "Payment", EntityId = p.Id, Action = "Updated", UserId = p.UpdatedBy.Value, Timestamp = p.UpdatedAt.Value, Details = $"Donor: {p.DonorId}, Amount: {p.Amount} {p.Currency}" });
+                    activities.Add(new { Entity = "Payment", EntityId = p.Id, Action = "Updated", UserId = p.UpdatedBy.Value, Timestamp = p.UpdatedAt.Value, Details = $"Donor: {p.DonorName}, Amount: {p.Amount} {p.Currency}" });
             }
         }
 

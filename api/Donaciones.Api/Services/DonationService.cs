@@ -140,13 +140,19 @@ public class DonationService : IDonationService
         var entity = await _db.Donations.FirstOrDefaultAsync(x => x.Id == id, ct);
         if (entity == null) return false;
         
+        // Get donor name for logging
+        var donor = await _db.Donors.AsNoTracking().FirstOrDefaultAsync(d => d.Id == entity.DonorId, ct);
+        var donorName = donor != null 
+            ? (string.IsNullOrWhiteSpace(donor.LastName) ? donor.FirstName : $"{donor.FirstName} {donor.LastName}")
+            : entity.DonorId.ToString();
+        
         // Log deletion
         var deletionLog = new DeletionLog
         {
             Id = Guid.NewGuid(),
             EntityType = "Donation",
             EntityId = entity.Id,
-            EntityDetails = $"Donor: {entity.DonorId}, Amount: {entity.Amount} {entity.Currency}, Date: {entity.DonationDate}",
+            EntityDetails = $"Donor: {donorName}, Amount: {entity.Amount} {entity.Currency}, Date: {entity.DonationDate}",
             DeletedBy = userId,
             DeletedAt = DateTimeOffset.UtcNow
         };
