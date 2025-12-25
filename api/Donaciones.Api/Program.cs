@@ -1,13 +1,47 @@
+using System.Text;
 using System.Text.Json.Serialization;
+using Donaciones.Api.Authorization;
 using Donaciones.Api.Models;
 using Donaciones.Api.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Basic services
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi();
+
+// JWT Authentication
+var jwtSecret = builder.Configuration["Jwt:Secret"] ?? builder.Configuration["Jwt__Secret"];
+if (string.IsNullOrWhiteSpace(jwtSecret))
+{
+    // Use a default secret for development only
+    jwtSecret = "ThisIsADevelopmentSecretKeyThatIsAtLeast32CharactersLong!";
+    Console.WriteLine("WARNING: Using default JWT secret. Set Jwt:Secret in configuration for production.");
+}
+
+var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? builder.Configuration["Jwt__Issuer"] ?? "Donaciones.Api";
+var jwtAudience = builder.Configuration["Jwt:Audience"] ?? builder.Configuration["Jwt__Audience"] ?? "Donaciones.Client";
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = jwtIssuer,
+            ValidAudience = jwtAudience,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
+            ClockSkew = TimeSpan.Zero
+        };
+    });
+
+builder.Services.AddAuthorization();
 
 // CORS from env var Cors__AllowedOrigins (comma separated)
 var allowedOrigins = builder.Configuration["Cors:AllowedOrigins"] ?? builder.Configuration["Cors__AllowedOrigins"];
@@ -41,6 +75,7 @@ else
 }
 
 // Services
+builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IDonorService, DonorService>();
 builder.Services.AddScoped<IDonationService, DonationService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
@@ -51,12 +86,22 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var authService = scope.ServiceProvider.GetRequiredService<IAuthService>();
     var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
     try 
     { 
         logger.LogInformation("Applying database migrations...");
         db.Database.Migrate();
         logger.LogInformation("Database migrations applied successfully");
+        
+        // Seed default admin user if no users exist
+        var hasUsers = await db.Users.AnyAsync();
+        if (!hasUsers)
+        {
+            logger.LogInformation("No users found. Creating default admin user...");
+            await authService.CreateUserAsync("admin", "admin123", UserRole.Admin, "System Administrator", "admin@donaciones.local");
+            logger.LogInformation("Default admin user created: username='admin', password='admin123' (CHANGE THIS!)");
+        }
     } 
     catch (Exception ex) 
     { 
@@ -66,12 +111,22 @@ using (var scope = app.Services.CreateScope())
         {
             logger.LogInformation("Using InMemory database, calling EnsureCreated");
             db.Database.EnsureCreated();
+            
+            // Seed default admin user for in-memory database
+            var hasUsers = await db.Users.AnyAsync();
+            if (!hasUsers)
+            {
+                logger.LogInformation("Creating default admin user for in-memory database...");
+                await authService.CreateUserAsync("admin", "admin123", UserRole.Admin, "System Administrator", "admin@donaciones.local");
+            }
         }
     }
 }
 
 // Pipeline
 app.UseCors("Default");
+app.UseAuthentication();
+app.UseAuthorization();
 
 if (app.Environment.IsDevelopment())
 {
@@ -142,97 +197,153 @@ app.MapGet("/api/lookups", async (AppDbContext db, CancellationToken ct) =>
     return Results.Ok(new { currencies, minian, donationConcepts, destinations, collectors });
 });
 
-// Auth (dummy login that returns a fake token)
-app.MapPost("/api/auth/login", (LoginRequest req) =>
+// Auth endpoints
+app.MapPost("/api/auth/login", async (IAuthService authService, LoginCredentials req) =>
 {
-    if (string.IsNullOrWhiteSpace(req.Email) || string.IsNullOrWhiteSpace(req.Password))
+    var result = await authService.AuthenticateAsync(req.Username, req.Password);
+    
+    if (result == null)
         return Results.Unauthorized();
 
-    var user = new { id = Guid.NewGuid(), email = req.Email, fullName = req.Email.Split('@')[0], roles = new[] { "Staff" } };
-    var token = Convert.ToBase64String(Guid.NewGuid().ToByteArray());
-    return Results.Ok(new { accessToken = token, expiresIn = 3600, user });
-});
+    var (token, user) = result.Value;
+    var expiryMinutes = int.TryParse(builder.Configuration["Jwt:ExpiryMinutes"] ?? builder.Configuration["Jwt__ExpiryMinutes"], out var mins) ? mins : 480;
 
-// Auth with Google SSO
-app.MapPost("/api/auth/google", async (GoogleLoginRequest req, IConfiguration config) =>
+    var response = new AuthResponse
+    {
+        AccessToken = token,
+        ExpiresIn = expiryMinutes * 60,
+        User = new UserInfo
+        {
+            Id = user.Id,
+            Username = user.Username,
+            FullName = user.FullName ?? user.Username,
+            Email = user.Email,
+            Role = user.Role.ToString(),
+            Permissions = user.Role.GetPermissions().Select(p => p.ToString()).ToArray()
+        }
+    };
+
+    return Results.Ok(response);
+})
+.WithName("Login")
+.WithOpenApi();
+
+// User management endpoints (Admin only)
+app.MapPost("/api/auth/users", async (IAuthService authService, CreateUserRequest req) =>
 {
-    if (string.IsNullOrWhiteSpace(req.IdToken))
-        return Results.BadRequest(new { error = "Missing idToken" });
-
-    var googleClientId = config["Google:ClientId"] ?? config["Google__ClientId"];
-    if (string.IsNullOrWhiteSpace(googleClientId))
-        return Results.Problem(title: "Google client ID not configured", statusCode: 500);
-
     try
     {
-        var settings = new Google.Apis.Auth.GoogleJsonWebSignature.ValidationSettings
+        var user = await authService.CreateUserAsync(req.Username, req.Password, req.Role, req.FullName, req.Email);
+        return Results.Created($"/api/auth/users/{user.Id}", new
         {
-            Audience = new[] { googleClientId }
-        };
-        var payload = await Google.Apis.Auth.GoogleJsonWebSignature.ValidateAsync(req.IdToken, settings);
-        if (payload == null || string.IsNullOrWhiteSpace(payload.Email))
-            return Results.Unauthorized();
-
-        var user = new
-        {
-            id = Guid.NewGuid(),
-            email = payload.Email,
-            fullName = payload.Name ?? payload.Email,
-            roles = new[] { "Staff" }
-        };
-        // For now we return a fake token; can be replaced by real JWT.
-        var token = Convert.ToBase64String(Guid.NewGuid().ToByteArray());
-        return Results.Ok(new { accessToken = token, expiresIn = 3600, user });
+            user.Id,
+            user.Username,
+            user.FullName,
+            user.Email,
+            Role = user.Role.ToString(),
+            user.IsActive
+        });
     }
-    catch
+    catch (InvalidOperationException ex)
     {
-        return Results.Unauthorized();
+        return Results.Conflict(new { error = ex.Message });
     }
-});
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+})
+.RequirePermission(Permission.ManageConcepts) // Only admins can create users
+.WithName("CreateUser")
+.WithOpenApi();
+
+app.MapPost("/api/auth/change-password", async (IAuthService authService, HttpContext httpContext, ChangePasswordRequest req) =>
+{
+    var userId = httpContext.User.GetUserId();
+    if (userId == null)
+        return Results.Unauthorized();
+
+    var success = await authService.ChangePasswordAsync(userId.Value, req.CurrentPassword, req.NewPassword);
+    return success ? Results.Ok(new { message = "Password changed successfully" }) : Results.BadRequest(new { error = "Current password is incorrect" });
+})
+.RequireAuthorization()
+.WithName("ChangePassword")
+.WithOpenApi();
+
+app.MapGet("/api/auth/me", async (IAuthService authService, HttpContext httpContext) =>
+{
+    var userId = httpContext.User.GetUserId();
+    if (userId == null)
+        return Results.Unauthorized();
+
+    var user = await authService.GetUserByIdAsync(userId.Value);
+    if (user == null)
+        return Results.NotFound();
+
+    return Results.Ok(new UserInfo
+    {
+        Id = user.Id,
+        Username = user.Username,
+        FullName = user.FullName ?? user.Username,
+        Email = user.Email,
+        Role = user.Role.ToString(),
+        Permissions = user.Role.GetPermissions().Select(p => p.ToString()).ToArray()
+    });
+})
+.RequireAuthorization()
+.WithName("GetCurrentUser")
+.WithOpenApi();
 
 // Donors
 app.MapGet("/api/donors", async (IDonorService svc, string? q, bool? isOccasionalDonor, int page = 1, int pageSize = 20, CancellationToken ct = default) =>
 {
     var (items, total) = await svc.ListAsync(q, isOccasionalDonor, page, pageSize, ct);
     return Results.Ok(new { items, total, page, pageSize });
-});
+})
+.RequirePermission(Permission.ViewDonors);
 
 app.MapPost("/api/donors", async (IDonorService svc, Donor donor, CancellationToken ct) =>
 {
     var created = await svc.CreateAsync(donor, ct);
     return Results.Created($"/api/donors/{created.Id}", created);
-});
+})
+.RequirePermission(Permission.CreateDonors);
 
 app.MapGet("/api/donors/{id:guid}", async (IDonorService svc, Guid id, CancellationToken ct) =>
 {
     var d = await svc.GetAsync(id, ct);
     return d is not null ? Results.Ok(d) : Results.NotFound();
-});
+})
+.RequirePermission(Permission.ViewDonors);
 
 app.MapGet("/api/donors/{id:guid}/balance", async (IDonorService svc, Guid id, string? currency, CancellationToken ct) =>
 {
     var bal = await svc.GetBalanceAsync(id, currency, ct);
     return Results.Ok(bal);
-});
+})
+.RequirePermission(Permission.ViewDonors);
 
 app.MapGet("/api/donors/{id:guid}/summary", async (IDonorService svc, Guid id, CancellationToken ct) =>
 {
     var summary = await svc.GetSummaryAsync(id, ct);
     return summary is not null ? Results.Ok(summary) : Results.NotFound();
-});
+})
+.RequirePermission(Permission.ViewDonorSummary);
 
 app.MapPut("/api/donors/{id:guid}", async (IDonorService svc, Guid id, Donor donor, CancellationToken ct) =>
 {
     donor.Id = id;
     var updated = await svc.UpdateAsync(id, donor, ct);
     return updated is not null ? Results.Ok(updated) : Results.NotFound();
-});
+})
+.RequirePermission(Permission.EditDonors);
 
 app.MapDelete("/api/donors/{id:guid}", async (IDonorService svc, Guid id, CancellationToken ct) =>
 {
     var ok = await svc.DeleteAsync(id, ct);
     return ok ? Results.NoContent() : Results.NotFound();
-});
+})
+.RequirePermission(Permission.DeleteDonors);
 
 // Donations
 app.MapGet("/api/donations", async (IDonationService svc, Guid? donorId, string? currency, string? minian, string? concept, string? destination, bool? isOccasionalDonor, DateOnly? from, DateOnly? to, int page = 1, int pageSize = 20, CancellationToken ct = default) =>
@@ -241,62 +352,112 @@ app.MapGet("/api/donations", async (IDonationService svc, Guid? donorId, string?
     var IncludeOcasionalDonors = !(isOccasionalDonor.HasValue && isOccasionalDonor.Value == false);
     var (items, total) = await svc.ListAsync(donorId, currency, minian, concept, destination, IncludeOcasionalDonors, from, to, page, pageSize, ct);
     return Results.Ok(new { items, total, page, pageSize });
-});
+})
+.RequirePermission(Permission.ViewDonations);
 
-app.MapPost("/api/donations", async (IDonationService svc, DonationCreate dto, CancellationToken ct) =>
+app.MapPost("/api/donations", async (IDonationService svc, HttpContext httpContext, DonationCreate dto, CancellationToken ct) =>
 {
+    // Check virtual donation permission
+    if (dto.IsVirtual)
+    {
+        var userRole = httpContext.User.GetUserRole();
+        if (userRole == null || !userRole.Value.HasPermission(Permission.CreateVirtualDonations))
+        {
+            return Results.Forbid();
+        }
+    }
+    
     var created = await svc.CreateAsync(dto, ct);
     return created is not null ? Results.Created($"/api/donations/{created.Id}", created) : Results.BadRequest(new { error = "Validation failed" });
-});
+})
+.RequirePermission(Permission.CreateDonations);
 
 app.MapGet("/api/donations/{id:guid}", async (IDonationService svc, Guid id, CancellationToken ct) =>
 {
     var d = await svc.GetAsync(id, ct);
     return d is not null ? Results.Ok(d) : Results.NotFound();
-});
+})
+.RequirePermission(Permission.ViewDonations);
 
-app.MapPut("/api/donations/{id:guid}", async (IDonationService svc, Guid id, DonationCreate dto, CancellationToken ct) =>
+app.MapPut("/api/donations/{id:guid}", async (IDonationService svc, HttpContext httpContext, Guid id, DonationCreate dto, CancellationToken ct) =>
 {
+    // Check virtual donation permission
+    if (dto.IsVirtual)
+    {
+        var userRole = httpContext.User.GetUserRole();
+        if (userRole == null || !userRole.Value.HasPermission(Permission.CreateVirtualDonations))
+        {
+            return Results.Forbid();
+        }
+    }
+    
     var updated = await svc.UpdateAsync(id, dto, ct);
     return updated is not null ? Results.Ok(updated) : Results.NotFound();
-});
+})
+.RequirePermission(Permission.EditDonations);
 
 app.MapDelete("/api/donations/{id:guid}", async (IDonationService svc, Guid id, CancellationToken ct) =>
 {
     var ok = await svc.DeleteAsync(id, ct);
     return ok ? Results.NoContent() : Results.NotFound();
-});
+})
+.RequirePermission(Permission.DeleteDonations);
 
 // Payments
 app.MapGet("/api/payments", async (IPaymentService svc, Guid? donorId, string? currency, string? collector, DateOnly? from, DateOnly? to, int page = 1, int pageSize = 20, CancellationToken ct = default) =>
 {
     var (items, total) = await svc.ListAsync(donorId, currency, collector, from, to, page, pageSize, ct);
     return Results.Ok(new { items, total, page, pageSize });
-});
+})
+.RequirePermission(Permission.ViewPayments);
 
-app.MapPost("/api/payments", async (IPaymentService svc, PaymentCreate dto, CancellationToken ct) =>
+app.MapPost("/api/payments", async (IPaymentService svc, HttpContext httpContext, PaymentCreate dto, CancellationToken ct) =>
 {
+    // Check virtual payment permission
+    if (dto.IsVirtual)
+    {
+        var userRole = httpContext.User.GetUserRole();
+        if (userRole == null || !userRole.Value.HasPermission(Permission.CreateVirtualPayments))
+        {
+            return Results.Forbid();
+        }
+    }
+    
     var created = await svc.CreateAsync(dto, ct);
     return created is not null ? Results.Created($"/api/payments/{created.Id}", created) : Results.BadRequest(new { error = "Validation failed" });
-});
+})
+.RequirePermission(Permission.CreatePayments);
 
 app.MapGet("/api/payments/{id:guid}", async (IPaymentService svc, Guid id, CancellationToken ct) =>
 {
     var p = await svc.GetAsync(id, ct);
     return p is not null ? Results.Ok(p) : Results.NotFound();
-});
+})
+.RequirePermission(Permission.ViewPayments);
 
-app.MapPut("/api/payments/{id:guid}", async (IPaymentService svc, Guid id, PaymentCreate dto, CancellationToken ct) =>
+app.MapPut("/api/payments/{id:guid}", async (IPaymentService svc, HttpContext httpContext, Guid id, PaymentCreate dto, CancellationToken ct) =>
 {
+    // Check virtual payment permission
+    if (dto.IsVirtual)
+    {
+        var userRole = httpContext.User.GetUserRole();
+        if (userRole == null || !userRole.Value.HasPermission(Permission.CreateVirtualPayments))
+        {
+            return Results.Forbid();
+        }
+    }
+    
     var updated = await svc.UpdateAsync(id, dto, ct);
     return updated is not null ? Results.Ok(updated) : Results.NotFound();
-});
+})
+.RequirePermission(Permission.EditPayments);
 
 app.MapDelete("/api/payments/{id:guid}", async (IPaymentService svc, Guid id, CancellationToken ct) =>
 {
     var ok = await svc.DeleteAsync(id, ct);
     return ok ? Results.NoContent() : Results.NotFound();
-});
+})
+.RequirePermission(Permission.DeletePayments);
 
 // Reports: donors with non-zero saldo by currency and destination (no date filter)
 app.MapGet("/api/reports/donor-balances", async (AppDbContext db, CancellationToken ct) =>
@@ -344,7 +505,8 @@ app.MapGet("/api/reports/donor-balances", async (AppDbContext db, CancellationTo
         .ToList();
 
     return Results.Ok(new { items = rows, total = rows.Count });
-});
+})
+.RequirePermission(Permission.ViewReports);
 
 // Autocomplete (from DB)
 app.MapGet("/api/autocomplete/perashot", async (AppDbContext db, string? q, int limit = 10, CancellationToken ct = default) =>
@@ -362,7 +524,8 @@ app.MapGet("/api/autocomplete/perashot", async (AppDbContext db, string? q, int 
         .Take(limit)
         .ToListAsync(ct);
     return Results.Ok(vals);
-});
+})
+.RequirePermission(Permission.ViewDonations);
 
 app.MapGet("/api/autocomplete/collectors", async (AppDbContext db, string q, int limit = 10, CancellationToken ct = default) =>
 {
@@ -373,14 +536,16 @@ app.MapGet("/api/autocomplete/collectors", async (AppDbContext db, string q, int
         .Take(limit)
         .ToListAsync(ct);
     return Results.Ok(vals);
-});
+})
+.RequirePermission(Permission.ViewPayments);
 
 // Admin: Concepts
 app.MapGet("/api/admin/concepts", async (AppDbContext db, CancellationToken ct) =>
 {
     var items = await db.Concepts.AsNoTracking().OrderBy(x => x.Name).ToListAsync(ct);
     return Results.Ok(new { items });
-});
+})
+.RequirePermission(Permission.ViewConcepts);
 
 app.MapPost("/api/admin/concepts", async (AppDbContext db, Concept dto, CancellationToken ct) =>
 {
@@ -391,7 +556,8 @@ app.MapPost("/api/admin/concepts", async (AppDbContext db, Concept dto, Cancella
     db.Concepts.Add(entity);
     await db.SaveChangesAsync(ct);
     return Results.Created($"/api/admin/concepts/{entity.Id}", entity);
-});
+})
+.RequirePermission(Permission.ManageConcepts);
 
 app.MapPut("/api/admin/concepts/{id:guid}", async (AppDbContext db, Guid id, Concept dto, CancellationToken ct) =>
 {
@@ -404,7 +570,8 @@ app.MapPut("/api/admin/concepts/{id:guid}", async (AppDbContext db, Guid id, Con
     entity.UpdatedAt = DateTimeOffset.UtcNow;
     await db.SaveChangesAsync(ct);
     return Results.Ok(entity);
-});
+})
+.RequirePermission(Permission.ManageConcepts);
 
 app.MapDelete("/api/admin/concepts/{id:guid}", async (AppDbContext db, Guid id, CancellationToken ct) =>
 {
@@ -417,14 +584,16 @@ app.MapDelete("/api/admin/concepts/{id:guid}", async (AppDbContext db, Guid id, 
     db.Concepts.Remove(entity);
     await db.SaveChangesAsync(ct);
     return Results.NoContent();
-});
+})
+.RequirePermission(Permission.ManageConcepts);
 
 // Admin: Destinations
 app.MapGet("/api/admin/destinations", async (AppDbContext db, CancellationToken ct) =>
 {
     var items = await db.Destinations.AsNoTracking().OrderBy(x => x.Name).ToListAsync(ct);
     return Results.Ok(new { items });
-});
+})
+.RequirePermission(Permission.ViewDestinations);
 
 app.MapPost("/api/admin/destinations", async (AppDbContext db, Destination dto, CancellationToken ct) =>
 {
@@ -435,7 +604,8 @@ app.MapPost("/api/admin/destinations", async (AppDbContext db, Destination dto, 
     db.Destinations.Add(entity);
     await db.SaveChangesAsync(ct);
     return Results.Created($"/api/admin/destinations/{entity.Id}", entity);
-});
+})
+.RequirePermission(Permission.ManageDestinations);
 
 app.MapPut("/api/admin/destinations/{id:guid}", async (AppDbContext db, Guid id, Destination dto, CancellationToken ct) =>
 {
@@ -448,7 +618,8 @@ app.MapPut("/api/admin/destinations/{id:guid}", async (AppDbContext db, Guid id,
     entity.UpdatedAt = DateTimeOffset.UtcNow;
     await db.SaveChangesAsync(ct);
     return Results.Ok(entity);
-});
+})
+.RequirePermission(Permission.ManageDestinations);
 
 app.MapDelete("/api/admin/destinations/{id:guid}", async (AppDbContext db, Guid id, CancellationToken ct) =>
 {
@@ -461,14 +632,16 @@ app.MapDelete("/api/admin/destinations/{id:guid}", async (AppDbContext db, Guid 
     db.Destinations.Remove(entity);
     await db.SaveChangesAsync(ct);
     return Results.NoContent();
-});
+})
+.RequirePermission(Permission.ManageDestinations);
 
 // Admin: Collectors
 app.MapGet("/api/admin/collectors", async (AppDbContext db, CancellationToken ct) =>
 {
     var items = await db.Collectors.AsNoTracking().OrderBy(x => x.Name).ToListAsync(ct);
     return Results.Ok(new { items });
-});
+})
+.RequirePermission(Permission.ViewCollectors);
 
 app.MapPost("/api/admin/collectors", async (AppDbContext db, Collector dto, CancellationToken ct) =>
 {
@@ -479,7 +652,8 @@ app.MapPost("/api/admin/collectors", async (AppDbContext db, Collector dto, Canc
     db.Collectors.Add(entity);
     await db.SaveChangesAsync(ct);
     return Results.Created($"/api/admin/collectors/{entity.Id}", entity);
-});
+})
+.RequirePermission(Permission.ManageCollectors);
 
 app.MapPut("/api/admin/collectors/{id:guid}", async (AppDbContext db, Guid id, Collector dto, CancellationToken ct) =>
 {
@@ -492,7 +666,8 @@ app.MapPut("/api/admin/collectors/{id:guid}", async (AppDbContext db, Guid id, C
     entity.UpdatedAt = DateTimeOffset.UtcNow;
     await db.SaveChangesAsync(ct);
     return Results.Ok(entity);
-});
+})
+.RequirePermission(Permission.ManageCollectors);
 
 app.MapDelete("/api/admin/collectors/{id:guid}", async (AppDbContext db, Guid id, CancellationToken ct) =>
 {
@@ -505,7 +680,8 @@ app.MapDelete("/api/admin/collectors/{id:guid}", async (AppDbContext db, Guid id
     db.Collectors.Remove(entity);
     await db.SaveChangesAsync(ct);
     return Results.NoContent();
-});
+})
+.RequirePermission(Permission.ManageCollectors);
 
 app.Run();
 

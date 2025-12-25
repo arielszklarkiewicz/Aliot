@@ -5,6 +5,7 @@ public class AppDbContext : DbContext
 {
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
+    public DbSet<User> Users => Set<User>();
     public DbSet<Donor> Donors => Set<Donor>();
     public DbSet<Donation> Donations => Set<Donation>();
     public DbSet<Payment> Payments => Set<Payment>();
@@ -15,6 +16,23 @@ public class AppDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        // User
+        modelBuilder.Entity<User>(e =>
+        {
+            e.ToTable("users");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Id).HasColumnName("id");
+            e.Property(x => x.Username).HasColumnName("username").IsRequired();
+            e.Property(x => x.PasswordHash).HasColumnName("password_hash").IsRequired();
+            e.Property(x => x.FullName).HasColumnName("full_name");
+            e.Property(x => x.Email).HasColumnName("email");
+            e.Property(x => x.Role).HasColumnName("role").IsRequired();
+            e.Property(x => x.IsActive).HasColumnName("is_active").HasDefaultValue(true);
+            e.Property(x => x.CreatedAt).HasColumnName("created_at");
+            e.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            e.HasIndex(x => x.Username).IsUnique();
+        });
 
         // Donor
         modelBuilder.Entity<Donor>(e =>
