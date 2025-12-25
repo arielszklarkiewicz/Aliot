@@ -52,6 +52,7 @@ export default function SystemMap() {
             <Link to="/admin/concepts" style={linkStyle('/admin/concepts')}>Conceptos</Link>
             <Link to="/admin/destinations" style={linkStyle('/admin/destinations')}>Destinos</Link>
             <Link to="/admin/collectors" style={linkStyle('/admin/collectors')}>Cobradores</Link>
+            <Link to="/admin/users" style={linkStyle('/admin/users')}>Usuarios</Link>
           </div>
         </>
       )}
