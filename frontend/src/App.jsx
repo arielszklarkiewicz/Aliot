@@ -2,24 +2,25 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
+import Navigation from './components/Navigation';
 import Login from './pages/Login';
 import Donations from './pages/Donations';
 import DonationsList from './pages/DonationsList';
 import Payments from './pages/Payments';
 import DonorsAdmin from './pages/DonorsAdmin';
 import DonorSummary from './pages/DonorSummary';
-import SystemMap from './components/SystemMap';
 import ConceptsAdmin from './pages/ConceptsAdmin';
 import DestinationsAdmin from './pages/DestinationsAdmin';
 import CollectorsAdmin from './pages/CollectorsAdmin';
 import DonorBalances from './pages/DonorBalances';
 import UsersAdmin from './pages/UsersAdmin';
 import './styles/GlobalStyles.css';
+import './styles/Navigation.css';
 
 export default function App() {
   return (
     <>
-      <SystemMap />
+      <Navigation />
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/" element={<ProtectedRoute><Navigate to="/donations/list" replace /></ProtectedRoute>} />
