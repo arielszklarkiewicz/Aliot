@@ -1,10 +1,12 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { useCurrentUser } from '../hooks/useCurrentUser';
 
 export default function SystemMap() {
   const loc = useLocation();
   const { isAuthenticated, logout } = useAuth();
+  const { isAdmin } = useCurrentUser();
   const isActive = (path) => loc.pathname === path;
 
   const baseLinkStyle = {
@@ -49,10 +51,14 @@ export default function SystemMap() {
           <div className="nav-group" style={{display:'flex', alignItems:'center', gap:8, flexWrap:'wrap'}}>
             <span className="nav-label pill" style={{fontSize:12, fontWeight:700, letterSpacing:.4, textTransform:'uppercase', color:'var(--muted)', padding:'6px 10px', border:'1px solid var(--border)', borderRadius:999}}>Administración</span>
             <Link to="/admin/donors" style={linkStyle('/admin/donors')}>Donantes</Link>
-            <Link to="/admin/concepts" style={linkStyle('/admin/concepts')}>Conceptos</Link>
-            <Link to="/admin/destinations" style={linkStyle('/admin/destinations')}>Destinos</Link>
-            <Link to="/admin/collectors" style={linkStyle('/admin/collectors')}>Cobradores</Link>
-            <Link to="/admin/users" style={linkStyle('/admin/users')}>Usuarios</Link>
+            {isAdmin && (
+              <>
+                <Link to="/admin/concepts" style={linkStyle('/admin/concepts')}>Conceptos</Link>
+                <Link to="/admin/destinations" style={linkStyle('/admin/destinations')}>Destinos</Link>
+                <Link to="/admin/collectors" style={linkStyle('/admin/collectors')}>Cobradores</Link>
+                <Link to="/admin/users" style={linkStyle('/admin/users')}>Usuarios</Link>
+              </>
+            )}
           </div>
         </>
       )}
@@ -60,7 +66,7 @@ export default function SystemMap() {
       <div style={{marginLeft:'auto', display:'flex', gap:8}}>
         {isAuthenticated ? (
           <>
-            <Link to="/admin/users" style={linkStyle('/admin/users')}>👤 Usuarios</Link>
+            {isAdmin && <Link to="/admin/users" style={linkStyle('/admin/users')}>👤 Usuarios</Link>}
             <button 
               onClick={logout}
               style={{
