@@ -62,79 +62,197 @@ export default function DonorsAdmin() {
 
   return (
     <div>
-      <h3>Administración de donantes</h3>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-        <input placeholder="Buscar por nombre u observaciones" value={q} onChange={e=>{ setQ(e.target.value); setPage(1); }} />
-        <select value={occasionalFilter} onChange={e=>{ setOccasionalFilter(e.target.value); setPage(1); }} aria-label="Filtrar donantes ocasionales">
-          <option value="all">Todos</option>
-          <option value="yes">Solo ocasionales</option>
-          <option value="no">Solo regulares</option>
-        </select>
-        <button onClick={startNew}>Nuevo donante</button>
+      {/* Hero Section */}
+      <div className="page-hero">
+        <div className="page-hero-content">
+          <div className="page-hero-text">
+            <h1>Administración de Donantes</h1>
+            <p>Gestione los donantes registrados en el sistema</p>
+          </div>
+          <div className="page-hero-actions">
+            <button className="btn btn-primary" onClick={startNew}>
+              <span>➕</span> Nuevo donante
+            </button>
+          </div>
+        </div>
       </div>
 
-      {loading && <div>Cargando...</div>}
-      {error && <div style={{ color: 'red' }}>{error}</div>}
+      {/* Search and Filters */}
+      <div className="controls-bar">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <div className="search-bar" style={{ flex: 1, minWidth: 250, marginBottom: 0 }}>
+            <input 
+              className="search-input"
+              placeholder="Buscar por nombre u observaciones" 
+              value={q} 
+              onChange={e=>{ setQ(e.target.value); setPage(1); }}
+              aria-label="Buscar donantes"
+            />
+          </div>
+          <select 
+            className="sort-select"
+            value={occasionalFilter} 
+            onChange={e=>{ setOccasionalFilter(e.target.value); setPage(1); }} 
+            aria-label="Filtrar donantes ocasionales"
+          >
+            <option value="all">Todos</option>
+            <option value="yes">Solo ocasionales</option>
+            <option value="no">Solo regulares</option>
+          </select>
+        </div>
+      </div>
+
+      {loading && <div className="loading-state">Cargando donantes...</div>}
+      {error && <div className="alert alert-error">{error}</div>}
 
       {!loading && (
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr>
-              <th style={{ textAlign: 'left', borderBottom: '1px solid #ddd' }}>Nombre completo</th>
-              <th style={{ textAlign: 'left', borderBottom: '1px solid #ddd' }}>Email</th>
-              <th style={{ textAlign: 'left', borderBottom: '1px solid #ddd' }}>Teléfono</th>
-              <th style={{ textAlign: 'left', borderBottom: '1px solid #ddd' }}>Dirección</th>
-              <th style={{ textAlign: 'center', borderBottom: '1px solid #ddd' }}>Ocasional</th>
-              <th style={{ textAlign: 'left', borderBottom: '1px solid #ddd' }}>Observaciones</th>
-              <th style={{ borderBottom: '1px solid #ddd' }}>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
+        <>
+          <div className="table-container desktop-visible">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Nombre completo</th>
+                  <th>Email</th>
+                  <th>Teléfono</th>
+                  <th>Dirección</th>
+                  <th style={{textAlign:'center'}}>Ocasional</th>
+                  <th>Observaciones</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.map(d => (
+                  <tr key={d.id}>
+                    <td><strong>{d.fullName}</strong></td>
+                    <td>{d.email || '—'}</td>
+                    <td>{d.phone || '—'}</td>
+                    <td>{d.address || '—'}</td>
+                    <td style={{textAlign:'center'}}>
+                      <span className={d.isOccasionalDonor ? 'badge badge-warning' : 'badge badge-success'}>
+                        {d.isOccasionalDonor ? 'Sí' : 'No'}
+                      </span>
+                    </td>
+                    <td style={{ maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {d.observations || '—'}
+                    </td>
+                    <td>
+                      <div className="table-actions">
+                        <button className="btn btn-sm btn-secondary" onClick={() => startEdit(d)}>Editar</button>
+                        <button className="btn btn-sm btn-ghost" onClick={() => del(d.id)}>Eliminar</button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile Cards */}
+          <div className="mobile-visible desktop-hidden">
             {items.map(d => (
-              <tr key={d.id}>
-                <td style={{ borderBottom: '1px solid #f0f0f0' }}>{d.fullName}</td>
-                <td style={{ borderBottom: '1px solid #f0f0f0' }}>{d.email || '—'}</td>
-                <td style={{ borderBottom: '1px solid #f0f0f0' }}>{d.phone || '—'}</td>
-                <td style={{ borderBottom: '1px solid #f0f0f0' }}>{d.address || '—'}</td>
-                <td style={{ borderBottom: '1px solid #f0f0f0', textAlign: 'center' }}>{d.isOccasionalDonor ? 'Sí' : 'No'}</td>
-                <td style={{ borderBottom: '1px solid #f0f0f0', maxWidth: 360, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.observations || '—'}</td>
-                <td style={{ borderBottom: '1px solid #f0f0f0' }}>
-                  <button onClick={() => startEdit(d)}>Editar</button>
-                  <button onClick={() => del(d.id)} style={{ marginLeft: 6 }}>Eliminar</button>
-                </td>
-              </tr>
+              <div key={d.id} className="mobile-card">
+                <div className="mobile-card-header">
+                  <div className="mobile-card-title">{d.fullName}</div>
+                  <span className={d.isOccasionalDonor ? 'badge badge-warning' : 'badge badge-success'}>
+                    {d.isOccasionalDonor ? 'Ocasional' : 'Regular'}
+                  </span>
+                </div>
+                <div className="mobile-card-body">
+                  {d.email && <div className="mobile-card-row">
+                    <span className="mobile-card-label">Email:</span>
+                    <span className="mobile-card-value">{d.email}</span>
+                  </div>}
+                  {d.phone && <div className="mobile-card-row">
+                    <span className="mobile-card-label">Teléfono:</span>
+                    <span className="mobile-card-value">{d.phone}</span>
+                  </div>}
+                  {d.address && <div className="mobile-card-row">
+                    <span className="mobile-card-label">Dirección:</span>
+                    <span className="mobile-card-value">{d.address}</span>
+                  </div>}
+                  {d.observations && <div className="mobile-card-row">
+                    <span className="mobile-card-label">Observaciones:</span>
+                    <span className="mobile-card-value">{d.observations}</span>
+                  </div>}
+                </div>
+                <div className="mobile-card-actions">
+                  <button className="btn btn-sm btn-secondary" onClick={() => startEdit(d)}>Editar</button>
+                  <button className="btn btn-sm btn-ghost" onClick={() => del(d.id)}>Eliminar</button>
+                </div>
+              </div>
             ))}
-          </tbody>
-        </table>
+          </div>
+        </>
       )}
 
-      <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
-        <button disabled={page<=1} onClick={()=>setPage(p=>Math.max(1, p-1))}>Anterior</button>
-        <span>Página {page} / {totalPages}</span>
-        <button disabled={page>=totalPages} onClick={()=>setPage(p=>Math.min(totalPages, p+1))}>Siguiente</button>
-        <select value={pageSize} onChange={e=>{ setPageSize(parseInt(e.target.value,10)); setPage(1); }}>
-          {[10,20,50].map(s => (<option key={s} value={s}>{s} / página</option>))}
-        </select>
+      {/* Pagination */}
+      <div className="pagination-container">
+        <div className="pagination-info">
+          Mostrando {items.length > 0 ? ((page-1)*pageSize + 1) : 0} - {Math.min(page*pageSize, total)} de {total}
+        </div>
+        <div className="pagination-controls">
+          <button className="pagination-btn" disabled={page<=1} onClick={()=>setPage(p=>Math.max(1, p-1))}>
+            ← Anterior
+          </button>
+          <span className="pagination-page-info">{page} / {totalPages}</span>
+          <button className="pagination-btn" disabled={page>=totalPages} onClick={()=>setPage(p=>Math.min(totalPages, p+1))}>
+            Siguiente →
+          </button>
+        </div>
+        <div className="page-size-controls">
+          <label>Mostrar:</label>
+          <select value={pageSize} onChange={e=>{ setPageSize(parseInt(e.target.value,10)); setPage(1); }}>
+            {[10,20,50].map(s => (<option key={s} value={s}>{s}</option>))}
+          </select>
+        </div>
       </div>
 
+      {/* Edit Modal */}
       {edit && (
-        <div style={{ marginTop: 16, padding: 12, border: '1px solid #ddd', borderRadius: 6 }}>
-          <h4>{isNew ? 'Nuevo donante' : 'Editar donante'}</h4>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(200px,1fr))', gap: 8 }}>
-            <input placeholder="Nombre" value={edit.firstName || ''} onChange={e=>setEdit({ ...edit, firstName: e.target.value })} />
-            <input placeholder="Apellido" value={edit.lastName || ''} onChange={e=>setEdit({ ...edit, lastName: e.target.value })} />
-            <input placeholder="Email" value={edit.email || ''} onChange={e=>setEdit({ ...edit, email: e.target.value })} />
-            <input placeholder="Teléfono" value={edit.phone || ''} onChange={e=>setEdit({ ...edit, phone: e.target.value })} />
-            <input placeholder="Dirección" value={edit.address || ''} onChange={e=>setEdit({ ...edit, address: e.target.value })} />
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <input id="chk-occasional" type="checkbox" checked={!!edit.isOccasionalDonor} onChange={e=>setEdit({ ...edit, isOccasionalDonor: e.target.checked })} />
-              <label htmlFor="chk-occasional">Donante ocasional</label>
+        <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && cancelEdit()}>
+          <div className="modal-content">
+            <div className="modal-header">
+              <h2>{isNew ? 'Nuevo donante' : 'Editar donante'}</h2>
+              <button className="modal-close" onClick={cancelEdit}>&times;</button>
             </div>
-            <textarea placeholder="Observaciones" value={edit.observations || ''} onChange={e=>setEdit({ ...edit, observations: e.target.value })} rows={3} style={{ gridColumn: '1 / -1' }} />
-          </div>
-          <div style={{ marginTop: 10 }}>
-            <button onClick={save}>{isNew ? 'Crear' : 'Guardar'}</button>
-            <button onClick={cancelEdit} style={{ marginLeft: 8 }}>Cancelar</button>
+            <div className="modal-body">
+              <div className="form-grid">
+                <div className="form-group">
+                  <label>Nombre</label>
+                  <input placeholder="Nombre" value={edit.firstName || ''} onChange={e=>setEdit({ ...edit, firstName: e.target.value })} />
+                </div>
+                <div className="form-group">
+                  <label>Apellido</label>
+                  <input placeholder="Apellido" value={edit.lastName || ''} onChange={e=>setEdit({ ...edit, lastName: e.target.value })} />
+                </div>
+                <div className="form-group">
+                  <label>Email</label>
+                  <input type="email" placeholder="Email" value={edit.email || ''} onChange={e=>setEdit({ ...edit, email: e.target.value })} />
+                </div>
+                <div className="form-group">
+                  <label>Teléfono</label>
+                  <input type="tel" placeholder="Teléfono" value={edit.phone || ''} onChange={e=>setEdit({ ...edit, phone: e.target.value })} />
+                </div>
+                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                  <label>Dirección</label>
+                  <input placeholder="Dirección" value={edit.address || ''} onChange={e=>setEdit({ ...edit, address: e.target.value })} />
+                </div>
+                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <input id="chk-occasional" type="checkbox" checked={!!edit.isOccasionalDonor} onChange={e=>setEdit({ ...edit, isOccasionalDonor: e.target.checked })} />
+                    <label htmlFor="chk-occasional" style={{ margin: 0 }}>Donante ocasional</label>
+                  </div>
+                </div>
+                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                  <label>Observaciones</label>
+                  <textarea placeholder="Observaciones" value={edit.observations || ''} onChange={e=>setEdit({ ...edit, observations: e.target.value })} rows={3} />
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-ghost" onClick={cancelEdit}>Cancelar</button>
+              <button className="btn btn-success" onClick={save}>{isNew ? 'Crear' : 'Guardar'}</button>
+            </div>
           </div>
         </div>
       )}

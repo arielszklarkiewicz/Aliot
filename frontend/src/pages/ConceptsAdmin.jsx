@@ -31,13 +31,13 @@ function Row({ item, onSave, onDelete }) {
       <td style={{textAlign:'right'}}>
         {!editing ? (
           <>
-            <button onClick={()=>setEditing(true)}>Editar</button>
-            <button className="button-danger" onClick={()=>onDelete(item)} style={{marginLeft:8}}>Eliminar</button>
+            <button className="btn btn-sm btn-secondary" onClick={()=>setEditing(true)}>Editar</button>
+            <button className="btn btn-sm btn-ghost" onClick={()=>onDelete(item)} style={{marginLeft:8}}>Eliminar</button>
           </>
         ) : (
           <>
-            <button onClick={save} disabled={busy} className="primary">Guardar</button>
-            <button onClick={()=>{ setEditing(false); setName(item.name); }} className="button-ghost" style={{marginLeft:8}}>Cancelar</button>
+            <button className="btn btn-sm btn-success" onClick={save} disabled={busy}>Guardar</button>
+            <button className="btn btn-sm btn-ghost" onClick={()=>{ setEditing(false); setName(item.name); }} style={{marginLeft:8}}>Cancelar</button>
           </>
         )}
       </td>
@@ -91,31 +91,61 @@ export default function ConceptsAdmin() {
 
   return (
     <div>
-      <h3>Administrar Conceptos</h3>
-      <div className="toolbar">
-        <div className="row">
-          <input placeholder="Nuevo concepto" value={newName} onChange={e=>setNewName(e.target.value)} />
-          <button onClick={add} className="primary">Agregar</button>
+      {/* Hero Section */}
+      <div className="page-hero">
+        <div className="page-hero-content">
+          <div className="page-hero-text">
+            <h1>Administrar Conceptos</h1>
+            <p>Gestione los conceptos de donación</p>
+          </div>
         </div>
       </div>
-      {error && <div className="alert danger" role="alert" style={{marginTop:10}}>{error}</div>}
-      <div className="section" style={{marginTop:12}}>
-        {loading ? (
-          <div>Cargando…</div>
-        ) : (
-          <table>
-            <thead><tr><th>Nombre</th><th style={{textAlign:'right'}}>Acciones</th></tr></thead>
+
+      {/* Add New Section */}
+      <div className="form-container">
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+          <input 
+            className="search-input"
+            style={{ flex: 1, minWidth: 250 }}
+            placeholder="Nuevo concepto" 
+            value={newName} 
+            onChange={e=>setNewName(e.target.value)}
+            onKeyPress={e => e.key === 'Enter' && add()}
+          />
+          <button className="btn btn-success" onClick={add}>
+            <span>➕</span> Agregar
+          </button>
+        </div>
+      </div>
+
+      {error && <div className="alert alert-error" role="alert">{error}</div>}
+      
+      {loading ? (
+        <div className="loading-state">Cargando conceptos...</div>
+      ) : (
+        <div className="table-container">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th style={{textAlign:'right'}}>Acciones</th>
+              </tr>
+            </thead>
             <tbody>
               {items.map(it => (
                 <Row key={it.id} item={it} onSave={save} onDelete={remove} />
               ))}
               {items.length === 0 && (
-                <tr><td colSpan={2} className="muted">Aún no hay conceptos</td></tr>
+                <tr>
+                  <td colSpan={2} className="empty-state">
+                    <p>Aún no hay conceptos registrados</p>
+                  </td>
+                </tr>
               )}
             </tbody>
           </table>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

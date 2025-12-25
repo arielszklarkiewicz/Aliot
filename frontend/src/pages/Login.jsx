@@ -55,15 +55,52 @@ export default function Login() {
   };
   return (
     <div>
-      <h3>Login</h3>
-      <div ref={googleDivRef} style={{marginBottom:12}} />
-      <div style={{opacity:0.6, fontSize:12, marginBottom:12}}>or use email/password:</div>
-      <form onSubmit={onSubmit}>
-        <input placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} />
-        <input placeholder="Password" type="password" value={password} onChange={e => setPassword(e.target.value)} />
-        <button type="submit">Ingresar</button>
-      </form>
-      {error && <div style={{color:'red'}}>{error}</div>}
+      {/* Hero Section */}
+      <div className="page-hero">
+        <div className="page-hero-content">
+          <div className="page-hero-text">
+            <h1>Iniciar Sesión</h1>
+            <p>Acceda al sistema de gestión de donaciones</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="form-container" style={{ maxWidth: 500, margin: '0 auto' }}>
+        <div ref={googleDivRef} style={{marginBottom:20, textAlign:'center'}} />
+        <div style={{opacity:0.6, fontSize:14, marginBottom:20, textAlign:'center'}}>o use email y contraseña:</div>
+        
+        <form onSubmit={onSubmit}>
+          <div className="form-group">
+            <label htmlFor="email">Email</label>
+            <input 
+              id="email"
+              type="email"
+              placeholder="su@email.com" 
+              value={email} 
+              onChange={e => setEmail(e.target.value)}
+              required
+            />
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="password">Contraseña</label>
+            <input 
+              id="password"
+              type="password" 
+              placeholder="Contraseña" 
+              value={password} 
+              onChange={e => setPassword(e.target.value)}
+              required
+            />
+          </div>
+
+          {error && <div className="alert alert-error">{error}</div>}
+          
+          <button type="submit" className="btn btn-success w-full">
+            Ingresar
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
