@@ -14,7 +14,7 @@ function Row({ item, onSave, onDelete }) {
       await onSave({ ...item, name: name.trim() });
       setEditing(false);
     } catch (e) {
-      setError(e?.response?.data?.error || 'Oh, no se pudo guardar');
+      setError(e?.response?.data?.error || 'No se pudo guardar');
     } finally { setBusy(false); }
   };
 
