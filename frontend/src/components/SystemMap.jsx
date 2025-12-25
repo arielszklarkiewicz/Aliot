@@ -59,18 +59,21 @@ export default function SystemMap() {
 
       <div style={{marginLeft:'auto', display:'flex', gap:8}}>
         {isAuthenticated ? (
-          <button 
-            onClick={logout}
-            style={{
-              ...baseLinkStyle,
-              background: '#fff1f0',
-              border: '1px solid #ffccc7',
-              color: '#cf1322',
-              cursor: 'pointer'
-            }}
-          >
-            Cerrar Sesión
-          </button>
+          <>
+            <Link to="/admin/users" style={linkStyle('/admin/users')}>👤 Usuarios</Link>
+            <button 
+              onClick={logout}
+              style={{
+                ...baseLinkStyle,
+                background: '#fff1f0',
+                border: '1px solid #ffccc7',
+                color: '#cf1322',
+                cursor: 'pointer'
+              }}
+            >
+              Cerrar Sesión
+            </button>
+          </>
         ) : (
           <Link to="/login" style={linkStyle('/login')}>Ingresar</Link>
         )}
