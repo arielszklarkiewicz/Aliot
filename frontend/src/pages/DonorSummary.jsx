@@ -70,7 +70,7 @@ export default function DonorSummary() {
     });
   }, [allPayments, fromDate, toDate, filterDestination, filterCurrency, filterIsVirtual]);
 
-  async function createVirtualTransaction(currency, destination, saldoAmount) {
+  async function createVirtualTransaction(currency, destination, saldoAmount, matanaCount = 0) {
     if (!donorId) return;
     setCreatingVirtual(true);
     setError('');
@@ -101,6 +101,17 @@ export default function DonorSummary() {
           concept: '-',
           destination,
           comment: 'Donacion virtual para representar que esta en 0',
+          isVirtual: true
+        });
+      } else if (matanaCount > 0) {
+        // Only Matanas, create virtual payment to mark as settled
+        await axios.post('/api/payments', {
+          donorId,
+          currency,
+          amount: 1,
+          paymentDate: today,
+          destination,
+          comment: `Pago virtual para marcar ${matanaCount} Matana(s) como pagadas`,
           isVirtual: true
         });
       }
@@ -375,15 +386,15 @@ export default function DonorSummary() {
                       </div>
                     )}
                   </div>
-                  {!hasAnyFilters && b.total !== 0 && (
+                  {!hasAnyFilters && (b.total !== 0 || b.matanaCount > 0) && (
                     <button
-                      onClick={() => createVirtualTransaction(b.currency, b.destination, b.total)}
+                      onClick={() => createVirtualTransaction(b.currency, b.destination, b.total, b.matanaCount)}
                       disabled={creatingVirtual}
                       className="btn btn-secondary btn-sm"
                       style={{ width: '100%', marginTop: '12px' }}
-                      title={b.total > 0 ? 'Crear pago virtual para llevar saldo a 0' : 'Crear donación virtual para llevar saldo a 0'}
+                      title={b.total > 0 ? 'Crear pago virtual para llevar saldo a 0' : b.total < 0 ? 'Crear donación virtual para llevar saldo a 0' : 'Marcar Matanas como pagadas'}
                     >
-                      {creatingVirtual ? 'Creando...' : (b.total > 0 ? '+ Pago virtual a 0' : '+ Donación virtual a 0')}
+                      {creatingVirtual ? 'Creando...' : (b.total > 0 ? '+ Pago virtual a 0' : b.total < 0 ? '+ Donación virtual a 0' : '+ Marcar como pagado')}
                     </button>
                   )}
                 </div>
