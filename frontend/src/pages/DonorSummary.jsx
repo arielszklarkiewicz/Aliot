@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import axios from '../api/client';
 import DonorAutocomplete from '../components/DonorAutocomplete';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import '../styles/GlobalStyles.css';
 
 function fmt(amount) {
@@ -128,6 +130,202 @@ export default function DonorSummary() {
     }
   }
 
+  const exportToPDF = () => {
+    if (!donor) return;
+
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    let yPos = 20;
+
+    // Title
+    doc.setFontSize(18);
+    doc.setFont(undefined, 'bold');
+    doc.text('Resumen de Donante', pageWidth / 2, yPos, { align: 'center' });
+    yPos += 10;
+
+    // Date
+    doc.setFontSize(10);
+    doc.setFont(undefined, 'normal');
+    const today = new Date().toLocaleDateString('es-AR', { year: 'numeric', month: 'long', day: 'numeric' });
+    doc.text(`Fecha: ${today}`, pageWidth / 2, yPos, { align: 'center' });
+    yPos += 15;
+
+    // Donor Information
+    doc.setFontSize(14);
+    doc.setFont(undefined, 'bold');
+    doc.text('Informacion del Donante', 14, yPos);
+    yPos += 8;
+
+    doc.setFontSize(10);
+    doc.setFont(undefined, 'normal');
+    doc.text(`Nombre: ${donor.fullName}`, 14, yPos);
+    yPos += 6;
+    if (donor.email) {
+      doc.text(`Email: ${donor.email}`, 14, yPos);
+      yPos += 6;
+    }
+    if (donor.phone) {
+      doc.text(`Telefono: ${donor.phone}`, 14, yPos);
+      yPos += 6;
+    }
+    if (donor.address) {
+      doc.text(`Direccion: ${donor.address}`, 14, yPos);
+      yPos += 6;
+    }
+    if (donor.observations) {
+      doc.text(`Observaciones: ${donor.observations}`, 14, yPos);
+      yPos += 6;
+    }
+    yPos += 5;
+
+    // Active Filters
+    if (hasAnyFilters) {
+      doc.setFontSize(10);
+      doc.setFont(undefined, 'bold');
+      doc.text('Filtros Aplicados:', 14, yPos);
+      yPos += 6;
+      doc.setFont(undefined, 'normal');
+      if (fromDate) {
+        doc.text(`- Desde: ${fromDate}`, 14, yPos);
+        yPos += 5;
+      }
+      if (toDate) {
+        doc.text(`- Hasta: ${toDate}`, 14, yPos);
+        yPos += 5;
+      }
+      if (filterDestination) {
+        doc.text(`- Destino: ${filterDestination}`, 14, yPos);
+        yPos += 5;
+      }
+      if (filterCurrency) {
+        doc.text(`- Moneda: ${filterCurrency}`, 14, yPos);
+        yPos += 5;
+      }
+      yPos += 5;
+    }
+
+    // Balances Section
+    if (balances.length > 0) {
+      doc.setFontSize(14);
+      doc.setFont(undefined, 'bold');
+      doc.text('Totales por Destino y Moneda', 14, yPos);
+      yPos += 8;
+
+      const balanceData = balances.map(b => [
+        b.destination === 'Other' ? 'Otro' : b.destination,
+        b.currency,
+        fmt(b.donationsTotal),
+        fmt(b.paymentsTotal),
+        fmt(b.total),
+        b.matanaCount > 0 ? `${b.matanaCount} Matana(s)` : '-'
+      ]);
+
+      autoTable(doc, {
+        startY: yPos,
+        head: [['Destino', 'Moneda', 'Donaciones', 'Pagos', 'Saldo', 'Matana']],
+        body: balanceData,
+        theme: 'grid',
+        headStyles: { fillColor: [41, 128, 185], fontSize: 10, fontStyle: 'bold' },
+        styles: { fontSize: 9, cellPadding: 3 },
+        columnStyles: {
+          2: { halign: 'right' },
+          3: { halign: 'right' },
+          4: { halign: 'right' }
+        }
+      });
+
+      yPos = doc.lastAutoTable.finalY + 15;
+    }
+
+    // Donations History
+    if (filteredDonations.length > 0) {
+      if (yPos > 250) {
+        doc.addPage();
+        yPos = 20;
+      }
+
+      doc.setFontSize(14);
+      doc.setFont(undefined, 'bold');
+      doc.text('Historial de Donaciones', 14, yPos);
+      yPos += 8;
+
+      const donationsData = filteredDonations.map(d => [
+        d.donationDate,
+        d.matana ? 'Matana' : fmt(d.amount),
+        d.currency,
+        d.minian,
+        d.concept,
+        d.destination === 'Other' ? 'Otro' : d.destination,
+        d.perasha || '-',
+        d.isVirtual ? 'Si' : 'No'
+      ]);
+
+      autoTable(doc, {
+        startY: yPos,
+        head: [['Fecha', 'Monto', 'Moneda', 'Minian', 'Concepto', 'Destino', 'Parasha', 'Virtual']],
+        body: donationsData,
+        theme: 'striped',
+        headStyles: { fillColor: [52, 152, 219], fontSize: 8, fontStyle: 'bold' },
+        styles: { fontSize: 7, cellPadding: 2 },
+        columnStyles: {
+          0: { cellWidth: 20 },
+          1: { halign: 'right', cellWidth: 18 },
+          2: { cellWidth: 18 },
+          3: { cellWidth: 18 },
+          4: { cellWidth: 20 },
+          5: { cellWidth: 22 },
+          6: { cellWidth: 20 },
+          7: { cellWidth: 15, halign: 'center' }
+        }
+      });
+
+      yPos = doc.lastAutoTable.finalY + 15;
+    }
+
+    // Payments History
+    if (filteredPayments.length > 0) {
+      if (yPos > 250) {
+        doc.addPage();
+        yPos = 20;
+      }
+
+      doc.setFontSize(14);
+      doc.setFont(undefined, 'bold');
+      doc.text('Historial de Pagos', 14, yPos);
+      yPos += 8;
+
+      const paymentsData = filteredPayments.map(p => [
+        p.paymentDate,
+        fmt(p.amount),
+        p.currency,
+        p.destination,
+        p.collector || '-',
+        p.isVirtual ? 'Si' : 'No'
+      ]);
+
+      autoTable(doc, {
+        startY: yPos,
+        head: [['Fecha', 'Monto', 'Moneda', 'Destino', 'Cobrador', 'Virtual']],
+        body: paymentsData,
+        theme: 'striped',
+        headStyles: { fillColor: [46, 204, 113], fontSize: 9, fontStyle: 'bold' },
+        styles: { fontSize: 8, cellPadding: 2.5 },
+        columnStyles: {
+          0: { cellWidth: 25 },
+          1: { halign: 'right', cellWidth: 25 },
+          2: { cellWidth: 25 },
+          3: { cellWidth: 35 },
+          4: { cellWidth: 35 },
+          5: { cellWidth: 25, halign: 'center' }
+        }
+      });
+    }
+
+    // Save PDF
+    const fileName = `Resumen_${donor.fullName.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.pdf`;
+    doc.save(fileName);
+  };
+
   const balances = useMemo(() => {
     // Find the latest virtual payment date for each destination/currency combination
     const lastVirtualPayments = new Map(); // "destination|currency" -> latest payment date
@@ -142,15 +340,42 @@ export default function DonorSummary() {
       }
     }
 
+    // Find the latest virtual donation date for each destination/currency combination
+    const lastVirtualDonations = new Map(); // "destination|currency" -> latest donation date
+    for (const d of filteredDonations) {
+      if (d.isVirtual) {
+        const key = `${d.destination || ''}|${(d.currency || '').toUpperCase()}`;
+        const existingDate = lastVirtualDonations.get(key);
+        const donationDate = new Date(d.donationDate);
+        if (!existingDate || donationDate > existingDate) {
+          lastVirtualDonations.set(key, donationDate);
+        }
+      }
+    }
+
+    // Find the latest virtual transaction date (either payment or donation)
+    const lastVirtualTransactions = new Map(); // "destination|currency" -> latest virtual date
+    for (const [key, date] of lastVirtualPayments.entries()) {
+      const donationDate = lastVirtualDonations.get(key);
+      const latestDate = donationDate && donationDate > date ? donationDate : date;
+      lastVirtualTransactions.set(key, latestDate);
+    }
+    for (const [key, date] of lastVirtualDonations.entries()) {
+      if (!lastVirtualTransactions.has(key)) {
+        lastVirtualTransactions.set(key, date);
+      }
+    }
+
     // recompute balances by destination+currency from filtered data
     const map = new Map(); // "destination|currency" -> {donationsTotal, paymentsTotal}
     for (const d of filteredDonations) {
       const key = `${d.destination || ''}|${(d.currency || '').toUpperCase()}`;
-      const lastVirtualPaymentDate = lastVirtualPayments.get(key);
+      const lastVirtualDate = lastVirtualTransactions.get(key);
       const donationDate = new Date(d.donationDate);
       
-      // Skip donations that are at or before the last virtual payment (they are considered paid)
-      if (lastVirtualPaymentDate && donationDate <= lastVirtualPaymentDate) {
+      // Skip virtual donations at or before the last virtual transaction (they've already "reset" the balance)
+      // Also skip regular donations at or before the last virtual transaction
+      if (lastVirtualDate && donationDate <= lastVirtualDate) {
         continue;
       }
 
@@ -164,12 +389,12 @@ export default function DonorSummary() {
     }
     for (const p of filteredPayments) {
       const key = `${p.destination || ''}|${(p.currency || '').toUpperCase()}`;
-      const lastVirtualPaymentDate = lastVirtualPayments.get(key);
+      const lastVirtualDate = lastVirtualTransactions.get(key);
       const paymentDate = new Date(p.paymentDate);
       
-      // Skip virtual payments at or before the last virtual payment (they've already "reset" the balance)
-      // But DO count regular payments even if they're at or before the virtual payment date
-      if (p.isVirtual && lastVirtualPaymentDate && paymentDate <= lastVirtualPaymentDate) {
+      // Skip virtual payments at or before the last virtual transaction (they've already "reset" the balance)
+      // Also skip regular payments at or before the last virtual transaction
+      if (lastVirtualDate && paymentDate <= lastVirtualDate) {
         continue;
       }
       
@@ -212,6 +437,11 @@ export default function DonorSummary() {
           <h1 className="hero-title">Resumen de Donante</h1>
           <p className="hero-subtitle">Consulte el historial completo de donaciones y pagos por donante</p>
         </div>
+        {donor && (
+          <button className="btn btn-primary" onClick={exportToPDF}>
+            <span>📄</span> Exportar a PDF
+          </button>
+        )}
       </div>
 
       <div className="content-wrapper">
