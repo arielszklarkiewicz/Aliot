@@ -67,6 +67,8 @@ export default function Navigation() {
       roles: ['Admin', 'DataEntry'],
       items: [
         { path: '/admin/donors', label: 'Gestión de Donantes', icon: '👥', roles: ['Admin', 'DataEntry'] },
+        { path: '/admin/donations', label: 'Gestión de Donaciones', icon: '📋', roles: ['Admin'] },
+        { path: '/admin/payments', label: 'Gestión de Pagos', icon: '💳', roles: ['Admin'] },
         { path: '/admin/concepts', label: 'Conceptos', icon: '🏷️', roles: ['Admin'] },
         { path: '/admin/destinations', label: 'Destinos', icon: '🎯', roles: ['Admin'] },
         { path: '/admin/collectors', label: 'Cobradores', icon: '🤝', roles: ['Admin'] },

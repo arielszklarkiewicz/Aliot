@@ -167,8 +167,9 @@ export default function DonorSummary() {
       const lastVirtualPaymentDate = lastVirtualPayments.get(key);
       const paymentDate = new Date(p.paymentDate);
       
-      // Skip payments that are at or before the last virtual payment
-      if (lastVirtualPaymentDate && paymentDate <= lastVirtualPaymentDate) {
+      // Skip virtual payments at or before the last virtual payment (they've already "reset" the balance)
+      // But DO count regular payments even if they're at or before the virtual payment date
+      if (p.isVirtual && lastVirtualPaymentDate && paymentDate <= lastVirtualPaymentDate) {
         continue;
       }
       

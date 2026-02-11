@@ -8,6 +8,8 @@ import Donations from './pages/Donations';
 import DonationsList from './pages/DonationsList';
 import Payments from './pages/Payments';
 import DonorsAdmin from './pages/DonorsAdmin';
+import DonationsAdmin from './pages/DonationsAdmin';
+import PaymentsAdmin from './pages/PaymentsAdmin';
 import DonorSummary from './pages/DonorSummary';
 import ConceptsAdmin from './pages/ConceptsAdmin';
 import DestinationsAdmin from './pages/DestinationsAdmin';
@@ -29,6 +31,8 @@ export default function App() {
         <Route path="/donations/list" element={<ProtectedRoute><DonationsList /></ProtectedRoute>} />
         <Route path="/payments" element={<ProtectedRoute><Payments /></ProtectedRoute>} />
         <Route path="/admin/donors" element={<ProtectedRoute><DonorsAdmin /></ProtectedRoute>} />
+        <Route path="/admin/donations" element={<ProtectedRoute><AdminRoute><DonationsAdmin /></AdminRoute></ProtectedRoute>} />
+        <Route path="/admin/payments" element={<ProtectedRoute><AdminRoute><PaymentsAdmin /></AdminRoute></ProtectedRoute>} />
         <Route path="/admin/concepts" element={<ProtectedRoute><AdminRoute><ConceptsAdmin /></AdminRoute></ProtectedRoute>} />
         <Route path="/admin/destinations" element={<ProtectedRoute><AdminRoute><DestinationsAdmin /></AdminRoute></ProtectedRoute>} />
         <Route path="/admin/collectors" element={<ProtectedRoute><AdminRoute><CollectorsAdmin /></AdminRoute></ProtectedRoute>} />
