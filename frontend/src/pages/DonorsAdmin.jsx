@@ -19,15 +19,23 @@ export default function DonorsAdmin() {
   async function load() {
     setLoading(true); setError('');
     try {
+      console.log('Loading donors with params:', { q: debouncedQ, occasionalFilter, page, pageSize });
       const { data } = await axios.get('/api/donors', { params: { q: debouncedQ || undefined, isOccasionalDonor: occasionalFilter==='yes' ? true : occasionalFilter==='no' ? false : undefined, page, pageSize } });
+      console.log('Donors loaded:', data);
       setItems(data.items || []);
       setTotal(data.total || 0);
     } catch (e) {
+      console.error('Error loading donors:', e);
       setError('No se pudieron cargar los donantes');
     } finally { setLoading(false); }
   }
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [debouncedQ, occasionalFilter, page, pageSize]);
+  // Load on mount and when filters change
+  useEffect(() => { 
+    console.log('useEffect triggered - debouncedQ:', debouncedQ, 'occasionalFilter:', occasionalFilter, 'page:', page, 'pageSize:', pageSize);
+    load(); 
+    /* eslint-disable-next-line */ 
+  }, [debouncedQ, occasionalFilter, page, pageSize]);
 
   const startNew = () => setEdit({ firstName: '', lastName: '', email: '', phone: '', address: '', observations: '', isOccasionalDonor: false });
   const startEdit = (d) => setEdit({ ...d });
@@ -38,11 +46,13 @@ export default function DonorsAdmin() {
     try {
       if (isNew) {
         await axios.post('/api/donors', edit);
+        setEdit(null);
+        setPage(1); // Reset to first page - will trigger load via useEffect
       } else {
         await axios.put(`/api/donors/${edit.id}`, edit);
+        setEdit(null);
+        await load(); // Reload current page for updates
       }
-      setEdit(null);
-      await load();
     } catch (e) {
       alert('No se pudo guardar el donante');
     }
@@ -118,6 +128,13 @@ export default function DonorsAdmin() {
                 </tr>
               </thead>
               <tbody>
+                {items.length === 0 && (
+                  <tr>
+                    <td colSpan="7" className="empty-state">
+                      No se encontraron donantes
+                    </td>
+                  </tr>
+                )}
                 {items.map(d => (
                   <tr key={d.id}>
                     <td><strong>{d.fullName}</strong></td>
@@ -146,6 +163,11 @@ export default function DonorsAdmin() {
 
           {/* Mobile Cards */}
           <div className="mobile-visible desktop-hidden">
+            {items.length === 0 && (
+              <div className="empty-state" style={{ padding: '2rem', textAlign: 'center' }}>
+                No se encontraron donantes
+              </div>
+            )}
             {items.map(d => (
               <div key={d.id} className="mobile-card">
                 <div className="mobile-card-header">

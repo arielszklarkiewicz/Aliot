@@ -3,99 +3,119 @@ using Microsoft.Extensions.Caching.Memory;
 
 namespace Donaciones.Api.Services;
 
-public class CachedDonorService(DonorService innerService, IMemoryCache cache) : IDonorService
+public class CachedDonorService : IDonorService
 {
-    private const string AllDonorsCacheKey = "all_donors_list";
-    private const int CacheDurationMinutes = 30;
+    private readonly DonorService _innerService;
+    private readonly IMemoryCache _cache;
+    private const string ALL_DONORS_CACHE_KEY = "all_donors_full_list";
+    private const int CACHE_DURATION_MINUTES = 30;
+
+    public CachedDonorService(DonorService innerService, IMemoryCache cache)
+    {
+        _innerService = innerService;
+        _cache = cache;
+    }
 
     private void InvalidateCache()
     {
-        cache.Remove(AllDonorsCacheKey);
-        // Remove individual donor caches by pattern (simple approach: clear all)
-        // In production, consider more sophisticated cache invalidation
+        _cache.Remove(ALL_DONORS_CACHE_KEY);
     }
 
     public async Task<(IReadOnlyList<Donor> items, int total)> ListAsync(
         string? q, bool? isOccasionalDonor, int page, int pageSize, CancellationToken ct)
     {
-        // For filtered/paginated queries, use cache for the full list then filter in memory
-        var cacheKey = $"{AllDonorsCacheKey}_{q}_{isOccasionalDonor}_{page}_{pageSize}";
-        
-        if (cache.TryGetValue(cacheKey, out (IReadOnlyList<Donor> items, int total) cached))
+        // Get all donors from cache or DB
+        if (!_cache.TryGetValue(ALL_DONORS_CACHE_KEY, out List<Donor>? allDonors) || allDonors == null)
         {
-            return cached;
+            // Cache miss - load ALL donors from database
+            var (allItems, _) = await _innerService.ListAsync(null, null, 1, 10000, ct);
+            allDonors = allItems.ToList();
+            
+            var cacheOptions = new MemoryCacheEntryOptions()
+                .SetAbsoluteExpiration(TimeSpan.FromMinutes(CACHE_DURATION_MINUTES))
+                .SetSlidingExpiration(TimeSpan.FromMinutes(10));
+            
+            _cache.Set(ALL_DONORS_CACHE_KEY, allDonors, cacheOptions);
         }
 
-        var result = await innerService.ListAsync(q, isOccasionalDonor, page, pageSize, ct);
+        // Filter in memory
+        var filtered = allDonors.AsEnumerable();
         
-        var cacheOptions = new MemoryCacheEntryOptions()
-            .SetAbsoluteExpiration(TimeSpan.FromMinutes(CacheDurationMinutes))
-            .SetSlidingExpiration(TimeSpan.FromMinutes(10));
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            var ql = q.ToLower();
+            filtered = filtered.Where(d =>
+                (d.FirstName + " " + (d.LastName ?? "")).ToLower().Contains(ql) ||
+                (d.Observations != null && d.Observations.ToLower().Contains(ql))
+            );
+        }
         
-        cache.Set(cacheKey, result, cacheOptions);
-        
-        return result;
+        if (isOccasionalDonor.HasValue)
+        {
+            filtered = filtered.Where(d => d.IsOccasionalDonor == isOccasionalDonor.Value);
+        }
+
+        var orderedList = filtered
+            .OrderBy(d => d.FirstName)
+            .ThenBy(d => d.LastName)
+            .ToList();
+
+        var total = orderedList.Count;
+        var pagedItems = orderedList
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+
+        return (pagedItems, total);
     }
 
     public async Task<Donor?> GetAsync(Guid id, CancellationToken ct)
     {
-        var cacheKey = $"donor_{id}";
-        
-        if (cache.TryGetValue(cacheKey, out Donor? cached))
+        // Try to get from cache first
+        if (_cache.TryGetValue(ALL_DONORS_CACHE_KEY, out List<Donor>? allDonors) && allDonors != null)
         {
-            return cached;
+            var donor = allDonors.FirstOrDefault(d => d.Id == id);
+            if (donor != null) return donor;
         }
 
-        var donor = await innerService.GetAsync(id, ct);
-        
-        if (donor != null)
-        {
-            var cacheOptions = new MemoryCacheEntryOptions()
-                .SetAbsoluteExpiration(TimeSpan.FromMinutes(CacheDurationMinutes))
-                .SetSlidingExpiration(TimeSpan.FromMinutes(10));
-            
-            cache.Set(cacheKey, donor, cacheOptions);
-        }
-        
-        return donor;
+        // Not in cache, get from DB
+        return await _innerService.GetAsync(id, ct);
     }
 
     public async Task<Donor> CreateAsync(Donor donor, Guid userId, CancellationToken ct)
     {
-        var result = await innerService.CreateAsync(donor, userId, ct);
+        var result = await _innerService.CreateAsync(donor, userId, ct);
         InvalidateCache();
         return result;
     }
 
     public async Task<Donor?> UpdateAsync(Guid id, Donor donor, Guid userId, CancellationToken ct)
     {
-        var result = await innerService.UpdateAsync(id, donor, userId, ct);
+        var result = await _innerService.UpdateAsync(id, donor, userId, ct);
         if (result != null)
         {
             InvalidateCache();
-            cache.Remove($"donor_{id}");
         }
         return result;
     }
 
     public async Task<bool> DeleteAsync(Guid id, Guid userId, CancellationToken ct)
     {
-        var result = await innerService.DeleteAsync(id, userId, ct);
+        var result = await _innerService.DeleteAsync(id, userId, ct);
         if (result)
         {
             InvalidateCache();
-            cache.Remove($"donor_{id}");
         }
         return result;
     }
 
-    // Balance methods don't need caching as they're computed from donations/payments
     public Task<DonorBalance> GetBalanceAsync(Guid donorId, string? currency, CancellationToken ct)
-        => innerService.GetBalanceAsync(donorId, currency, ct);
+        => _innerService.GetBalanceAsync(donorId, currency, ct);
 
     public Task<IReadOnlyList<DonorCurrencyBalance>> GetBalancesByCurrencyAsync(Guid donorId, CancellationToken ct)
-        => innerService.GetBalancesByCurrencyAsync(donorId, ct);
+        => _innerService.GetBalancesByCurrencyAsync(donorId, ct);
 
     public Task<DonorSummary?> GetSummaryAsync(Guid donorId, CancellationToken ct)
-        => innerService.GetSummaryAsync(donorId, ct);
+        => _innerService.GetSummaryAsync(donorId, ct);
 }
+

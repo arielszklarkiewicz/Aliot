@@ -7,7 +7,7 @@ export default function Navigation() {
   const location = useLocation();
   const { isAuthenticated, logout } = useAuth();
   const { user, isAdmin, isDataEntry, loading } = useCurrentUser();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(true);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
 

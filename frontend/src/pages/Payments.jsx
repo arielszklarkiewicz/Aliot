@@ -96,39 +96,40 @@ export default function Payments() {
       </div>
 
       <div className="content-wrapper">
-        {successMsg && <div className="alert alert-success" role="status">{successMsg}</div>}
-        {errorMsg && <div className="alert alert-error" role="alert">{errorMsg}</div>}
+        {successMsg && <div className="alert success" role="status">{successMsg}</div>}
+        {errorMsg && <div className="alert danger" role="alert">{errorMsg}</div>}
         
-        <div className="form-section">
+        <div className="form-container">
           <div className="form-grid">
             <div className="form-group">
-              <label htmlFor="payment-date" className="form-label">Fecha</label>
-              <input id="payment-date" type="date" value={date} onChange={e=>setDate(e.target.value)} className="form-input" />
+              <label htmlFor="payment-date">Fecha</label>
+              <input id="payment-date" type="date" value={date} onChange={e=>setDate(e.target.value)} />
             </div>
 
-          <div className="form-group">
-            <label htmlFor="payment-destination" className="form-label">Destino</label>
-            <select id="payment-destination" value={destination} onChange={e=>setDestination(e.target.value)} className="form-select">
-              {lookups.destinations.map(d => (<option key={d} value={d}>{d}</option>))}
-            </select>
+            <div className="form-group">
+              <label htmlFor="payment-destination">Destino</label>
+              <select id="payment-destination" value={destination} onChange={e=>setDestination(e.target.value)}>
+                {lookups.destinations.map(d => (<option key={d} value={d}>{d}</option>))}
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="payment-collector">Cobrador</label>
+              <select id="payment-collector" value={collector} onChange={e=>setCollector(e.target.value)} onFocus={loadCollectors}>
+                {collectors.map(c => (<option key={c} value={c}>{c}</option>))}
+              </select>
+            </div>
           </div>
 
-          <div className="form-group">
-            <label htmlFor="payment-collector" className="form-label">Cobrador</label>
-            <select id="payment-collector" value={collector} onChange={e=>setCollector(e.target.value)} onFocus={loadCollectors} className="form-select">
-              {collectors.map(c => (<option key={c} value={c}>{c}</option>))}
-            </select>
-          </div>
-        </div>
+          <hr style={{ margin: '24px 0', border: 'none', borderTop: '1px solid var(--neutral-200)' }} />
 
-        <div className="form-divider"></div>
-
-        <div style={{marginBottom:16}}>
-          <div style={{marginBottom:8, display:'flex', alignItems:'center', gap:8, justifyContent:'space-between', flexWrap:'wrap'}}>
+          <div style={{marginBottom:16}}>
+            <div style={{marginBottom:8, display:'flex', alignItems:'center', gap:8, justifyContent:'space-between', flexWrap:'wrap'}}>
             <div style={{display:'flex', alignItems:'center', gap:8, flex:1, minWidth:0, flexWrap:'wrap'}}>
               <label style={{fontWeight:600, minWidth:100}}>Donante</label>
               <div style={{display:'flex', alignItems:'center', gap:8, minWidth:0, flex:1}}>
                 <DonorAutocomplete
+                  id="donor-autocomplete"
                   value={donorId}
                   onChange={(id, donor)=>{
                     setDonorId(id);
@@ -179,126 +180,128 @@ export default function Payments() {
               </div>
             </div>
             <button
+              type="button"
               className="btn btn-secondary"
               onClick={()=>setOpenCreateDonor(true)}
               style={{ whiteSpace:'nowrap' }}
+              aria-label="Crear nuevo donante"
             >
               Crear donante
             </button>
-          </div>
-        </div>
-
-        <div className="form-grid">
-          <div className="form-group">
-            <label htmlFor="payment-amount" className="form-label">Monto</label>
-            <div className="amount-input-row">
-              <input
-                id="payment-amount"
-                type="text"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                placeholder="Monto"
-                value={amount ? amount.replace(/\B(?=(\d{3})+(?!\d))/g, '.') : ''}
-                onChange={e=>{
-                  const digits = (e.target.value || '').toString().replace(/[^0-9]/g, '');
-                  setAmount(digits);
-                }}
-                className="form-input"
-                style={{ flex:'0 1 220px' }}
-              />
-              {(() => {
-                const cur = (currency || '').toString();
-                const curNorm = cur.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-                const isUsd = curNorm === 'dolares' || curNorm === 'usd' || curNorm === 'dolares estadounidenses' || curNorm === 'u$s' || curNorm === 'us$';
-                const style = {
-                  padding: '6px 10px',
-                  border: isUsd ? '1px solid #a7f3d0' : '1px solid #d6e4ff',
-                  background: isUsd ? '#ecfdf5' : '#f0f5ff',
-                  color: isUsd ? '#065f46' : '#1d39c4',
-                  borderRadius: 6,
-                  fontWeight: 600
-                };
-                return (
-                  <select
-                    aria-label="Moneda"
-                    id="payment-currency"
-                    value={currency}
-                    onChange={e=>setCurrency(e.target.value)}
-                    style={style}
-                    title="Moneda"
-                  >
-                    {lookups.currencies.map(c => (<option key={c} value={c}>{c}</option>))}
-                  </select>
-                );
-              })()}
-              <div style={{ display:'inline-flex', gap:6, flexWrap:'wrap' }}>
-                {[
-                  { label: '+1.000', inc: 1000 },
-                  { label: '+10.000', inc: 10000 },
-                  { label: '+18.000', inc: 18000 },
-                  { label: '+26.000', inc: 26000 },
-                  { label: '+52.000', inc: 52000 },
-                  { label: '+100.000', inc: 100000 }
-                ].map(btn => (
-                  <button
-                    key={btn.label}
-                    type="button"
-                    aria-label={`Sumar ${btn.label.replace('+','')}`}
-                    onClick={()=>{
-                      const current = parseInt((amount || '0'), 10) || 0;
-                      const next = current + btn.inc;
-                      setAmount(String(next));
-                    }}
-                    style={{
-                      padding:'6px 10px',
-                      border:'1px solid #d9d9d9',
-                      background:'#fafafa',
-                      borderRadius:6,
-                      cursor:'pointer',
-                      fontWeight:600
-                    }}
-                  >{btn.label}</button>
-                ))}
-                <button
-                  type="button"
-                  aria-label="Borrar monto"
-                  onClick={()=>setAmount('')}
-                  style={{
-                    padding:'6px 10px',
-                    border:'1px solid #d9d9d9',
-                    background:'#fff1f0',
-                    borderRadius:6,
-                    cursor:'pointer',
-                    fontWeight:600,
-                    color:'#cf1322'
-                  }}
-                >Borrar</button>
-              </div>
             </div>
           </div>
 
-          <div className="form-group">
-            <label htmlFor="payment-comment" className="form-label">Comentarios</label>
-            <textarea id="payment-comment" placeholder="Comentarios" value={comment} onChange={e=>setComment(e.target.value)} className="form-textarea" style={{minHeight: '100px'}} />
+          <div className="form-grid">
+            <div className="form-group">
+              <label htmlFor="payment-amount">Monto</label>
+              <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
+                <input
+                  id="payment-amount"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  placeholder="Monto"
+                  value={amount ? amount.replace(/\B(?=(\d{3})+(?!\d))/g, '.') : ''}
+                  onChange={e=>{
+                    const digits = (e.target.value || '').toString().replace(/[^0-9]/g, '');
+                    setAmount(digits);
+                  }}
+                  style={{ flex:'0 1 220px' }}
+                />
+                {(() => {
+                  const cur = (currency || '').toString();
+                  const curNorm = cur.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+                  const isUsd = curNorm === 'dolares' || curNorm === 'usd' || curNorm === 'dolares estadounidenses' || curNorm === 'u$s' || curNorm === 'us$';
+                  const style = {
+                    padding: '6px 10px',
+                    border: isUsd ? '1px solid #a7f3d0' : '1px solid #d6e4ff',
+                    background: isUsd ? '#ecfdf5' : '#f0f5ff',
+                    color: isUsd ? '#065f46' : '#1d39c4',
+                    borderRadius: 6,
+                    fontWeight: 600
+                  };
+                  return (
+                    <select
+                      aria-label="Moneda"
+                      id="payment-currency"
+                      value={currency}
+                      onChange={e=>setCurrency(e.target.value)}
+                      style={style}
+                      title="Moneda"
+                    >
+                      {lookups.currencies.map(c => (<option key={c} value={c}>{c}</option>))}
+                    </select>
+                  );
+                })()}
+                <div style={{ display:'inline-flex', gap:6, flexWrap:'wrap' }}>
+                  {[
+                    { label: '+1.000', inc: 1000 },
+                    { label: '+10.000', inc: 10000 },
+                    { label: '+18.000', inc: 18000 },
+                    { label: '+26.000', inc: 26000 },
+                    { label: '+52.000', inc: 52000 },
+                    { label: '+100.000', inc: 100000 }
+                  ].map(btn => (
+                    <button
+                      key={btn.label}
+                      type="button"
+                      aria-label={`Sumar ${btn.label.replace('+','')}`}
+                      onClick={()=>{
+                        const current = parseInt((amount || '0'), 10) || 0;
+                        const next = current + btn.inc;
+                        setAmount(String(next));
+                      }}
+                      style={{
+                        padding:'6px 10px',
+                        border:'1px solid #d9d9d9',
+                        background:'#fafafa',
+                        borderRadius:6,
+                        cursor:'pointer',
+                        fontWeight:600
+                      }}
+                    >{btn.label}</button>
+                  ))}
+                  <button
+                    type="button"
+                    aria-label="Borrar monto"
+                    onClick={()=>setAmount('')}
+                    style={{
+                      padding:'6px 10px',
+                      border:'1px solid #d9d9d9',
+                      background:'#fff1f0',
+                      borderRadius:6,
+                      cursor:'pointer',
+                      fontWeight:600,
+                      color:'#cf1322'
+                    }}
+                  >Borrar</button>
+                </div>
+              </div>
+            </div>
+
+            <div className="form-group">
+            <label htmlFor="payment-comment">Comentarios</label>
+            <textarea id="payment-comment" placeholder="Comentarios" value={comment} onChange={e=>setComment(e.target.value)} style={{minWidth:220}} />
+          </div>
+          </div>
+
+          <div className="form-actions">
+          <button
+            type="button"
+            className="btn btn-success btn-lg"
+            onClick={createPayment}
+            aria-label="Crear nuevo pago"
+          >
+            Crear pago
+          </button>
           </div>
         </div>
 
-        <div className="form-actions">
-          <button
-            type="button"
-            className="btn btn-primary btn-lg"
-            onClick={createPayment}
-          >
-            Crear Pago
-          </button>
-        </div>
-      </div>
-
-      <DonorCreateModal
-        open={openCreateDonor}
-        onClose={()=>setOpenCreateDonor(false)}
-        onCreated={(donor)=>{ setDonorId(donor.id); setSelectedDonorName(donor.fullName || `${donor.firstName}${donor.lastName ? ' ' + donor.lastName : ''}`); setSelectedDonorObs(donor?.observations || ''); }}
-      />
+        <DonorCreateModal
+          open={openCreateDonor}
+          onClose={()=>setOpenCreateDonor(false)}
+          onCreated={(donor)=>{ setDonorId(donor.id); setSelectedDonorName(donor.fullName || `${donor.firstName}${donor.lastName ? ' ' + donor.lastName : ''}`); setSelectedDonorObs(donor?.observations || ''); }}
+        />
       </div>
     </div>
   );
