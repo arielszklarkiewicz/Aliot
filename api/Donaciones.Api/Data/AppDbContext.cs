@@ -1,10 +1,10 @@
 using Donaciones.Api.Models;
 using Microsoft.EntityFrameworkCore;
 
-public class AppDbContext : DbContext
-{
-    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
+namespace Donaciones.Api.Data;
 
+public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
+{
     public DbSet<User> Users => Set<User>();
     public DbSet<Donor> Donors => Set<Donor>();
     public DbSet<Donation> Donations => Set<Donation>();

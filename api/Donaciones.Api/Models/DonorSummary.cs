@@ -1,4 +1,4 @@
-using Donaciones.Api.Models;
+namespace Donaciones.Api.Models;
 
 public record DonorSummary
 {

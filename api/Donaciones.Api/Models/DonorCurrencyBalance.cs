@@ -1,3 +1,5 @@
+namespace Donaciones.Api.Models;
+
 public record DonorCurrencyBalance
 {
     public string Currency { get; set; } = string.Empty;

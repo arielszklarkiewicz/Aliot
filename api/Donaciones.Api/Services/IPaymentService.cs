@@ -1,4 +1,6 @@
-using Microsoft.EntityFrameworkCore;
+using Donaciones.Api.Models;
+
+namespace Donaciones.Api.Services;
 
 public interface IPaymentService
 {

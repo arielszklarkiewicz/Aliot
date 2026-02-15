@@ -5,28 +5,19 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using Donaciones.Api.Data;
 
 namespace Donaciones.Api.Services;
 
-public class AuthService : IAuthService
+public class AuthService(AppDbContext db, IConfiguration config, ILogger<AuthService> logger)
+    : IAuthService
 {
-    private readonly AppDbContext _db;
-    private readonly IConfiguration _config;
-    private readonly ILogger<AuthService> _logger;
-
-    public AuthService(AppDbContext db, IConfiguration config, ILogger<AuthService> logger)
-    {
-        _db = db;
-        _config = config;
-        _logger = logger;
-    }
-
     public async Task<(string Token, User User)?> AuthenticateAsync(string email, string password, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
             return null;
 
-        var user = await _db.Users
+        var user = await db.Users
             .AsNoTracking()
             .FirstOrDefaultAsync(u => u.Email.ToLower() == email.ToLower(), ct);
 
@@ -42,7 +33,7 @@ public class AuthService : IAuthService
 
     public async Task<User?> GetUserByIdAsync(Guid userId, CancellationToken ct = default)
     {
-        return await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId, ct);
+        return await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId, ct);
     }
 
     public async Task<User> CreateUserAsync(string email, string password, UserRole role, string? fullName = null, Guid? createdBy = null, CancellationToken ct = default)
@@ -53,7 +44,7 @@ public class AuthService : IAuthService
         if (string.IsNullOrWhiteSpace(password))
             throw new ArgumentException("Password is required", nameof(password));
 
-        var existingUser = await _db.Users.FirstOrDefaultAsync(u => u.Email.ToLower() == email.ToLower(), ct);
+        var existingUser = await db.Users.FirstOrDefaultAsync(u => u.Email.ToLower() == email.ToLower(), ct);
         if (existingUser != null)
             throw new InvalidOperationException("Email already exists");
 
@@ -69,16 +60,16 @@ public class AuthService : IAuthService
             CreatedBy = createdBy
         };
 
-        _db.Users.Add(user);
-        await _db.SaveChangesAsync(ct);
+        db.Users.Add(user);
+        await db.SaveChangesAsync(ct);
 
-        _logger.LogInformation("User created: {Email} with role {Role}", email, role);
+        logger.LogInformation("User created: {Email} with role {Role}", email, role);
         return user;
     }
 
     public async Task<bool> ChangePasswordAsync(Guid userId, string currentPassword, string newPassword, CancellationToken ct = default)
     {
-        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId, ct);
+        var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId, ct);
         if (user == null)
             return false;
 
@@ -87,29 +78,29 @@ public class AuthService : IAuthService
 
         user.PasswordHash = HashPassword(newPassword);
         user.UpdatedAt = DateTimeOffset.UtcNow;
-        await _db.SaveChangesAsync(ct);
+        await db.SaveChangesAsync(ct);
 
-        _logger.LogInformation("Password changed for user: {Email}", user.Email);
+        logger.LogInformation("Password changed for user: {Email}", user.Email);
         return true;
     }
 
     public async Task<bool> AdminChangePasswordAsync(Guid userId, string newPassword, CancellationToken ct = default)
     {
-        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId, ct);
+        var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId, ct);
         if (user == null)
             return false;
 
         user.PasswordHash = HashPassword(newPassword);
         user.UpdatedAt = DateTimeOffset.UtcNow;
-        await _db.SaveChangesAsync(ct);
+        await db.SaveChangesAsync(ct);
 
-        _logger.LogInformation("Password changed by admin for user: {Email}", user.Email);
+        logger.LogInformation("Password changed by admin for user: {Email}", user.Email);
         return true;
     }
 
     public async Task<User?> UpdateUserAsync(Guid userId, string? fullName, string? email, Guid? updatedBy = null, CancellationToken ct = default)
     {
-        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId, ct);
+        var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId, ct);
         if (user == null)
             return null;
 
@@ -118,41 +109,41 @@ public class AuthService : IAuthService
             user.Email = email.ToLower();
         user.UpdatedAt = DateTimeOffset.UtcNow;
         user.UpdatedBy = updatedBy;
-        await _db.SaveChangesAsync(ct);
+        await db.SaveChangesAsync(ct);
 
         return user;
     }
 
     public async Task<bool> SetUserActiveStatusAsync(Guid userId, bool isActive, CancellationToken ct = default)
     {
-        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId, ct);
+        var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId, ct);
         if (user == null)
             return false;
 
         user.IsActive = isActive;
         user.UpdatedAt = DateTimeOffset.UtcNow;
-        await _db.SaveChangesAsync(ct);
+        await db.SaveChangesAsync(ct);
 
-        _logger.LogInformation("User {Email} active status set to: {IsActive}", user.Email, isActive);
+        logger.LogInformation("User {Email} active status set to: {IsActive}", user.Email, isActive);
         return true;
     }
 
     public async Task<bool> DeleteUserAsync(Guid userId, CancellationToken ct = default)
     {
-        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId, ct);
+        var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId, ct);
         if (user == null)
             return false;
 
-        _db.Users.Remove(user);
-        await _db.SaveChangesAsync(ct);
+        db.Users.Remove(user);
+        await db.SaveChangesAsync(ct);
 
-        _logger.LogInformation("User deleted: {Email}", user.Email);
+        logger.LogInformation("User deleted: {Email}", user.Email);
         return true;
     }
 
     public async Task<(List<User> Users, int Total)> ListUsersAsync(int page = 1, int pageSize = 20, CancellationToken ct = default)
     {
-        var query = _db.Users.AsNoTracking();
+        var query = db.Users.AsNoTracking();
 
         var total = await query.CountAsync(ct);
 
@@ -167,15 +158,15 @@ public class AuthService : IAuthService
 
     private string GenerateJwtToken(User user)
     {
-        var jwtSecret = _config["Jwt:Secret"] ?? _config["Jwt__Secret"];
+        var jwtSecret = config["Jwt:Secret"] ?? config["Jwt__Secret"];
         if (string.IsNullOrWhiteSpace(jwtSecret))
         {
             throw new InvalidOperationException("JWT secret is not configured");
         }
 
-        var jwtIssuer = _config["Jwt:Issuer"] ?? _config["Jwt__Issuer"] ?? "Donaciones.Api";
-        var jwtAudience = _config["Jwt:Audience"] ?? _config["Jwt__Audience"] ?? "Donaciones.Client";
-        var jwtExpiryMinutes = int.TryParse(_config["Jwt:ExpiryMinutes"] ?? _config["Jwt__ExpiryMinutes"], out var mins) ? mins : 480; // 8 hours default
+        var jwtIssuer = config["Jwt:Issuer"] ?? config["Jwt__Issuer"] ?? "Donaciones.Api";
+        var jwtAudience = config["Jwt:Audience"] ?? config["Jwt__Audience"] ?? "Donaciones.Client";
+        var jwtExpiryMinutes = int.TryParse(config["Jwt:ExpiryMinutes"] ?? config["Jwt__ExpiryMinutes"], out var mins) ? mins : 480; // 8 hours default
 
         var claims = new[]
         {

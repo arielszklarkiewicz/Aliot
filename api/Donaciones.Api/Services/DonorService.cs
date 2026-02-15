@@ -1,14 +1,14 @@
+using Donaciones.Api.Data;
 using Donaciones.Api.Models;
 using Microsoft.EntityFrameworkCore;
 
-public class DonorService : IDonorService
-{
-    private readonly AppDbContext _db;
-    public DonorService(AppDbContext db) => _db = db;
+namespace Donaciones.Api.Services;
 
+public class DonorService(AppDbContext db) : IDonorService
+{
     public async Task<(IReadOnlyList<Donor> items, int total)> ListAsync(string? q, bool? isOccasionalDonor, int page, int pageSize, CancellationToken ct)
     {
-        var qry = _db.Donors.AsNoTracking();
+        var qry = db.Donors.AsNoTracking();
         if (!string.IsNullOrWhiteSpace(q))
         {
             var ql = q.ToLower();
@@ -31,21 +31,21 @@ public class DonorService : IDonorService
         return (items, total);
     }
 
-    public Task<Donor?> GetAsync(Guid id, CancellationToken ct) => _db.Donors.AsNoTracking().FirstOrDefaultAsync(d => d.Id == id, ct);
+    public Task<Donor?> GetAsync(Guid id, CancellationToken ct) => db.Donors.AsNoTracking().FirstOrDefaultAsync(d => d.Id == id, ct);
 
     public async Task<Donor> CreateAsync(Donor donor, Guid userId, CancellationToken ct)
     {
         donor.Id = Guid.NewGuid();
         donor.CreatedAt = DateTimeOffset.UtcNow;
         donor.CreatedBy = userId;
-        _db.Donors.Add(donor);
-        await _db.SaveChangesAsync(ct);
+        db.Donors.Add(donor);
+        await db.SaveChangesAsync(ct);
         return donor;
     }
 
     public async Task<Donor?> UpdateAsync(Guid id, Donor donor, Guid userId, CancellationToken ct)
     {
-        var existing = await _db.Donors.FirstOrDefaultAsync(d => d.Id == id, ct);
+        var existing = await db.Donors.FirstOrDefaultAsync(d => d.Id == id, ct);
         if (existing == null) return null;
         existing.FirstName = donor.FirstName;
         existing.LastName = donor.LastName;
@@ -56,13 +56,13 @@ public class DonorService : IDonorService
         existing.IsOccasionalDonor = donor.IsOccasionalDonor;
         existing.UpdatedAt = DateTimeOffset.UtcNow;
         existing.UpdatedBy = userId;
-        await _db.SaveChangesAsync(ct);
+        await db.SaveChangesAsync(ct);
         return existing;
     }
 
     public async Task<bool> DeleteAsync(Guid id, Guid userId, CancellationToken ct)
     {
-        var donor = await _db.Donors.FirstOrDefaultAsync(d => d.Id == id, ct);
+        var donor = await db.Donors.FirstOrDefaultAsync(d => d.Id == id, ct);
         if (donor == null) return false;
         
         // Log deletion
@@ -75,21 +75,21 @@ public class DonorService : IDonorService
             DeletedBy = userId,
             DeletedAt = DateTimeOffset.UtcNow
         };
-        _db.DeletionLogs.Add(deletionLog);
+        db.DeletionLogs.Add(deletionLog);
         
-        _db.Donors.Remove(donor);
-        await _db.SaveChangesAsync(ct);
+        db.Donors.Remove(donor);
+        await db.SaveChangesAsync(ct);
         return true;
     }
 
     public async Task<DonorBalance> GetBalanceAsync(Guid donorId, string? currency, CancellationToken ct)
     {
         // ensure donor exists (optional)
-        var donorExists = await _db.Donors.AsNoTracking().AnyAsync(d => d.Id == donorId, ct);
+        var donorExists = await db.Donors.AsNoTracking().AnyAsync(d => d.Id == donorId, ct);
         if (!donorExists) return new DonorBalance { DonorId = donorId, Currency = currency, DonationsTotal = 0, PaymentsTotal = 0 };
 
-        var donationsQry = _db.Donations.AsNoTracking().Where(d => d.DonorId == donorId);
-        var paymentsQry = _db.Payments.AsNoTracking().Where(p => p.DonorId == donorId);
+        var donationsQry = db.Donations.AsNoTracking().Where(d => d.DonorId == donorId);
+        var paymentsQry = db.Payments.AsNoTracking().Where(p => p.DonorId == donorId);
         if (!string.IsNullOrWhiteSpace(currency))
         {
             var cl = currency.ToLower();
@@ -136,14 +136,14 @@ public class DonorService : IDonorService
 
     public async Task<IReadOnlyList<DonorCurrencyBalance>> GetBalancesByCurrencyAsync(Guid donorId, CancellationToken ct)
     {
-        var donorExists = await _db.Donors.AsNoTracking().AnyAsync(d => d.Id == donorId, ct);
+        var donorExists = await db.Donors.AsNoTracking().AnyAsync(d => d.Id == donorId, ct);
         if (!donorExists) return Array.Empty<DonorCurrencyBalance>();
 
-        var allDonations = await _db.Donations.AsNoTracking()
+        var allDonations = await db.Donations.AsNoTracking()
             .Where(d => d.DonorId == donorId)
             .ToListAsync(ct);
 
-        var allPayments = await _db.Payments.AsNoTracking()
+        var allPayments = await db.Payments.AsNoTracking()
             .Where(p => p.DonorId == donorId)
             .ToListAsync(ct);
 
@@ -206,15 +206,15 @@ public class DonorService : IDonorService
 
     public async Task<DonorSummary?> GetSummaryAsync(Guid donorId, CancellationToken ct)
     {
-        var donor = await _db.Donors.AsNoTracking().FirstOrDefaultAsync(d => d.Id == donorId, ct);
+        var donor = await db.Donors.AsNoTracking().FirstOrDefaultAsync(d => d.Id == donorId, ct);
         if (donor == null) return null;
 
-        var donations = await _db.Donations.AsNoTracking()
+        var donations = await db.Donations.AsNoTracking()
             .Where(d => d.DonorId == donorId)
             .OrderByDescending(d => d.DonationDate)
             .ToListAsync(ct);
 
-        var payments = await _db.Payments.AsNoTracking()
+        var payments = await db.Payments.AsNoTracking()
             .Where(p => p.DonorId == donorId)
             .OrderByDescending(p => p.PaymentDate)
             .ToListAsync(ct);

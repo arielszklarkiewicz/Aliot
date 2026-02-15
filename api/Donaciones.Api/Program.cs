@@ -1,6 +1,6 @@
 using System.Text;
-using System.Text.Json.Serialization;
 using Donaciones.Api.Authorization;
+using Donaciones.Api.Data;
 using Donaciones.Api.Models;
 using Donaciones.Api.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -101,8 +101,10 @@ else
 }
 
 // Services
+builder.Services.AddMemoryCache();
 builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<IDonorService, DonorService>();
+builder.Services.AddScoped<DonorService>();
+builder.Services.AddScoped<IDonorService, CachedDonorService>();
 builder.Services.AddScoped<IDonationService, DonationService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 
@@ -1055,7 +1057,7 @@ app.MapGet("/api/admin/audit-log", async (AppDbContext db, Guid? userId, string?
         var deletionLogs = await deletionLogsQuery.ToListAsync(ct);
         foreach (var d in deletionLogs)
         {
-            activities.Add(new { Entity = d.EntityType, EntityId = d.EntityId, Action = "Deleted", UserId = d.DeletedBy, Timestamp = d.DeletedAt, Details = d.EntityDetails ?? "" });
+            activities.Add(new { Entity = d.EntityType, d.EntityId, Action = "Deleted", UserId = d.DeletedBy, Timestamp = d.DeletedAt, Details = d.EntityDetails ?? "" });
         }
 
         // Get all user info for display

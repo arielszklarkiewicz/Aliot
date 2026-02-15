@@ -1,5 +1,6 @@
 using Donaciones.Api.Models;
-using Microsoft.EntityFrameworkCore;
+
+namespace Donaciones.Api.Services;
 
 public interface IDonorService
 {

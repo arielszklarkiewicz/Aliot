@@ -1,18 +1,16 @@
+using Donaciones.Api.Data;
 using Donaciones.Api.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace Donaciones.Api.Services;
 
-public class DonationService : IDonationService
+public class DonationService(AppDbContext db) : IDonationService
 {
-    private readonly AppDbContext _db;
-    public DonationService(AppDbContext db) => _db = db;
-
     public async Task<(IReadOnlyList<DonationListItem> items, int total)> ListAsync(Guid? donorId, string? currency,
         string? minian, string? concept, string? destination, bool includeOccasionalDonors, DateOnly? from, DateOnly? to,
         int page, int pageSize, CancellationToken ct)
     {
-        var qry = _db.Donations.AsNoTracking().AsQueryable();
+        var qry = db.Donations.AsNoTracking().AsQueryable();
         if (donorId.HasValue) qry = qry.Where(x => x.DonorId == donorId);
         if (!string.IsNullOrWhiteSpace(currency)) qry = qry.Where(x => x.Currency.ToLower() == currency.ToLower());
         if (!string.IsNullOrWhiteSpace(minian)) qry = qry.Where(x => x.Minian.ToLower() == minian.ToLower());
@@ -25,7 +23,7 @@ public class DonationService : IDonationService
         if (!includeOccasionalDonors)
         {
             qry = from d in qry
-                  join o in _db.Donors.AsNoTracking() on d.DonorId equals o.Id
+                  join o in db.Donors.AsNoTracking() on d.DonorId equals o.Id
                   where o.IsOccasionalDonor == false
                   select d;
         }
@@ -35,7 +33,7 @@ public class DonationService : IDonationService
             .OrderByDescending(x => x.DonationDate)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Join(_db.Donors.AsNoTracking(), d => d.DonorId, o => o.Id, (d, o) => new DonationListItem
+            .Join(db.Donors.AsNoTracking(), d => d.DonorId, o => o.Id, (d, o) => new DonationListItem
             {
                 Id = d.Id,
                 DonorId = d.DonorId,
@@ -59,7 +57,7 @@ public class DonationService : IDonationService
     }
 
     public Task<Donation?> GetAsync(Guid id, CancellationToken ct)
-        => _db.Donations.AsNoTracking().FirstOrDefaultAsync(d => d.Id == id, ct);
+        => db.Donations.AsNoTracking().FirstOrDefaultAsync(d => d.Id == id, ct);
 
     public async Task<Donation?> CreateAsync(DonationCreate dto, Guid userId, CancellationToken ct)
     {
@@ -97,14 +95,14 @@ public class DonationService : IDonationService
             CreatedAt = DateTimeOffset.UtcNow,
             CreatedBy = userId
         };
-        _db.Donations.Add(entity);
-        await _db.SaveChangesAsync(ct);
+        db.Donations.Add(entity);
+        await db.SaveChangesAsync(ct);
         return entity;
     }
 
     public async Task<Donation?> UpdateAsync(Guid id, DonationCreate dto, Guid userId, CancellationToken ct)
     {
-        var entity = await _db.Donations.FirstOrDefaultAsync(x => x.Id == id, ct);
+        var entity = await db.Donations.FirstOrDefaultAsync(x => x.Id == id, ct);
         if (entity == null) return null;
         // Require non-empty Perashá
         if (string.IsNullOrWhiteSpace(dto.Perasha)) return null;
@@ -131,17 +129,17 @@ public class DonationService : IDonationService
         entity.Matana = dto.Matana;
         entity.UpdatedAt = DateTimeOffset.UtcNow;
         entity.UpdatedBy = userId;
-        await _db.SaveChangesAsync(ct);
+        await db.SaveChangesAsync(ct);
         return entity;
     }
 
     public async Task<bool> DeleteAsync(Guid id, Guid userId, CancellationToken ct)
     {
-        var entity = await _db.Donations.FirstOrDefaultAsync(x => x.Id == id, ct);
+        var entity = await db.Donations.FirstOrDefaultAsync(x => x.Id == id, ct);
         if (entity == null) return false;
         
         // Get donor name for logging
-        var donor = await _db.Donors.AsNoTracking().FirstOrDefaultAsync(d => d.Id == entity.DonorId, ct);
+        var donor = await db.Donors.AsNoTracking().FirstOrDefaultAsync(d => d.Id == entity.DonorId, ct);
         var donorName = donor != null 
             ? (string.IsNullOrWhiteSpace(donor.LastName) ? donor.FirstName : $"{donor.FirstName} {donor.LastName}")
             : entity.DonorId.ToString();
@@ -156,10 +154,10 @@ public class DonationService : IDonationService
             DeletedBy = userId,
             DeletedAt = DateTimeOffset.UtcNow
         };
-        _db.DeletionLogs.Add(deletionLog);
+        db.DeletionLogs.Add(deletionLog);
         
-        _db.Donations.Remove(entity);
-        await _db.SaveChangesAsync(ct);
+        db.Donations.Remove(entity);
+        await db.SaveChangesAsync(ct);
         return true;
     }
 }

@@ -1,3 +1,5 @@
+namespace Donaciones.Api.Models;
+
 public abstract record LookupBase
 {
     public Guid Id { get; set; }

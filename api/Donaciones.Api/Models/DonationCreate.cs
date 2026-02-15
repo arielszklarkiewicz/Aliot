@@ -1,3 +1,5 @@
+namespace Donaciones.Api.Models;
+
 public record DonationCreate
 {
     public Guid DonorId { get; set; }
