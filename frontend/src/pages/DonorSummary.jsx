@@ -24,6 +24,7 @@ export default function DonorSummary() {
   const [filterIsVirtual, setFilterIsVirtual] = useState('');
   const [filterMatana, setFilterMatana] = useState('');
   const [creatingVirtual, setCreatingVirtual] = useState(false);
+  const [showRecentTransactions, setShowRecentTransactions] = useState(true);
 
   const hasAnyFilters = fromDate || toDate || filterDestination || filterCurrency || filterIsVirtual || filterMatana;
 
@@ -430,6 +431,17 @@ export default function DonorSummary() {
     return Array.from(currencies).sort();
   }, [allDonations, allPayments]);
 
+  // Get most recent donation and payment (not filtered, from all data)
+  const mostRecentDonation = useMemo(() => {
+    if (allDonations.length === 0) return null;
+    return [...allDonations].sort((a, b) => new Date(b.donationDate) - new Date(a.donationDate))[0];
+  }, [allDonations]);
+
+  const mostRecentPayment = useMemo(() => {
+    if (allPayments.length === 0) return null;
+    return [...allPayments].sort((a, b) => new Date(b.paymentDate) - new Date(a.paymentDate))[0];
+  }, [allPayments]);
+
   return (
     <div className="page-container">
       <div className="hero-section">
@@ -631,6 +643,115 @@ export default function DonorSummary() {
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {donor && (mostRecentDonation || mostRecentPayment) && (
+          <div className="recent-transactions-section" style={{ marginTop: '2rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+              <h2 className="section-title" style={{ margin: 0 }}>Transacciones Más Recientes</h2>
+              <button
+                onClick={() => setShowRecentTransactions(!showRecentTransactions)}
+                className="btn btn-secondary btn-sm"
+                style={{ padding: '0.5rem 1rem' }}
+              >
+                {showRecentTransactions ? '▼ Ocultar' : '▶ Mostrar'}
+              </button>
+            </div>
+            
+            {showRecentTransactions && (
+              <div className="recent-transactions-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
+                {mostRecentDonation && (
+                  <div className="recent-transaction-card" style={{ 
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 
+                    padding: '1.5rem', 
+                    borderRadius: '12px', 
+                    color: 'white',
+                    boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+                  }}>
+                    <div style={{ fontSize: '0.875rem', opacity: 0.9, marginBottom: '0.5rem', fontWeight: 600 }}>
+                      ÚLTIMA DONACIÓN
+                    </div>
+                    <div style={{ fontSize: '1.75rem', fontWeight: 700, marginBottom: '1rem' }}>
+                      {mostRecentDonation.matana ? (
+                        <span style={{ color: '#ffd700' }}>Matana</span>
+                      ) : (
+                        fmt(mostRecentDonation.amount)
+                      )}
+                    </div>
+                    <div style={{ fontSize: '0.875rem', opacity: 0.95, lineHeight: 1.6 }}>
+                      <div style={{ marginBottom: '0.25rem' }}>
+                        <strong>Fecha:</strong> {mostRecentDonation.donationDate}
+                      </div>
+                      <div style={{ marginBottom: '0.25rem' }}>
+                        <strong>Moneda:</strong> {mostRecentDonation.currency}
+                      </div>
+                      <div style={{ marginBottom: '0.25rem' }}>
+                        <strong>Destino:</strong> {mostRecentDonation.destination === 'Other' ? 'Otro' : mostRecentDonation.destination}
+                      </div>
+                      {mostRecentDonation.concept && (
+                        <div style={{ marginBottom: '0.25rem' }}>
+                          <strong>Concepto:</strong> {mostRecentDonation.concept}
+                        </div>
+                      )}
+                      {mostRecentDonation.comment && (
+                        <div style={{ marginBottom: '0.25rem' }}>
+                          <strong>Comentario:</strong> {mostRecentDonation.comment}
+                        </div>
+                      )}
+                      {mostRecentDonation.isVirtual && (
+                        <div style={{ marginTop: '0.5rem', padding: '0.25rem 0.5rem', background: 'rgba(255,255,255,0.2)', borderRadius: '4px', display: 'inline-block' }}>
+                          Virtual
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+                
+                {mostRecentPayment && (
+                  <div className="recent-transaction-card" style={{ 
+                    background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', 
+                    padding: '1.5rem', 
+                    borderRadius: '12px', 
+                    color: 'white',
+                    boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+                  }}>
+                    <div style={{ fontSize: '0.875rem', opacity: 0.9, marginBottom: '0.5rem', fontWeight: 600 }}>
+                      ÚLTIMO PAGO
+                    </div>
+                    <div style={{ fontSize: '1.75rem', fontWeight: 700, marginBottom: '1rem' }}>
+                      {fmt(mostRecentPayment.amount)}
+                    </div>
+                    <div style={{ fontSize: '0.875rem', opacity: 0.95, lineHeight: 1.6 }}>
+                      <div style={{ marginBottom: '0.25rem' }}>
+                        <strong>Fecha:</strong> {mostRecentPayment.paymentDate}
+                      </div>
+                      <div style={{ marginBottom: '0.25rem' }}>
+                        <strong>Moneda:</strong> {mostRecentPayment.currency}
+                      </div>
+                      <div style={{ marginBottom: '0.25rem' }}>
+                        <strong>Destino:</strong> {mostRecentPayment.destination}
+                      </div>
+                      {mostRecentPayment.collector && (
+                        <div style={{ marginBottom: '0.25rem' }}>
+                          <strong>Cobrador:</strong> {mostRecentPayment.collector}
+                        </div>
+                      )}
+                      {mostRecentPayment.comment && (
+                        <div style={{ marginBottom: '0.25rem' }}>
+                          <strong>Comentario:</strong> {mostRecentPayment.comment}
+                        </div>
+                      )}
+                      {mostRecentPayment.isVirtual && (
+                        <div style={{ marginTop: '0.5rem', padding: '0.25rem 0.5rem', background: 'rgba(255,255,255,0.2)', borderRadius: '4px', display: 'inline-block' }}>
+                          Virtual
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 

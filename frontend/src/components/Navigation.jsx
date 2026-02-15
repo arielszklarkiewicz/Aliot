@@ -7,11 +7,33 @@ export default function Navigation() {
   const location = useLocation();
   const { isAuthenticated, logout } = useAuth();
   const { user, isAdmin, isDataEntry, loading } = useCurrentUser();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(true);
   const [isVisible, setIsVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
 
   const isActive = (path) => location.pathname === path;
+
+  // Close mobile menu when route changes
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [location.pathname]);
+
+  // Close mobile menu on outside click
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (mobileMenuOpen) {
+        const nav = document.querySelector('.main-navigation');
+        if (nav && !nav.contains(event.target)) {
+          setMobileMenuOpen(false);
+        }
+      }
+    };
+
+    if (mobileMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [mobileMenuOpen]);
 
   // Auto-hide navigation on scroll down, show on scroll up
   useEffect(() => {
@@ -99,10 +121,10 @@ export default function Navigation() {
     <nav className={`main-navigation ${!isVisible ? 'nav-hidden' : ''}`}>
       {/* Header */}
       <div className="nav-header">
-        <div className="nav-brand">
-          <span className="brand-icon">🕍</span>
+        <Link to="/" className="nav-brand" style={{ textDecoration: 'none' }}>
+          <img src="/logo.jpg" alt="Ieshibá Rab Dines" className="brand-logo" style={{ height: '40px', width: 'auto', marginRight: '12px', borderRadius: '4px', boxShadow: '0 2px 4px rgba(0,0,0,0.2)' }} />
           <span className="brand-name">Sistema de Donaciones</span>
-        </div>
+        </Link>
         
         <div className="nav-actions">
           {user && (
@@ -117,10 +139,14 @@ export default function Navigation() {
           </button>
           <button 
             className="mobile-menu-toggle"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            aria-label="Toggle menu"
+            onClick={(e) => {
+              e.stopPropagation();
+              setMobileMenuOpen(!mobileMenuOpen);
+            }}
+            aria-label={mobileMenuOpen ? "Cerrar menú" : "Abrir menú"}
+            aria-expanded={mobileMenuOpen}
           >
-            ☰
+            {mobileMenuOpen ? '✕' : '☰'}
           </button>
         </div>
       </div>

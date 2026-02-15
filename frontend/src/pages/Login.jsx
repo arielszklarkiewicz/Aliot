@@ -69,6 +69,7 @@ export default function Login() {
       <div className="page-hero">
         <div className="page-hero-content">
           <div className="page-hero-text">
+            <img src="/logo.jpg" alt="Ieshibá Rab Dines" style={{ maxWidth: '200px', height: 'auto', marginBottom: '1.5rem', borderRadius: '8px' }} />
             <h1>Iniciar Sesión</h1>
             <p>Acceda al sistema de gestión de donaciones</p>
           </div>
