@@ -194,7 +194,7 @@ export default function Payments() {
           <div className="form-grid">
             <div className="form-group">
               <label htmlFor="payment-amount">Monto</label>
-              <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
+              <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                 <input
                   id="payment-amount"
                   type="text"
@@ -233,7 +233,7 @@ export default function Payments() {
                     </select>
                   );
                 })()}
-                <div style={{ display:'inline-flex', gap:6, flexWrap:'wrap' }}>
+                <div style={{ display:'flex', gap:6 }}>
                   {[
                     { label: '+1.000', inc: 1000 },
                     { label: '+10.000', inc: 10000 },
@@ -257,7 +257,8 @@ export default function Payments() {
                         background:'#fafafa',
                         borderRadius:6,
                         cursor:'pointer',
-                        fontWeight:600
+                        fontWeight:600,
+                        display:'inline-block'
                       }}
                     >{btn.label}</button>
                   ))}
@@ -272,17 +273,18 @@ export default function Payments() {
                       borderRadius:6,
                       cursor:'pointer',
                       fontWeight:600,
-                      color:'#cf1322'
+                      color:'#cf1322',
+                      display:'inline-block'
                     }}
                   >Borrar</button>
                 </div>
               </div>
             </div>
+          </div>
 
-            <div className="form-group">
+          <div className="form-group">
             <label htmlFor="payment-comment">Comentarios</label>
             <textarea id="payment-comment" placeholder="Comentarios" value={comment} onChange={e=>setComment(e.target.value)} style={{minWidth:220}} />
-          </div>
           </div>
 
           <div className="form-actions">
