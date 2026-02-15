@@ -8,6 +8,10 @@ export default function SystemAdmin() {
   
   const [excelLoading, setExcelLoading] = useState(false);
   const [excelError, setExcelError] = useState('');
+  
+  const [createUsersLoading, setCreateUsersLoading] = useState(false);
+  const [createUsersError, setCreateUsersError] = useState('');
+  const [createUsersSuccess, setCreateUsersSuccess] = useState('');
 
   const createBackup = async () => {
     if (!window.confirm('¿Está seguro de que desea crear un respaldo completo de la base de datos?')) {
@@ -77,6 +81,37 @@ export default function SystemAdmin() {
       setExcelError('Error al exportar los datos a Excel');
     } finally {
       setExcelLoading(false);
+    }
+  };
+
+  const createMissingUsers = async () => {
+    if (!window.confirm('¿Está seguro de que desea crear usuarios para todos los donantes que no tienen uno?\n\nEsto creará usuarios con contraseña 123456 para cada donante sin usuario.')) {
+      return;
+    }
+
+    setCreateUsersLoading(true);
+    setCreateUsersError('');
+    setCreateUsersSuccess('');
+
+    try {
+      const response = await axios.post('/api/admin/create-missing-users');
+      const { created, skipped, errors } = response.data;
+      
+      let message = `Proceso completado:\n\n`;
+      message += `✅ Usuarios creados: ${created}\n`;
+      message += `⏭️ Donantes con usuario existente: ${skipped}\n`;
+      if (errors > 0) {
+        message += `⚠️ Errores: ${errors}`;
+      }
+      
+      setCreateUsersSuccess(message);
+      alert(message);
+    } catch (e) {
+      console.error('Create users error:', e);
+      const errorMsg = e.response?.data?.error || 'Error al crear usuarios para los donantes';
+      setCreateUsersError(errorMsg);
+    } finally {
+      setCreateUsersLoading(false);
     }
   };
 
@@ -205,6 +240,73 @@ export default function SystemAdmin() {
           }}>
             <p style={{ margin: 0, fontSize: '0.875rem', color: '#1e40af' }}>
               ℹ️ <strong>Información:</strong> El archivo Excel incluirá todas las tablas principales del sistema con formato y filtros.
+            </p>
+          </div>
+        </div>
+
+        {/* Create Missing Users Section */}
+        <div className="form-section" style={{ marginTop: 24 }}>
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: 12, 
+            marginBottom: 16,
+            paddingBottom: 12,
+            borderBottom: '2px solid #e5e7eb'
+          }}>
+            <span style={{ fontSize: '1.5rem' }}>👥</span>
+            <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600 }}>Crear Usuarios para Donantes</h2>
+          </div>
+
+          <p style={{ marginBottom: 16, color: '#64748b' }}>
+            Crea automáticamente usuarios para todos los donantes que no tienen uno. Útil después de migrar datos o cuando se agregan donantes sin usuario.
+          </p>
+
+          {createUsersSuccess && (
+            <div style={{ 
+              padding: 12, 
+              background: '#d1fae5', 
+              border: '1px solid #10b981', 
+              borderRadius: 6, 
+              marginBottom: 16,
+              color: '#065f46',
+              whiteSpace: 'pre-line'
+            }}>
+              {createUsersSuccess}
+            </div>
+          )}
+
+          {createUsersError && (
+            <div style={{ 
+              padding: 12, 
+              background: '#fee2e2', 
+              border: '1px solid #ef4444', 
+              borderRadius: 6, 
+              marginBottom: 16,
+              color: '#991b1b'
+            }}>
+              ❌ {createUsersError}
+            </div>
+          )}
+
+          <button 
+            className="btn btn-primary"
+            onClick={createMissingUsers}
+            disabled={createUsersLoading}
+            style={{ minWidth: 200 }}
+          >
+            {createUsersLoading ? '⏳ Creando usuarios...' : '👥 Crear Usuarios Faltantes'}
+          </button>
+
+          <div style={{ 
+            marginTop: 16, 
+            padding: 12, 
+            background: '#fef3c7', 
+            border: '1px solid #f59e0b', 
+            borderRadius: 6 
+          }}>
+            <p style={{ margin: 0, fontSize: '0.875rem', color: '#92400e' }}>
+              ℹ️ <strong>Información:</strong> Los usuarios se crearán con contraseña <code>123456</code>. Los donantes deberán cambiarla en su primer inicio de sesión.
             </p>
           </div>
         </div>

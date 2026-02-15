@@ -1329,4 +1329,86 @@ app.MapGet("/api/admin/export-excel", async (AppDbContext db) =>
     })
     .RequireAuthorization(policy => policy.RequireRole("Admin"));
 
+app.MapPost("/api/admin/create-missing-users", async (AppDbContext db, IAuthService authService, HttpContext httpContext) =>
+    {
+        try
+        {
+            var currentUserId = httpContext.User.GetUserId() ?? Guid.Empty;
+            
+            // Get all donors without a userId
+            var donorsWithoutUsers = await db.Donors
+                .Where(d => d.UserId == null)
+                .ToListAsync();
+            
+            int created = 0;
+            int skipped = 0;
+            int errors = 0;
+            
+            foreach (var donor in donorsWithoutUsers)
+            {
+                try
+                {
+                    // Generate username
+                    var baseUsername = $"{donor.FirstName}.{donor.LastName}".ToLower()
+                        .Replace(" ", "")
+                        .Replace("á", "a").Replace("é", "e").Replace("í", "i")
+                        .Replace("ó", "o").Replace("ú", "u").Replace("ñ", "n");
+                    
+                    var username = baseUsername;
+                    int counter = 1;
+                    
+                    // Check for duplicates
+                    while (await db.Users.AnyAsync(u => u.Email == username))
+                    {
+                        username = $"{baseUsername}{counter}";
+                        counter++;
+                    }
+                    
+                    // Create user with default password
+                    var passwordHash = authService.GetType()
+                        .GetMethod("HashPassword", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)
+                        ?.Invoke(null, new object[] { "123456" }) as string ?? "";
+                    
+                    var user = new User
+                    {
+                        Id = Guid.NewGuid(),
+                        Email = username,
+                        PasswordHash = passwordHash,
+                        Role = UserRole.Donor,
+                        FullName = donor.FullName,
+                        IsActive = true,
+                        CreatedAt = DateTimeOffset.UtcNow,
+                        CreatedBy = currentUserId
+                    };
+                    
+                    db.Users.Add(user);
+                    
+                    // Update donor with userId
+                    donor.UserId = user.Id;
+                    
+                    Console.WriteLine($"Created user for donor {donor.FullName}: username={username}, password=123456");
+                    created++;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error creating user for donor {donor.FullName}: {ex.Message}");
+                    errors++;
+                }
+            }
+            
+            // Save all changes
+            await db.SaveChangesAsync();
+            
+            skipped = await db.Donors.CountAsync(d => d.UserId != null) - created;
+            
+            return Results.Ok(new { created, skipped, errors });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error creating missing users: {ex}");
+            return Results.Problem($"Error creating users: {ex.Message}");
+        }
+    })
+    .RequireAuthorization(policy => policy.RequireRole("Admin"));
+
 app.Run();
