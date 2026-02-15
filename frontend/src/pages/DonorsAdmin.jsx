@@ -375,6 +375,53 @@ Saludos cordiales`}
                 Cerrar
               </button>
               <button 
+                className="btn btn-secondary" 
+                onClick={() => {
+                  const htmlText = `<div style="font-family: Arial, sans-serif; color: #000000;">
+<p style="margin: 0 0 12px 0;">Hola ${showInstructions.firstName},</p>
+
+<p style="margin: 0 0 12px 0;">Le damos la bienvenida al sistema de gestión de donaciones de la Ieshivá Jajam Nissim Cohen.</p>
+
+<p style="margin: 0 0 12px 0;">Para acceder a su cuenta:</p>
+
+<p style="margin: 0 0 12px 0;">
+🌐 <strong>URL:</strong> <a href="https://aliot-1.onrender.com/" style="color: #1a73e8;">https://aliot-1.onrender.com/</a><br>
+👤 <strong>Usuario:</strong> ${showInstructions.firstName?.toLowerCase()}.${showInstructions.lastName?.toLowerCase() || ''}<br>
+🔑 <strong>Contraseña inicial:</strong> 123456
+</p>
+
+<p style="margin: 0 0 12px 0;">⚠️ <strong>Por seguridad, deberá cambiar su contraseña al iniciar sesión por primera vez.</strong></p>
+
+<p style="margin: 0 0 12px 0;">En el sistema podrá consultar el estado de sus donaciones y pagos.</p>
+
+<p style="margin: 0 0 12px 0;">Saludos cordiales</p>
+</div>`;
+                  
+                  // Create a temporary element to copy HTML
+                  const tempDiv = document.createElement('div');
+                  tempDiv.innerHTML = htmlText;
+                  document.body.appendChild(tempDiv);
+                  
+                  const range = document.createRange();
+                  range.selectNodeContents(tempDiv);
+                  const selection = window.getSelection();
+                  selection.removeAllRanges();
+                  selection.addRange(range);
+                  
+                  try {
+                    document.execCommand('copy');
+                    alert('Instrucciones copiadas con formato HTML. Pegue directamente en su correo.');
+                  } catch (err) {
+                    console.error('Error copying HTML:', err);
+                  }
+                  
+                  selection.removeAllRanges();
+                  document.body.removeChild(tempDiv);
+                }}
+              >
+                📧 Copiar para Email
+              </button>
+              <button 
                 className="btn btn-primary" 
                 onClick={() => {
                   const text = `Hola ${showInstructions.firstName},
@@ -396,7 +443,7 @@ Saludos cordiales`;
                   alert('Instrucciones copiadas al portapapeles');
                 }}
               >
-                📋 Copiar Instrucciones
+                📋 Copiar Texto
               </button>
             </div>
           </div>
