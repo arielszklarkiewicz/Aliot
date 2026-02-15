@@ -1124,4 +1124,209 @@ app.MapGet("/api/admin/audit-log", async (AppDbContext db, Guid? userId, string?
     })
     .RequirePermission(Permission.ViewAuditLog);
 
+// System Admin endpoints
+app.MapPost("/api/admin/backup", async (AppDbContext db) =>
+    {
+        try
+        {
+            var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+            
+            // Parse connection string to get database details
+            var connStr = new Npgsql.NpgsqlConnectionStringBuilder(connectionString);
+            var dbName = connStr.Database;
+            var host = connStr.Host;
+            var port = connStr.Port;
+            var username = connStr.Username;
+            var password = connStr.Password;
+            
+            // Create SQL script using plain SQL dump
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine($"-- Database backup created on {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC");
+            sb.AppendLine($"-- Database: {dbName}");
+            sb.AppendLine();
+            
+            // Get all donors
+            var donors = await db.Donors.ToListAsync();
+            sb.AppendLine("-- Donors");
+            foreach (var donor in donors)
+            {
+                sb.AppendLine($"INSERT INTO \"Donors\" (\"Id\", \"FirstName\", \"LastName\", \"Email\", \"Phone\", \"Address\", \"Observations\", \"IsOccasionalDonor\", \"UserId\", \"CreatedAt\", \"CreatedBy\", \"UpdatedAt\", \"UpdatedBy\") VALUES ('{donor.Id}', {EscapeString(donor.FirstName)}, {EscapeString(donor.LastName)}, {EscapeString(donor.Email)}, {EscapeString(donor.Phone)}, {EscapeString(donor.Address)}, {EscapeString(donor.Observations)}, {donor.IsOccasionalDonor.ToString().ToUpper()}, {(donor.UserId.HasValue ? $"'{donor.UserId}'" : "NULL")}, '{donor.CreatedAt:yyyy-MM-dd HH:mm:ss}', '{donor.CreatedBy}', {(donor.UpdatedAt.HasValue ? $"'{donor.UpdatedAt:yyyy-MM-dd HH:mm:ss}'" : "NULL")}, {(donor.UpdatedBy.HasValue ? $"'{donor.UpdatedBy}'" : "NULL")});");
+            }
+            sb.AppendLine();
+            
+            // Get all donations
+            var donations = await db.Donations.ToListAsync();
+            sb.AppendLine("-- Donations");
+            foreach (var donation in donations)
+            {
+                sb.AppendLine($"INSERT INTO \"Donations\" (\"Id\", \"DonorId\", \"Currency\", \"Amount\", \"DonationDate\", \"Perasha\", \"Minian\", \"Concept\", \"Destination\", \"DestinationOther\", \"Comment\", \"IsVirtual\", \"Matana\", \"CreatedAt\", \"CreatedBy\", \"UpdatedAt\", \"UpdatedBy\") VALUES ('{donation.Id}', '{donation.DonorId}', {EscapeString(donation.Currency)}, {donation.Amount}, '{donation.DonationDate:yyyy-MM-dd}', {EscapeString(donation.Perasha)}, {EscapeString(donation.Minian)}, {EscapeString(donation.Concept)}, {EscapeString(donation.Destination)}, {EscapeString(donation.DestinationOther)}, {EscapeString(donation.Comment)}, {donation.IsVirtual.ToString().ToUpper()}, {donation.Matana.ToString().ToUpper()}, '{donation.CreatedAt:yyyy-MM-dd HH:mm:ss}', '{donation.CreatedBy}', {(donation.UpdatedAt.HasValue ? $"'{donation.UpdatedAt:yyyy-MM-dd HH:mm:ss}'" : "NULL")}, {(donation.UpdatedBy.HasValue ? $"'{donation.UpdatedBy}'" : "NULL")});");
+            }
+            sb.AppendLine();
+            
+            // Get all payments
+            var payments = await db.Payments.ToListAsync();
+            sb.AppendLine("-- Payments");
+            foreach (var payment in payments)
+            {
+                sb.AppendLine($"INSERT INTO \"Payments\" (\"Id\", \"DonorId\", \"Currency\", \"Amount\", \"PaymentDate\", \"Destination\", \"Comment\", \"IsVirtual\", \"CreatedAt\", \"CreatedBy\", \"UpdatedAt\", \"UpdatedBy\") VALUES ('{payment.Id}', '{payment.DonorId}', {EscapeString(payment.Currency)}, {payment.Amount}, '{payment.PaymentDate:yyyy-MM-dd}', {EscapeString(payment.Destination)}, {EscapeString(payment.Comment)}, {payment.IsVirtual.ToString().ToUpper()}, '{payment.CreatedAt:yyyy-MM-dd HH:mm:ss}', '{payment.CreatedBy}', {(payment.UpdatedAt.HasValue ? $"'{payment.UpdatedAt:yyyy-MM-dd HH:mm:ss}'" : "NULL")}, {(payment.UpdatedBy.HasValue ? $"'{payment.UpdatedBy}'" : "NULL")});");
+            }
+            sb.AppendLine();
+            
+            // Get users
+            var users = await db.Users.ToListAsync();
+            sb.AppendLine("-- Users");
+            foreach (var user in users)
+            {
+                sb.AppendLine($"INSERT INTO \"Users\" (\"Id\", \"Email\", \"PasswordHash\", \"Role\", \"FullName\", \"IsActive\", \"CreatedAt\", \"CreatedBy\") VALUES ('{user.Id}', {EscapeString(user.Email)}, {EscapeString(user.PasswordHash)}, '{user.Role}', {EscapeString(user.FullName)}, {user.IsActive.ToString().ToUpper()}, '{user.CreatedAt:yyyy-MM-dd HH:mm:ss}', {(user.CreatedBy.HasValue ? $"'{user.CreatedBy}'" : "NULL")});");
+            }
+            sb.AppendLine();
+            
+            var fileName = $"backup_{DateTime.UtcNow:yyyyMMdd_HHmmss}.sql";
+            var sqlContent = sb.ToString();
+            var bytes = System.Text.Encoding.UTF8.GetBytes(sqlContent);
+            
+            return Results.File(bytes, "application/sql", fileName);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Backup error: {ex}");
+            return Results.Problem($"Error creating backup: {ex.Message}");
+        }
+        
+        static string EscapeString(string? value)
+        {
+            if (value == null) return "NULL";
+            var escaped = value.Replace("'", "''");
+            return $"'{escaped}'";
+        }
+    })
+    .RequireAuthorization(policy => policy.RequireRole("Admin"));
+
+app.MapGet("/api/admin/export-excel", async (AppDbContext db) =>
+    {
+        try
+        {
+            using var workbook = new ClosedXML.Excel.XLWorkbook();
+            
+            // Donors sheet
+            var donorsSheet = workbook.Worksheets.Add("Donantes");
+            var donors = await db.Donors.OrderBy(d => d.FirstName).ThenBy(d => d.LastName).ToListAsync();
+            
+            donorsSheet.Cell(1, 1).Value = "Nombre";
+            donorsSheet.Cell(1, 2).Value = "Apellido";
+            donorsSheet.Cell(1, 3).Value = "Email";
+            donorsSheet.Cell(1, 4).Value = "Teléfono";
+            donorsSheet.Cell(1, 5).Value = "Dirección";
+            donorsSheet.Cell(1, 6).Value = "Observaciones";
+            donorsSheet.Cell(1, 7).Value = "Donante Ocasional";
+            donorsSheet.Cell(1, 8).Value = "Fecha Creación";
+            
+            for (int i = 0; i < donors.Count; i++)
+            {
+                var donor = donors[i];
+                donorsSheet.Cell(i + 2, 1).Value = donor.FirstName;
+                donorsSheet.Cell(i + 2, 2).Value = donor.LastName ?? "";
+                donorsSheet.Cell(i + 2, 3).Value = donor.Email ?? "";
+                donorsSheet.Cell(i + 2, 4).Value = donor.Phone ?? "";
+                donorsSheet.Cell(i + 2, 5).Value = donor.Address ?? "";
+                donorsSheet.Cell(i + 2, 6).Value = donor.Observations ?? "";
+                donorsSheet.Cell(i + 2, 7).Value = donor.IsOccasionalDonor ? "Sí" : "No";
+                donorsSheet.Cell(i + 2, 8).Value = donor.CreatedAt.ToString("yyyy-MM-dd");
+            }
+            
+            donorsSheet.RangeUsed().Style.Border.OutsideBorder = ClosedXML.Excel.XLBorderStyleValues.Thin;
+            donorsSheet.RangeUsed().SetAutoFilter();
+            donorsSheet.Columns().AdjustToContents();
+            
+            // Donations sheet
+            var donationsSheet = workbook.Worksheets.Add("Donaciones");
+            var donations = await db.Donations
+                .OrderByDescending(d => d.DonationDate)
+                .ToListAsync();
+            
+            var donorIds = donations.Select(d => d.DonorId).Distinct().ToList();
+            var donorsDict = await db.Donors
+                .Where(d => donorIds.Contains(d.Id))
+                .ToDictionaryAsync(d => d.Id, d => d.FullName);
+            
+            donationsSheet.Cell(1, 1).Value = "Fecha";
+            donationsSheet.Cell(1, 2).Value = "Donante";
+            donationsSheet.Cell(1, 3).Value = "Monto";
+            donationsSheet.Cell(1, 4).Value = "Moneda";
+            donationsSheet.Cell(1, 5).Value = "Minián";
+            donationsSheet.Cell(1, 6).Value = "Concepto";
+            donationsSheet.Cell(1, 7).Value = "Destino";
+            donationsSheet.Cell(1, 8).Value = "Matana";
+            donationsSheet.Cell(1, 9).Value = "Virtual";
+            donationsSheet.Cell(1, 10).Value = "Comentarios";
+            
+            for (int i = 0; i < donations.Count; i++)
+            {
+                var donation = donations[i];
+                donationsSheet.Cell(i + 2, 1).Value = donation.DonationDate.ToString("yyyy-MM-dd");
+                donationsSheet.Cell(i + 2, 2).Value = donorsDict.GetValueOrDefault(donation.DonorId, "");
+                donationsSheet.Cell(i + 2, 3).Value = donation.Amount;
+                donationsSheet.Cell(i + 2, 4).Value = donation.Currency;
+                donationsSheet.Cell(i + 2, 5).Value = donation.Minian ?? "";
+                donationsSheet.Cell(i + 2, 6).Value = donation.Concept ?? "";
+                donationsSheet.Cell(i + 2, 7).Value = donation.Destination ?? "";
+                donationsSheet.Cell(i + 2, 8).Value = donation.Matana ? "Sí" : "No";
+                donationsSheet.Cell(i + 2, 9).Value = donation.IsVirtual ? "Sí" : "No";
+                donationsSheet.Cell(i + 2, 10).Value = donation.Comment ?? "";
+            }
+            
+            donationsSheet.RangeUsed().Style.Border.OutsideBorder = ClosedXML.Excel.XLBorderStyleValues.Thin;
+            donationsSheet.RangeUsed().SetAutoFilter();
+            donationsSheet.Columns().AdjustToContents();
+            
+            // Payments sheet
+            var paymentsSheet = workbook.Worksheets.Add("Pagos");
+            var payments = await db.Payments
+                .OrderByDescending(p => p.PaymentDate)
+                .ToListAsync();
+            
+            var paymentDonorIds = payments.Select(p => p.DonorId).Distinct().ToList();
+            var paymentDonorsDict = await db.Donors
+                .Where(d => paymentDonorIds.Contains(d.Id))
+                .ToDictionaryAsync(d => d.Id, d => d.FullName);
+            
+            paymentsSheet.Cell(1, 1).Value = "Fecha";
+            paymentsSheet.Cell(1, 2).Value = "Donante";
+            paymentsSheet.Cell(1, 3).Value = "Monto";
+            paymentsSheet.Cell(1, 4).Value = "Moneda";
+            paymentsSheet.Cell(1, 5).Value = "Destino";
+            paymentsSheet.Cell(1, 6).Value = "Virtual";
+            paymentsSheet.Cell(1, 7).Value = "Comentarios";
+            
+            for (int i = 0; i < payments.Count; i++)
+            {
+                var payment = payments[i];
+                paymentsSheet.Cell(i + 2, 1).Value = payment.PaymentDate.ToString("yyyy-MM-dd");
+                paymentsSheet.Cell(i + 2, 2).Value = paymentDonorsDict.GetValueOrDefault(payment.DonorId, "");
+                paymentsSheet.Cell(i + 2, 3).Value = payment.Amount;
+                paymentsSheet.Cell(i + 2, 4).Value = payment.Currency;
+                paymentsSheet.Cell(i + 2, 5).Value = payment.Destination ?? "";
+                paymentsSheet.Cell(i + 2, 6).Value = payment.IsVirtual ? "Sí" : "No";
+                paymentsSheet.Cell(i + 2, 7).Value = payment.Comment ?? "";
+            }
+            
+            paymentsSheet.RangeUsed().Style.Border.OutsideBorder = ClosedXML.Excel.XLBorderStyleValues.Thin;
+            paymentsSheet.RangeUsed().SetAutoFilter();
+            paymentsSheet.Columns().AdjustToContents();
+            
+            // Save to memory stream
+            using var stream = new MemoryStream();
+            workbook.SaveAs(stream);
+            stream.Position = 0;
+            
+            var fileName = $"datos_{DateTime.UtcNow:yyyyMMdd_HHmmss}.xlsx";
+            return Results.File(stream.ToArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
+        }
+        catch (Exception ex)
+        {
+            return Results.Problem($"Error exporting to Excel: {ex.Message}");
+        }
+    })
+    .RequireAuthorization(policy => policy.RequireRole("Admin"));
+
 app.Run();

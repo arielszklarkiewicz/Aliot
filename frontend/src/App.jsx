@@ -20,6 +20,7 @@ import CollectorsAdmin from './pages/CollectorsAdmin';
 import DonorBalances from './pages/DonorBalances';
 import UsersAdmin from './pages/UsersAdmin';
 import AuditLog from './pages/AuditLog';
+import SystemAdmin from './pages/SystemAdmin';
 import './styles/GlobalStyles.css';
 import './styles/Navigation.css';
 
@@ -42,6 +43,7 @@ export default function App() {
         <Route path="/admin/collectors" element={<ProtectedRoute><NonDonorRoute><AdminRoute><CollectorsAdmin /></AdminRoute></NonDonorRoute></ProtectedRoute>} />
         <Route path="/admin/users" element={<ProtectedRoute><NonDonorRoute><AdminRoute><UsersAdmin /></AdminRoute></NonDonorRoute></ProtectedRoute>} />
         <Route path="/admin/audit-log" element={<ProtectedRoute><NonDonorRoute><AdminRoute><AuditLog /></AdminRoute></NonDonorRoute></ProtectedRoute>} />
+        <Route path="/admin/system" element={<ProtectedRoute><NonDonorRoute><AdminRoute><SystemAdmin /></AdminRoute></NonDonorRoute></ProtectedRoute>} />
         <Route path="/donors/summary" element={<ProtectedRoute><DonorSummary /></ProtectedRoute>} />
         <Route path="/reports/donor-balances" element={<ProtectedRoute><NonDonorRoute><DonorBalances /></NonDonorRoute></ProtectedRoute>} />
       </Routes>

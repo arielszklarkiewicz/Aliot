@@ -96,6 +96,7 @@ export default function Navigation() {
         { path: '/admin/collectors', label: 'Cobradores', icon: '🤝', roles: ['Admin'] },
         { path: '/admin/users', label: 'Usuarios del Sistema', icon: '👤', roles: ['Admin'] },
         { path: '/admin/audit-log', label: 'Registro de Actividad', icon: '📋', roles: ['Admin'] },
+        { path: '/admin/system', label: 'Administración del Sistema', icon: '🔧', roles: ['Admin'] },
       ]
     }
   ];
