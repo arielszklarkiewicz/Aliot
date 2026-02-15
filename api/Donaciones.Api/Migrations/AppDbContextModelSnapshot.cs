@@ -22,7 +22,7 @@ namespace Donaciones.Api.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("Collector", b =>
+            modelBuilder.Entity("Donaciones.Api.Models.Collector", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -58,7 +58,7 @@ namespace Donaciones.Api.Migrations
                     b.ToTable("collectors", (string)null);
                 });
 
-            modelBuilder.Entity("Concept", b =>
+            modelBuilder.Entity("Donaciones.Api.Models.Concept", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -92,42 +92,6 @@ namespace Donaciones.Api.Migrations
                         .IsUnique();
 
                     b.ToTable("concepts", (string)null);
-                });
-
-            modelBuilder.Entity("Destination", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<Guid>("CreatedBy")
-                        .HasColumnType("uuid")
-                        .HasColumnName("created_by");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("name");
-
-                    b.Property<DateTimeOffset?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.Property<Guid?>("UpdatedBy")
-                        .HasColumnType("uuid")
-                        .HasColumnName("updated_by");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Name")
-                        .IsUnique();
-
-                    b.ToTable("destinations", (string)null);
                 });
 
             modelBuilder.Entity("Donaciones.Api.Models.DeletionLog", b =>
@@ -167,16 +131,12 @@ namespace Donaciones.Api.Migrations
                     b.ToTable("deletion_logs", (string)null);
                 });
 
-            modelBuilder.Entity("Donaciones.Api.Models.Donor", b =>
+            modelBuilder.Entity("Donaciones.Api.Models.Destination", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
-
-                    b.Property<string>("Address")
-                        .HasColumnType("text")
-                        .HasColumnName("address");
 
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -186,30 +146,10 @@ namespace Donaciones.Api.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("created_by");
 
-                    b.Property<string>("Email")
-                        .HasColumnType("text")
-                        .HasColumnName("email");
-
-                    b.Property<string>("FirstName")
+                    b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text")
-                        .HasColumnName("first_name");
-
-                    b.Property<bool>("IsOccasionalDonor")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_occasional_donor");
-
-                    b.Property<string>("LastName")
-                        .HasColumnType("text")
-                        .HasColumnName("last_name");
-
-                    b.Property<string>("Observations")
-                        .HasColumnType("text")
-                        .HasColumnName("observations");
-
-                    b.Property<string>("Phone")
-                        .HasColumnType("text")
-                        .HasColumnName("phone");
+                        .HasColumnName("name");
 
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -221,65 +161,13 @@ namespace Donaciones.Api.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("donors", (string)null);
-                });
-
-            modelBuilder.Entity("Donaciones.Api.Models.User", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<Guid?>("CreatedBy")
-                        .HasColumnType("uuid")
-                        .HasColumnName("created_by");
-
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("email");
-
-                    b.Property<string>("FullName")
-                        .HasColumnType("text")
-                        .HasColumnName("full_name");
-
-                    b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(true)
-                        .HasColumnName("is_active");
-
-                    b.Property<string>("PasswordHash")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("password_hash");
-
-                    b.Property<int>("Role")
-                        .HasColumnType("integer")
-                        .HasColumnName("role");
-
-                    b.Property<DateTimeOffset?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.Property<Guid?>("UpdatedBy")
-                        .HasColumnType("uuid")
-                        .HasColumnName("updated_by");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Email")
+                    b.HasIndex("Name")
                         .IsUnique();
 
-                    b.ToTable("users", (string)null);
+                    b.ToTable("destinations", (string)null);
                 });
 
-            modelBuilder.Entity("Donation", b =>
+            modelBuilder.Entity("Donaciones.Api.Models.Donation", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -365,7 +253,67 @@ namespace Donaciones.Api.Migrations
                     b.ToTable("donations", (string)null);
                 });
 
-            modelBuilder.Entity("Payment", b =>
+            modelBuilder.Entity("Donaciones.Api.Models.Donor", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Address")
+                        .HasColumnType("text")
+                        .HasColumnName("address");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("Email")
+                        .HasColumnType("text")
+                        .HasColumnName("email");
+
+                    b.Property<string>("FirstName")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("first_name");
+
+                    b.Property<bool>("IsOccasionalDonor")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_occasional_donor");
+
+                    b.Property<string>("LastName")
+                        .HasColumnType("text")
+                        .HasColumnName("last_name");
+
+                    b.Property<string>("Observations")
+                        .HasColumnType("text")
+                        .HasColumnName("observations");
+
+                    b.Property<string>("Phone")
+                        .HasColumnType("text")
+                        .HasColumnName("phone");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("donors", (string)null);
+                });
+
+            modelBuilder.Entity("Donaciones.Api.Models.Payment", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -431,7 +379,62 @@ namespace Donaciones.Api.Migrations
                     b.ToTable("payments", (string)null);
                 });
 
-            modelBuilder.Entity("Donation", b =>
+            modelBuilder.Entity("Donaciones.Api.Models.User", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("email");
+
+                    b.Property<string>("FullName")
+                        .HasColumnType("text")
+                        .HasColumnName("full_name");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("password_hash");
+
+                    b.Property<int>("Role")
+                        .HasColumnType("integer")
+                        .HasColumnName("role");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Email")
+                        .IsUnique();
+
+                    b.ToTable("users", (string)null);
+                });
+
+            modelBuilder.Entity("Donaciones.Api.Models.Donation", b =>
                 {
                     b.HasOne("Donaciones.Api.Models.Donor", null)
                         .WithMany()
@@ -440,7 +443,7 @@ namespace Donaciones.Api.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Payment", b =>
+            modelBuilder.Entity("Donaciones.Api.Models.Payment", b =>
                 {
                     b.HasOne("Donaciones.Api.Models.Donor", null)
                         .WithMany()

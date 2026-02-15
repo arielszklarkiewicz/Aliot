@@ -8,6 +8,11 @@ export default function UsersAdmin() {
   const [pageSize, setPageSize] = useState(20);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  
+  // Filters
+  const [searchEmail, setSearchEmail] = useState('');
+  const [searchFullName, setSearchFullName] = useState('');
+  const [hideDonors, setHideDonors] = useState(false);
 
   const [edit, setEdit] = useState(null);
   const isNew = useMemo(() => edit && !edit.id, [edit]);
@@ -27,6 +32,16 @@ export default function UsersAdmin() {
   }
 
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [page, pageSize]);
+  
+  // Filter items client-side
+  const filteredItems = useMemo(() => {
+    return items.filter(u => {
+      if (hideDonors && u.role === 'Donor') return false;
+      if (searchEmail && !u.email.toLowerCase().includes(searchEmail.toLowerCase())) return false;
+      if (searchFullName && !u.fullName?.toLowerCase().includes(searchFullName.toLowerCase())) return false;
+      return true;
+    });
+  }, [items, hideDonors, searchEmail, searchFullName]);
 
   const startNew = () => setEdit({ email: '', password: '', fullName: '', role: 'DataEntry' });
   const startEdit = (u) => setEdit({ ...u, password: '' });
@@ -89,7 +104,13 @@ export default function UsersAdmin() {
         userId: changingPassword.id,
         newPassword
       });
-      alert('Contraseña cambiada exitosamente');
+      
+      if (changingPassword.role === 'Donor') {
+        alert(`Contraseña cambiada exitosamente\n\nUsuario: ${changingPassword.email}\nContraseña: ${newPassword}\n\nPor favor, comunique estas credenciales al donante de forma segura.`);
+      } else {
+        alert('Contraseña cambiada exitosamente');
+      }
+      
       setChangingPassword(null);
       setNewPassword('');
     } catch (e) {
@@ -102,7 +123,8 @@ export default function UsersAdmin() {
   const roleLabels = {
     Admin: 'Administrador',
     DataEntry: 'Entrada de Datos',
-    ReadOnly: 'Solo Lectura'
+    ReadOnly: 'Solo Lectura',
+    Donor: 'Donante'
   };
 
   return (
@@ -119,6 +141,43 @@ export default function UsersAdmin() {
 
       <div className="content-wrapper">
         {error && <div className="alert alert-error">{error}</div>}
+        
+        {/* Filters */}
+        <div className="form-section" style={{ marginBottom: '20px' }}>
+          <div className="form-grid">
+            <div className="form-group">
+              <label htmlFor="search-email">Buscar por Email</label>
+              <input
+                id="search-email"
+                type="text"
+                placeholder="Buscar email..."
+                value={searchEmail}
+                onChange={e => setSearchEmail(e.target.value)}
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="search-fullname">Buscar por Nombre Completo</label>
+              <input
+                id="search-fullname"
+                type="text"
+                placeholder="Buscar nombre..."
+                value={searchFullName}
+                onChange={e => setSearchFullName(e.target.value)}
+              />
+            </div>
+          </div>
+          <div style={{ marginTop: '12px' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={hideDonors}
+                onChange={e => setHideDonors(e.target.checked)}
+                style={{ width: 18, height: 18, cursor: 'pointer' }}
+              />
+              <span style={{ fontWeight: 600 }}>Ocultar usuarios con rol Donante</span>
+            </label>
+          </div>
+        </div>
 
         {/* Table */}
         <div className="table-container">
@@ -128,6 +187,7 @@ export default function UsersAdmin() {
                 <th>Email</th>
                 <th>Nombre Completo</th>
                 <th>Rol</th>
+                <th>Contraseña</th>
                 <th>Estado</th>
                 <th>Creado</th>
                 <th>Acciones</th>
@@ -135,19 +195,28 @@ export default function UsersAdmin() {
             </thead>
             <tbody>
               {loading && (
-                <tr><td colSpan="6" style={{textAlign:'center', padding:'20px'}}>Cargando...</td></tr>
+                <tr><td colSpan="7" style={{textAlign:'center', padding:'20px'}}>Cargando...</td></tr>
               )}
-              {!loading && items.length === 0 && (
-                <tr><td colSpan="6" style={{textAlign:'center', padding:'20px'}}>No hay usuarios</td></tr>
+              {!loading && filteredItems.length === 0 && (
+                <tr><td colSpan="7" style={{textAlign:'center', padding:'20px'}}>No hay usuarios</td></tr>
               )}
-              {!loading && items.map(u => (
+              {!loading && filteredItems.map(u => (
                 <tr key={u.id}>
                   <td>{u.email}</td>
                   <td>{u.fullName}</td>
                   <td>
-                    <span className={`badge badge-${u.role === 'Admin' ? 'primary' : u.role === 'DataEntry' ? 'success' : 'secondary'}`}>
+                    <span className={`badge badge-${u.role === 'Admin' ? 'primary' : u.role === 'DataEntry' ? 'success' : u.role === 'Donor' ? 'warning' : 'secondary'}`}>
                       {roleLabels[u.role] || u.role}
                     </span>
+                  </td>
+                  <td>
+                    {u.role === 'Donor' ? (
+                      <span style={{ color: '#64748b', fontStyle: 'italic' }}>
+                        (usar cambiar contraseña para ver nueva)
+                      </span>
+                    ) : (
+                      <span style={{ color: '#64748b', fontStyle: 'italic' }}>●●●●●●</span>
+                    )}
                   </td>
                   <td>
                     <span className={`badge badge-${u.isActive ? 'success' : 'danger'}`}>
@@ -257,17 +326,37 @@ export default function UsersAdmin() {
             </div>
             <div className="modal-body">
               <p style={{marginBottom: 16}}>
-                Usuario: <strong>{changingPassword.email}</strong>
+                Usuario: <strong>{changingPassword.email}</strong> ({roleLabels[changingPassword.role] || changingPassword.role})
               </p>
+              {changingPassword.role === 'Donor' && (
+                <div style={{ padding: '12px', background: '#fef3c7', border: '1px solid #f59e0b', borderRadius: 6, marginBottom: 16 }}>
+                  <p style={{ margin: 0, fontSize: '0.9rem', color: '#92400e' }}>
+                    💡 Para donantes, se recomienda usar una contraseña numérica de 6 dígitos
+                  </p>
+                </div>
+              )}
               <div className="form-group">
                 <label htmlFor="new-password">Nueva Contraseña</label>
-                <input
-                  id="new-password"
-                  type="password"
-                  value={newPassword}
-                  onChange={e => setNewPassword(e.target.value)}
-                  placeholder="Nueva contraseña"
-                />
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input
+                    id="new-password"
+                    type="text"
+                    value={newPassword}
+                    onChange={e => setNewPassword(e.target.value)}
+                    placeholder={changingPassword.role === 'Donor' ? "Ej: 123456" : "Nueva contraseña"}
+                    style={{ flex: 1 }}
+                  />
+                  {changingPassword.role === 'Donor' && (
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={() => setNewPassword(Math.floor(100000 + Math.random() * 900000).toString())}
+                      title="Generar contraseña de 6 dígitos"
+                    >
+                      🎲 Generar
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
             <div className="modal-footer">

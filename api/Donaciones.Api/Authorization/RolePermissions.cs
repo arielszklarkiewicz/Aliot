@@ -83,6 +83,12 @@ public static class RolePermissions
             Permission.ViewConcepts,
             Permission.ViewDestinations,
             Permission.ViewCollectors
+        },
+        
+        [UserRole.Donor] = new HashSet<Permission>
+        {
+            // Can only view their own donor summary
+            Permission.ViewDonorSummary
         }
     };
 

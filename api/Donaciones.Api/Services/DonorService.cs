@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Donaciones.Api.Services;
 
-public class DonorService(AppDbContext db) : IDonorService
+public class DonorService(AppDbContext db, IAuthService authService) : IDonorService
 {
     public async Task<(IReadOnlyList<Donor> items, int total)> ListAsync(string? q, bool? isOccasionalDonor, int page, int pageSize, CancellationToken ct)
     {
@@ -38,9 +38,70 @@ public class DonorService(AppDbContext db) : IDonorService
         donor.Id = Guid.NewGuid();
         donor.CreatedAt = DateTimeOffset.UtcNow;
         donor.CreatedBy = userId;
+        
+        // Create user account for donor portal access
+        var username = await GenerateUniqueUsernameAsync(donor.FirstName, donor.LastName, ct);
+        var password = GeneratePassword();
+        
+        try
+        {
+            var user = await authService.CreateUserAsync(
+                email: username,
+                password: password,
+                role: UserRole.Donor,
+                fullName: donor.FullName,
+                createdBy: userId,
+                ct: ct
+            );
+            
+            donor.UserId = user.Id;
+            
+            // Log credentials for admin to retrieve
+            Console.WriteLine($"[DONOR CREATED] Username: {username} | Password: {password} | Donor: {donor.FullName}");
+        }
+        catch (Exception)
+        {
+            // If user creation fails, continue without linking user (optional)
+            // You could also throw to prevent donor creation without user
+        }
+        
         db.Donors.Add(donor);
         await db.SaveChangesAsync(ct);
         return donor;
+    }
+    
+    private string GenerateUsername(string firstName, string? lastName)
+    {
+        var baseUsername = lastName != null 
+            ? $"{firstName}.{lastName}".ToLower()
+            : firstName.ToLower();
+        
+        // Remove spaces and special characters
+        baseUsername = new string(baseUsername.Where(c => char.IsLetterOrDigit(c) || c == '.').ToArray());
+        
+        return baseUsername;
+    }
+    
+    private async Task<string> GenerateUniqueUsernameAsync(string firstName, string? lastName, CancellationToken ct)
+    {
+        var baseUsername = GenerateUsername(firstName, lastName);
+        var username = baseUsername;
+        var counter = 1;
+        
+        // Check if username exists and append number if needed
+        while (await db.Users.AnyAsync(u => u.Email == username, ct))
+        {
+            username = $"{baseUsername}{counter}";
+            counter++;
+        }
+        
+        return username;
+    }
+    
+    private string GeneratePassword()
+    {
+        // Always return default password for new donors
+        return "123456";
     }
 
     public async Task<Donor?> UpdateAsync(Guid id, Donor donor, Guid userId, CancellationToken ct)

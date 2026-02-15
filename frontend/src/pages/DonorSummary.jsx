@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import axios from '../api/client';
 import DonorAutocomplete from '../components/DonorAutocomplete';
+import { useCurrentUser } from '../hooks/useCurrentUser';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import '../styles/GlobalStyles.css';
@@ -11,6 +12,7 @@ function fmt(amount) {
 }
 
 export default function DonorSummary() {
+  const { user, isDonor } = useCurrentUser();
   const [donorId, setDonorId] = useState('');
   const [donor, setDonor] = useState(null);
   const [allDonations, setAllDonations] = useState([]);
@@ -27,6 +29,28 @@ export default function DonorSummary() {
   const [showRecentTransactions, setShowRecentTransactions] = useState(true);
 
   const hasAnyFilters = fromDate || toDate || filterDestination || filterCurrency || filterIsVirtual || filterMatana;
+
+  // Auto-load donor for Donor role users
+  useEffect(() => {
+    async function loadDonorForUser() {
+      if (!isDonor || !user) return;
+      
+      try {
+        // Use dedicated endpoint to get donor ID for current user
+        const { data } = await axios.get('/api/donors/my-donor-id');
+        setDonorId(data.donorId);
+      } catch (e) {
+        console.error('Error loading donor:', e);
+        if (e.response?.status === 404) {
+          setError('No se encontró su perfil de donante. Por favor contacte al administrador.');
+        } else {
+          setError('Error al cargar su perfil');
+        }
+      }
+    }
+    
+    loadDonorForUser();
+  }, [isDonor, user]);
 
   useEffect(() => {
     async function load() {
@@ -458,10 +482,19 @@ export default function DonorSummary() {
 
       <div className="content-wrapper">
         <div className="form-section">
-          <div className="form-group">
-            <label className="form-label">Seleccione donante</label>
-            <DonorAutocomplete value={donorId} onChange={(id)=> setDonorId(id)} />
-          </div>
+          {!isDonor && (
+            <div className="form-group">
+              <label className="form-label">Seleccione donante</label>
+              <DonorAutocomplete value={donorId} onChange={(id)=> setDonorId(id)} />
+            </div>
+          )}
+          
+          {isDonor && donor && (
+            <div style={{ marginBottom: '20px', padding: '16px', background: '#f0f5ff', borderRadius: '8px', border: '2px solid #2563eb' }}>
+              <h3 style={{ margin: '0 0 8px 0', color: '#1d4ed8' }}>Bienvenido, {donor.fullName}</h3>
+              <p style={{ margin: 0, color: '#64748b' }}>Aquí puede ver el resumen de sus donaciones y pagos</p>
+            </div>
+          )}
           
           <div className="filter-section">
             <div className="filter-header">Filtros de búsqueda</div>
@@ -629,7 +662,7 @@ export default function DonorSummary() {
                       </div>
                     )}
                   </div>
-                  {!hasAnyFilters && (b.total !== 0 || b.matanaCount > 0) && (
+                  {!isDonor && !hasAnyFilters && (b.total !== 0 || b.matanaCount > 0) && (
                     <button
                       onClick={() => createVirtualTransaction(b.currency, b.destination, b.total, b.matanaCount)}
                       disabled={creatingVirtual}

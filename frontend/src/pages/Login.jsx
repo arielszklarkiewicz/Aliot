@@ -34,7 +34,7 @@ export default function Login() {
             const { data } = await axios.post(`/api/auth/google`, { idToken: response.credential });
             localStorage.setItem('token', data.accessToken);
             window.dispatchEvent(new Event('storage'));
-            navigate('/donations');
+            navigate('/');
           } catch (e) {
             setError('Error al iniciar sesión con Google. Intente nuevamente');
           }
@@ -52,7 +52,7 @@ export default function Login() {
       const { data } = await axios.post(`/api/auth/login`, { email, password });
       localStorage.setItem('token', data.accessToken);
       window.dispatchEvent(new Event('storage'));
-      navigate('/donations');
+      navigate('/');
     } catch (err) {
       if (err.response?.status === 401) {
         setError('Email o contraseña incorrectos');
@@ -82,11 +82,11 @@ export default function Login() {
         
         <form onSubmit={onSubmit}>
           <div className="form-group">
-            <label htmlFor="email">Email</label>
+            <label htmlFor="email">Usuario</label>
             <input 
               id="email"
-              type="email"
-              placeholder="su@email.com" 
+              type="text"
+              placeholder="usuario o email" 
               value={email} 
               onChange={e => setEmail(e.target.value)}
               required

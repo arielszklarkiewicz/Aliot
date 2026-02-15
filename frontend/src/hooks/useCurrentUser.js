@@ -38,6 +38,7 @@ export function useCurrentUser() {
   const isAdmin = user?.role === 'Admin';
   const isDataEntry = user?.role === 'DataEntry';
   const isReadOnly = user?.role === 'ReadOnly';
+  const isDonor = user?.role === 'Donor';
 
-  return { user, loading, isAdmin, isDataEntry, isReadOnly };
+  return { user, loading, isAdmin, isDataEntry, isReadOnly, isDonor };
 }

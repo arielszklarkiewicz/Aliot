@@ -75,10 +75,10 @@ export default function Navigation() {
       id: 'reports',
       label: 'Consultas y Reportes',
       icon: '📈',
-      roles: ['Admin', 'DataEntry', 'ReadOnly'],
+      roles: ['Admin', 'DataEntry', 'ReadOnly', 'Donor'],
       items: [
         { path: '/donations/list', label: 'Listado de Donaciones', icon: '📊', roles: ['Admin', 'DataEntry', 'ReadOnly'] },
-        { path: '/donors/summary', label: 'Resumen de Donante', icon: '👤', roles: ['Admin', 'DataEntry', 'ReadOnly'] },
+        { path: '/donors/summary', label: 'Resumen de Donante', icon: '👤', roles: ['Admin', 'DataEntry', 'ReadOnly', 'Donor'] },
         { path: '/reports/donor-balances', label: 'Saldos por Donante', icon: '💵', roles: ['Admin', 'DataEntry', 'ReadOnly'] },
       ]
     },
@@ -186,7 +186,8 @@ function getRoleLabel(role) {
   const labels = {
     Admin: 'Administrador',
     DataEntry: 'Operador',
-    ReadOnly: 'Consulta'
+    ReadOnly: 'Consulta',
+    Donor: 'Donante'
   };
   return labels[role] || role;
 }

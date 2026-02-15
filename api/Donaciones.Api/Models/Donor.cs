@@ -10,6 +10,7 @@ public record Donor
     public string? Address { get; set; }
     public string? Observations { get; set; }
     public bool IsOccasionalDonor { get; set; } // New attribute to flag occasional donors
+    public Guid? UserId { get; set; } // Link to User account for donor portal access
     public DateTimeOffset CreatedAt { get; set; }
     public Guid CreatedBy { get; set; }
     public DateTimeOffset? UpdatedAt { get; set; }

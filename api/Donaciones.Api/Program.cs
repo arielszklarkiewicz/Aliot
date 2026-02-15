@@ -473,10 +473,40 @@ app.MapGet("/api/donors/{id:guid}/balance",
         })
     .RequirePermission(Permission.ViewDonors);
 
-app.MapGet("/api/donors/{id:guid}/summary", async (IDonorService svc, Guid id, CancellationToken ct) =>
+app.MapGet("/api/donors/{id:guid}/summary", async (IDonorService svc, HttpContext httpContext, Guid id, CancellationToken ct) =>
     {
+        var userId = httpContext.User.GetUserId();
+        var userRole = httpContext.User.GetUserRole();
+        
+        // If user is a Donor, they can only view their own summary
+        if (userRole == UserRole.Donor)
+        {
+            var donor = await svc.GetAsync(id, ct);
+            if (donor == null || donor.UserId != userId)
+            {
+                return Results.Forbid();
+            }
+        }
+        
         var summary = await svc.GetSummaryAsync(id, ct);
         return summary is not null ? Results.Ok(summary) : Results.NotFound();
+    })
+    .RequirePermission(Permission.ViewDonorSummary);
+
+app.MapGet("/api/donors/my-donor-id", async (IDonorService svc, HttpContext httpContext, CancellationToken ct) =>
+    {
+        var userId = httpContext.User.GetUserId();
+        if (userId == null)
+            return Results.Unauthorized();
+        
+        // Get all donors and find the one with this userId
+        var (items, _) = await svc.ListAsync(null, null, 1, 10000, ct);
+        var myDonor = items.FirstOrDefault(d => d.UserId == userId);
+        
+        if (myDonor == null)
+            return Results.NotFound(new { error = "No donor profile found for this user" });
+        
+        return Results.Ok(new { donorId = myDonor.Id });
     })
     .RequirePermission(Permission.ViewDonorSummary);
 

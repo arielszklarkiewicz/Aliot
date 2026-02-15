@@ -2,6 +2,9 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
+import NonDonorRoute from './components/NonDonorRoute';
+import RoleBasedRedirect from './components/RoleBasedRedirect';
+import ForcePasswordChange from './components/ForcePasswordChange';
 import Navigation from './components/Navigation';
 import Login from './pages/Login';
 import Donations from './pages/Donations';
@@ -23,23 +26,24 @@ import './styles/Navigation.css';
 export default function App() {
   return (
     <>
+      <ForcePasswordChange />
       <Navigation />
       <Routes>
         <Route path="/login" element={<Login />} />
-        <Route path="/" element={<ProtectedRoute><Navigate to="/donations/list" replace /></ProtectedRoute>} />
-        <Route path="/donations" element={<ProtectedRoute><Donations /></ProtectedRoute>} />
-        <Route path="/donations/list" element={<ProtectedRoute><DonationsList /></ProtectedRoute>} />
-        <Route path="/payments" element={<ProtectedRoute><Payments /></ProtectedRoute>} />
-        <Route path="/admin/donors" element={<ProtectedRoute><DonorsAdmin /></ProtectedRoute>} />
-        <Route path="/admin/donations" element={<ProtectedRoute><AdminRoute><DonationsAdmin /></AdminRoute></ProtectedRoute>} />
-        <Route path="/admin/payments" element={<ProtectedRoute><AdminRoute><PaymentsAdmin /></AdminRoute></ProtectedRoute>} />
-        <Route path="/admin/concepts" element={<ProtectedRoute><AdminRoute><ConceptsAdmin /></AdminRoute></ProtectedRoute>} />
-        <Route path="/admin/destinations" element={<ProtectedRoute><AdminRoute><DestinationsAdmin /></AdminRoute></ProtectedRoute>} />
-        <Route path="/admin/collectors" element={<ProtectedRoute><AdminRoute><CollectorsAdmin /></AdminRoute></ProtectedRoute>} />
-        <Route path="/admin/users" element={<ProtectedRoute><AdminRoute><UsersAdmin /></AdminRoute></ProtectedRoute>} />
-        <Route path="/admin/audit-log" element={<ProtectedRoute><AdminRoute><AuditLog /></AdminRoute></ProtectedRoute>} />
+        <Route path="/" element={<ProtectedRoute><RoleBasedRedirect /></ProtectedRoute>} />
+        <Route path="/donations" element={<ProtectedRoute><NonDonorRoute><Donations /></NonDonorRoute></ProtectedRoute>} />
+        <Route path="/donations/list" element={<ProtectedRoute><NonDonorRoute><DonationsList /></NonDonorRoute></ProtectedRoute>} />
+        <Route path="/payments" element={<ProtectedRoute><NonDonorRoute><Payments /></NonDonorRoute></ProtectedRoute>} />
+        <Route path="/admin/donors" element={<ProtectedRoute><NonDonorRoute><DonorsAdmin /></NonDonorRoute></ProtectedRoute>} />
+        <Route path="/admin/donations" element={<ProtectedRoute><NonDonorRoute><AdminRoute><DonationsAdmin /></AdminRoute></NonDonorRoute></ProtectedRoute>} />
+        <Route path="/admin/payments" element={<ProtectedRoute><NonDonorRoute><AdminRoute><PaymentsAdmin /></AdminRoute></NonDonorRoute></ProtectedRoute>} />
+        <Route path="/admin/concepts" element={<ProtectedRoute><NonDonorRoute><AdminRoute><ConceptsAdmin /></AdminRoute></NonDonorRoute></ProtectedRoute>} />
+        <Route path="/admin/destinations" element={<ProtectedRoute><NonDonorRoute><AdminRoute><DestinationsAdmin /></AdminRoute></NonDonorRoute></ProtectedRoute>} />
+        <Route path="/admin/collectors" element={<ProtectedRoute><NonDonorRoute><AdminRoute><CollectorsAdmin /></AdminRoute></NonDonorRoute></ProtectedRoute>} />
+        <Route path="/admin/users" element={<ProtectedRoute><NonDonorRoute><AdminRoute><UsersAdmin /></AdminRoute></NonDonorRoute></ProtectedRoute>} />
+        <Route path="/admin/audit-log" element={<ProtectedRoute><NonDonorRoute><AdminRoute><AuditLog /></AdminRoute></NonDonorRoute></ProtectedRoute>} />
         <Route path="/donors/summary" element={<ProtectedRoute><DonorSummary /></ProtectedRoute>} />
-        <Route path="/reports/donor-balances" element={<ProtectedRoute><DonorBalances /></ProtectedRoute>} />
+        <Route path="/reports/donor-balances" element={<ProtectedRoute><NonDonorRoute><DonorBalances /></NonDonorRoute></ProtectedRoute>} />
       </Routes>
     </>
   );
