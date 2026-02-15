@@ -123,7 +123,7 @@ export default function Navigation() {
       {/* Header */}
       <div className="nav-header">
         <Link to="/" className="nav-brand" style={{ textDecoration: 'none' }}>
-          <img src="/logo.jpg" alt="Ieshibá Rab Dines" className="brand-logo" style={{ height: '40px', width: 'auto', marginRight: '12px', borderRadius: '4px', boxShadow: '0 2px 4px rgba(0,0,0,0.2)' }} />
+          <img src="/logo.jpg" alt="Ieshivá Rab Dines" className="brand-logo" style={{ height: '40px', width: 'auto', marginRight: '12px', borderRadius: '4px', boxShadow: '0 2px 4px rgba(0,0,0,0.2)' }} />
           <span className="brand-name">Sistema de Donaciones</span>
         </Link>
         

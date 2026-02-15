@@ -55,7 +55,7 @@ export default function Login() {
       navigate('/');
     } catch (err) {
       if (err.response?.status === 401) {
-        setError('Email o contraseña incorrectos');
+        setError('Usuario o contraseña incorrectos');
       } else if (err.response?.status === 403) {
         setError('Cuenta desactivada. Contacte al administrador');
       } else {
@@ -69,7 +69,7 @@ export default function Login() {
       <div className="page-hero">
         <div className="page-hero-content">
           <div className="page-hero-text">
-            <img src="/logo.jpg" alt="Ieshibá Rab Dines" style={{ maxWidth: '200px', height: 'auto', marginBottom: '1.5rem', borderRadius: '8px' }} />
+            <img src="/logo.jpg" alt="Ieshivá Jajam Nissim Cohen" style={{ maxWidth: '200px', height: 'auto', marginBottom: '1.5rem', borderRadius: '8px' }} />
             <h1>Iniciar Sesión</h1>
             <p>Acceda al sistema de gestión de donaciones</p>
           </div>
@@ -78,7 +78,6 @@ export default function Login() {
 
       <div className="form-container" style={{ maxWidth: 500, margin: '0 auto' }}>
         <div ref={googleDivRef} style={{marginBottom:20, textAlign:'center'}} />
-        <div style={{opacity:0.6, fontSize:14, marginBottom:20, textAlign:'center'}}>o use email y contraseña:</div>
         
         <form onSubmit={onSubmit}>
           <div className="form-group">

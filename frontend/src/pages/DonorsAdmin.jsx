@@ -1,8 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import axios from '../api/client';
 import useDebounced from '../hooks/useDebounced';
+import { useCurrentUser } from '../hooks/useCurrentUser';
 
 export default function DonorsAdmin() {
+  const { isAdmin } = useCurrentUser();
   const [items, setItems] = useState([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -15,6 +17,8 @@ export default function DonorsAdmin() {
 
   const [edit, setEdit] = useState(null); // object or null
   const isNew = useMemo(() => edit && !edit.id, [edit]);
+  
+  const [showInstructions, setShowInstructions] = useState(null); // donor object to show instructions for
 
   async function load() {
     setLoading(true); setError('');
@@ -157,6 +161,11 @@ export default function DonorsAdmin() {
                     <td>
                       <div className="table-actions">
                         <button className="btn btn-sm btn-secondary" onClick={() => startEdit(d)}>Editar</button>
+                        {isAdmin && (
+                          <button className="btn btn-sm btn-primary" onClick={() => setShowInstructions(d)} title="Ver instrucciones de acceso">
+                            📋 Instrucciones
+                          </button>
+                        )}
                         <button className="btn btn-sm btn-ghost" onClick={() => del(d.id)}>Eliminar</button>
                       </div>
                     </td>
@@ -276,6 +285,119 @@ export default function DonorsAdmin() {
             <div className="modal-footer">
               <button className="btn btn-ghost" onClick={cancelEdit}>Cancelar</button>
               <button className="btn btn-success" onClick={save}>{isNew ? 'Crear' : 'Guardar'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Instructions Modal */}
+      {showInstructions && (
+        <div className="modal-overlay" onClick={() => setShowInstructions(null)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 600 }}>
+            <div className="modal-header">
+              <h2>Instrucciones de Acceso al Sistema</h2>
+              <button className="modal-close" onClick={() => setShowInstructions(null)}>&times;</button>
+            </div>
+            <div className="modal-body">
+              <div style={{ marginBottom: 20 }}>
+                <p style={{ marginBottom: 16, fontSize: '1rem', fontWeight: 600 }}>
+                  Donante: <span style={{ color: '#2563eb' }}>{showInstructions.fullName}</span>
+                </p>
+                
+                <div style={{ 
+                  padding: 16, 
+                  background: '#f9fafb', 
+                  border: '1px solid #e5e7eb', 
+                  borderRadius: 8,
+                  fontFamily: 'monospace',
+                  fontSize: '0.9rem',
+                  lineHeight: 1.8
+                }}>
+                  <p style={{ margin: 0, marginBottom: 12 }}>
+                    <strong>URL:</strong> https://aliot-1.onrender.com/
+                  </p>
+                  <p style={{ margin: 0, marginBottom: 12 }}>
+                    <strong>Usuario:</strong> {showInstructions.firstName?.toLowerCase()}.{showInstructions.lastName?.toLowerCase() || ''}
+                  </p>
+                  <p style={{ margin: 0 }}>
+                    <strong>Contraseña inicial:</strong> 123456
+                  </p>
+                </div>
+
+                <div style={{ 
+                  marginTop: 16, 
+                  padding: 12, 
+                  background: '#fef3c7', 
+                  border: '1px solid #f59e0b', 
+                  borderRadius: 6 
+                }}>
+                  <p style={{ margin: 0, fontSize: '0.875rem', color: '#92400e' }}>
+                    ⚠️ <strong>Importante:</strong> El usuario deberá cambiar su contraseña al iniciar sesión por primera vez.
+                  </p>
+                </div>
+              </div>
+              
+              <div style={{ marginTop: 20 }}>
+                <p style={{ fontWeight: 600, marginBottom: 12 }}>Mensaje completo para copiar:</p>
+                <div style={{ 
+                  padding: 12, 
+                  background: '#f9fafb', 
+                  border: '1px solid #d1d5db', 
+                  borderRadius: 6,
+                  fontSize: '0.9rem',
+                  lineHeight: 1.6,
+                  whiteSpace: 'pre-wrap',
+                  fontFamily: 'system-ui'
+                }}>
+                  {`Hola ${showInstructions.firstName},
+
+Le damos la bienvenida al sistema de gestión de donaciones de la Ieshivá Jajam Nissim Cohen.
+
+Para acceder a su cuenta:
+
+🌐 URL: https://aliot-1.onrender.com/
+👤 Usuario: ${showInstructions.firstName?.toLowerCase()}.${showInstructions.lastName?.toLowerCase() || ''}
+🔑 Contraseña inicial: 123456
+
+⚠️ Por seguridad, deberá cambiar su contraseña al iniciar sesión por primera vez.
+
+En el sistema podrá consultar el estado de sus donaciones y pagos.
+
+Saludos cordiales`}
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button 
+                className="btn btn-secondary" 
+                onClick={() => setShowInstructions(null)}
+              >
+                Cerrar
+              </button>
+              <button 
+                className="btn btn-primary" 
+                onClick={() => {
+                  const text = `Hola ${showInstructions.firstName},
+
+Le damos la bienvenida al sistema de gestión de donaciones de la Ieshivá Jajam Nissim Cohen.
+
+Para acceder a su cuenta:
+
+🌐 URL: https://aliot-1.onrender.com/
+👤 Usuario: ${showInstructions.firstName?.toLowerCase()}.${showInstructions.lastName?.toLowerCase() || ''}
+🔑 Contraseña inicial: 123456
+
+⚠️ Por seguridad, deberá cambiar su contraseña al iniciar sesión por primera vez.
+
+En el sistema podrá consultar el estado de sus donaciones y pagos.
+
+Saludos cordiales`;
+                  navigator.clipboard.writeText(text);
+                  alert('Instrucciones copiadas al portapapeles');
+                }}
+              >
+                📋 Copiar Instrucciones
+              </button>
             </div>
           </div>
         </div>
