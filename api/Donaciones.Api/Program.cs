@@ -262,9 +262,14 @@ app.MapPost("/api/auth/login", async (IAuthService authService, LoginCredentials
 
 // User management endpoints (Admin only)
 app.MapGet("/api/admin/users",
-        async (IAuthService authService, int page = 1, int pageSize = 20, CancellationToken ct = default) =>
+        async (IAuthService authService, AppDbContext db, int page = 1, int pageSize = 20, CancellationToken ct = default) =>
         {
             var (users, total) = await authService.ListUsersAsync(page, pageSize, ct);
+            
+            var userIds = users.Where(u => u.Role == UserRole.Donor).Select(u => u.Id).ToList();
+            var donors = await db.Donors.Where(d => d.UserId.HasValue && userIds.Contains(d.UserId.Value)).ToListAsync(ct);
+            var donorMap = donors.ToDictionary(d => d.UserId!.Value);
+            
             var items = users.Select(u => new
             {
                 u.Id,
@@ -273,7 +278,9 @@ app.MapGet("/api/admin/users",
                 Role = u.Role.ToString(),
                 u.IsActive,
                 u.CreatedAt,
-                u.UpdatedAt
+                u.UpdatedAt,
+                DonorFirstName = u.Role == UserRole.Donor && donorMap.ContainsKey(u.Id) ? donorMap[u.Id].FirstName : null,
+                DonorLastName = u.Role == UserRole.Donor && donorMap.ContainsKey(u.Id) ? donorMap[u.Id].LastName : null
             });
             return Results.Ok(new { items, total, page, pageSize });
         })
@@ -334,7 +341,7 @@ app.MapPut("/api/admin/users/{id:guid}",
         async (IAuthService authService, HttpContext httpContext, Guid id, UpdateUserRequest req, CancellationToken ct) =>
         {
             var updaterUserId = httpContext.User.GetUserId();
-            var user = await authService.UpdateUserAsync(id, req.FullName, null, updaterUserId, ct);
+            var user = await authService.UpdateUserAsync(id, req.FullName, req.Email, updaterUserId, ct);
             if (user == null)
                 return Results.NotFound();
 

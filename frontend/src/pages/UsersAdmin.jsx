@@ -63,7 +63,8 @@ export default function UsersAdmin() {
         });
       } else {
         await axios.put(`/api/admin/users/${edit.id}`, {
-          fullName: edit.fullName
+          fullName: edit.fullName,
+          email: edit.email
         });
       }
       setEdit(null);
@@ -186,6 +187,7 @@ export default function UsersAdmin() {
               <tr>
                 <th>Email</th>
                 <th>Nombre Completo</th>
+                <th>Donante</th>
                 <th>Rol</th>
                 <th>Contraseña</th>
                 <th>Estado</th>
@@ -195,15 +197,24 @@ export default function UsersAdmin() {
             </thead>
             <tbody>
               {loading && (
-                <tr><td colSpan="7" style={{textAlign:'center', padding:'20px'}}>Cargando...</td></tr>
+                <tr><td colSpan="8" style={{textAlign:'center', padding:'20px'}}>Cargando...</td></tr>
               )}
               {!loading && filteredItems.length === 0 && (
-                <tr><td colSpan="7" style={{textAlign:'center', padding:'20px'}}>No hay usuarios</td></tr>
+                <tr><td colSpan="8" style={{textAlign:'center', padding:'20px'}}>No hay usuarios</td></tr>
               )}
               {!loading && filteredItems.map(u => (
                 <tr key={u.id}>
                   <td>{u.email}</td>
                   <td>{u.fullName}</td>
+                  <td>
+                    {u.role === 'Donor' && (u.donorFirstName || u.donorLastName) ? (
+                      <span style={{ color: '#1e40af', fontWeight: 500 }}>
+                        {u.donorFirstName} {u.donorLastName || ''}
+                      </span>
+                    ) : (
+                      <span style={{ color: '#9ca3af' }}>—</span>
+                    )}
+                  </td>
                   <td>
                     <span className={`badge badge-${u.role === 'Admin' ? 'primary' : u.role === 'DataEntry' ? 'success' : u.role === 'Donor' ? 'warning' : 'secondary'}`}>
                       {roleLabels[u.role] || u.role}
@@ -268,7 +279,6 @@ export default function UsersAdmin() {
                   type="email"
                   value={edit.email}
                   onChange={e => setEdit({ ...edit, email: e.target.value })}
-                  disabled={!isNew}
                 />
               </div>
               
