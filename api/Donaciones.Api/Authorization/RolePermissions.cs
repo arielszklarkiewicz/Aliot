@@ -39,7 +39,11 @@ public static class RolePermissions
             Permission.ViewReports,
             Permission.ViewDonorSummary,
             
-            Permission.ViewAuditLog
+            Permission.ViewAuditLog,
+            
+            Permission.ViewMessages,
+            Permission.SendMessages,
+            Permission.ViewAllMessages
         },
         
         [UserRole.DataEntry] = new HashSet<Permission>
@@ -68,7 +72,11 @@ public static class RolePermissions
             Permission.ViewCollectors,
             
             Permission.ViewReports,
-            Permission.ViewDonorSummary
+            Permission.ViewDonorSummary,
+            
+            Permission.ViewMessages,
+            Permission.SendMessages,
+            Permission.ViewAllMessages
         },
         
         [UserRole.ReadOnly] = new HashSet<Permission>
@@ -88,7 +96,10 @@ public static class RolePermissions
         [UserRole.Donor] = new HashSet<Permission>
         {
             // Can only view their own donor summary
-            Permission.ViewDonorSummary
+            Permission.ViewDonorSummary,
+            
+            Permission.ViewMessages,
+            Permission.SendMessages
         }
     };
 

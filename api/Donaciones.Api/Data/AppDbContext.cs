@@ -13,6 +13,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Destination> Destinations => Set<Destination>();
     public DbSet<Collector> Collectors => Set<Collector>();
     public DbSet<DeletionLog> DeletionLogs => Set<DeletionLog>();
+    public DbSet<Message> Messages => Set<Message>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -164,6 +165,40 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(x => x.DeletedAt).HasColumnName("deleted_at").IsRequired();
             e.HasIndex(x => x.DeletedAt);
             e.HasIndex(x => x.EntityType);
+        });
+
+        // Message
+        modelBuilder.Entity<Message>(e =>
+        {
+            e.ToTable("messages");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Id).HasColumnName("id");
+            e.Property(x => x.FromUserId).HasColumnName("from_user_id").IsRequired();
+            e.Property(x => x.ToUserId).HasColumnName("to_user_id").IsRequired();
+            e.Property(x => x.MessageText).HasColumnName("message_text").IsRequired();
+            e.Property(x => x.Date).HasColumnName("date").IsRequired();
+            e.Property(x => x.IsRead).HasColumnName("is_read").HasDefaultValue(false);
+            e.Property(x => x.ReplyingTo).HasColumnName("replying_to");
+            
+            e.HasIndex(x => x.ToUserId);
+            e.HasIndex(x => x.FromUserId);
+            e.HasIndex(x => x.IsRead);
+            e.HasIndex(x => x.Date);
+            
+            e.HasOne<User>()
+                .WithMany()
+                .HasForeignKey(x => x.FromUserId)
+                .OnDelete(DeleteBehavior.Cascade);
+                
+            e.HasOne<User>()
+                .WithMany()
+                .HasForeignKey(x => x.ToUserId)
+                .OnDelete(DeleteBehavior.Cascade);
+                
+            e.HasOne<Message>()
+                .WithMany()
+                .HasForeignKey(x => x.ReplyingTo)
+                .OnDelete(DeleteBehavior.SetNull);
         });
     }
 }

@@ -313,6 +313,55 @@ namespace Donaciones.Api.Migrations
                     b.ToTable("donors", (string)null);
                 });
 
+            modelBuilder.Entity("Donaciones.Api.Models.Message", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("Date")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date");
+
+                    b.Property<Guid>("FromUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("from_user_id");
+
+                    b.Property<bool>("IsRead")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_read");
+
+                    b.Property<string>("MessageText")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("message_text");
+
+                    b.Property<Guid?>("ReplyingTo")
+                        .HasColumnType("uuid")
+                        .HasColumnName("replying_to");
+
+                    b.Property<Guid>("ToUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("to_user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Date");
+
+                    b.HasIndex("FromUserId");
+
+                    b.HasIndex("IsRead");
+
+                    b.HasIndex("ReplyingTo");
+
+                    b.HasIndex("ToUserId");
+
+                    b.ToTable("messages", (string)null);
+                });
+
             modelBuilder.Entity("Donaciones.Api.Models.Payment", b =>
                 {
                     b.Property<Guid>("Id")
@@ -440,6 +489,26 @@ namespace Donaciones.Api.Migrations
                         .WithMany()
                         .HasForeignKey("DonorId")
                         .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Donaciones.Api.Models.Message", b =>
+                {
+                    b.HasOne("Donaciones.Api.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("FromUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Donaciones.Api.Models.Message", null)
+                        .WithMany()
+                        .HasForeignKey("ReplyingTo")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Donaciones.Api.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("ToUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 

@@ -491,7 +491,12 @@ export default function DonorSummary() {
           
           {isDonor && donor && (
             <div style={{ marginBottom: '20px', padding: '16px', background: '#f0f5ff', borderRadius: '8px', border: '2px solid #2563eb' }}>
-              <h3 style={{ margin: '0 0 8px 0', color: '#1d4ed8' }}>Bienvenido, {donor.fullName}</h3>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <h3 style={{ margin: 0, color: '#1d4ed8' }}>Bienvenido, {donor.fullName}</h3>
+                <a href="/messages" style={{ padding: '8px 16px', background: '#2563eb', color: 'white', borderRadius: '6px', textDecoration: 'none', fontWeight: '600', fontSize: '14px' }}>
+                  💬 Mensajes
+                </a>
+              </div>
               <p style={{ margin: 0, color: '#64748b' }}>Aquí puede ver el resumen de sus donaciones y pagos</p>
             </div>
           )}

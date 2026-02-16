@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useCurrentUser } from '../hooks/useCurrentUser';
+import api from '../api/client';
 
 export default function Navigation() {
   const location = useLocation();
@@ -10,8 +11,34 @@ export default function Navigation() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const isActive = (path) => location.pathname === path;
+
+  // Load unread message count
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      loadUnreadCount();
+      const interval = setInterval(loadUnreadCount, 30000); // Refresh every 30 seconds
+      return () => clearInterval(interval);
+    }
+  }, [isAuthenticated, user]);
+
+  // Refresh unread count when location changes
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      loadUnreadCount();
+    }
+  }, [location.pathname]);
+
+  const loadUnreadCount = async () => {
+    try {
+      const response = await api.get('/api/messages/unread-count');
+      setUnreadCount(response.data.count || 0);
+    } catch (err) {
+      console.error('Error loading unread count', err);
+    }
+  };
 
   // Close mobile menu when route changes
   useEffect(() => {
@@ -80,6 +107,7 @@ export default function Navigation() {
         { path: '/donations/list', label: 'Listado de Donaciones', icon: '📊', roles: ['Admin', 'DataEntry', 'ReadOnly'] },
         { path: '/donors/summary', label: 'Resumen de Donante', icon: '👤', roles: ['Admin', 'DataEntry', 'ReadOnly', 'Donor'] },
         { path: '/reports/donor-balances', label: 'Saldos por Donante', icon: '💵', roles: ['Admin', 'DataEntry', 'ReadOnly'] },
+        { path: '/messages', label: 'Mensajes', icon: '💬', roles: ['Admin', 'DataEntry', 'Donor'], badge: true },
       ]
     },
     {
@@ -173,6 +201,9 @@ export default function Navigation() {
                 >
                   <span className="item-icon">{item.icon}</span>
                   <span className="item-label">{item.label}</span>
+                  {item.badge && unreadCount > 0 && (
+                    <span className="unread-badge">{unreadCount}</span>
+                  )}
                 </Link>
               ))}
             </div>

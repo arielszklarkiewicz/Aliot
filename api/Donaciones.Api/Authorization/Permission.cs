@@ -41,5 +41,10 @@ public enum Permission
     ViewDonorSummary,
     
     // Audit Log
-    ViewAuditLog
+    ViewAuditLog,
+    
+    // Messages
+    ViewMessages,
+    SendMessages,
+    ViewAllMessages
 }

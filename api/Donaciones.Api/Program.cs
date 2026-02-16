@@ -107,6 +107,7 @@ builder.Services.AddScoped<DonorService>();
 builder.Services.AddScoped<IDonorService, CachedDonorService>();
 builder.Services.AddScoped<IDonationService, DonationService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
+builder.Services.AddScoped<IMessageService, MessageService>();
 
 var app = builder.Build();
 
@@ -1410,5 +1411,83 @@ app.MapPost("/api/admin/create-missing-users", async (AppDbContext db, IAuthServ
         }
     })
     .RequireAuthorization(policy => policy.RequireRole("Admin"));
+
+// Messages
+app.MapPost("/api/messages", async (IMessageService svc, HttpContext httpContext, MessageCreate dto, CancellationToken ct) =>
+    {
+        var userId = httpContext.User.GetUserId();
+        if (userId == null)
+            return Results.Unauthorized();
+
+        var message = await svc.SendMessageAsync(userId.Value, dto, ct);
+        return message != null
+            ? Results.Created($"/api/messages/{message.Id}", message)
+            : Results.BadRequest(new { error = "Failed to send message" });
+    })
+    .RequirePermission(Permission.SendMessages);
+
+app.MapGet("/api/messages/conversation/{userId:guid}", async (IMessageService svc, HttpContext httpContext, Guid userId, CancellationToken ct) =>
+    {
+        var currentUserId = httpContext.User.GetUserId();
+        if (currentUserId == null)
+            return Results.Unauthorized();
+        
+        var userRole = httpContext.User.GetUserRole();
+        
+        // If user is a Donor, they can only view conversation with admins
+        if (userRole == UserRole.Donor)
+        {
+            // Check if the other user is an admin
+            var otherUser = await httpContext.RequestServices.GetRequiredService<IAuthService>().GetUserByIdAsync(userId, ct);
+            if (otherUser == null || (otherUser.Role != UserRole.Admin && otherUser.Role != UserRole.DataEntry))
+            {
+                return Results.Forbid();
+            }
+        }
+
+        var messages = await svc.GetConversationAsync(currentUserId.Value, userId, ct);
+        return Results.Ok(new { items = messages });
+    })
+    .RequirePermission(Permission.ViewMessages);
+
+app.MapPut("/api/messages/{id:guid}/mark-read", async (IMessageService svc, HttpContext httpContext, Guid id, CancellationToken ct) =>
+    {
+        var userId = httpContext.User.GetUserId();
+        if (userId == null)
+            return Results.Unauthorized();
+
+        var success = await svc.MarkAsReadAsync(id, userId.Value, ct);
+        return success ? Results.Ok(new { message = "Marked as read" }) : Results.NotFound();
+    })
+    .RequirePermission(Permission.ViewMessages);
+
+app.MapPut("/api/messages/{id:guid}/mark-unread", async (IMessageService svc, HttpContext httpContext, Guid id, CancellationToken ct) =>
+    {
+        var userId = httpContext.User.GetUserId();
+        if (userId == null)
+            return Results.Unauthorized();
+
+        var success = await svc.MarkAsUnreadAsync(id, userId.Value, ct);
+        return success ? Results.Ok(new { message = "Marked as unread" }) : Results.NotFound();
+    })
+    .RequirePermission(Permission.ViewMessages);
+
+app.MapGet("/api/messages/unread-count", async (IMessageService svc, HttpContext httpContext, CancellationToken ct) =>
+    {
+        var userId = httpContext.User.GetUserId();
+        if (userId == null)
+            return Results.Unauthorized();
+
+        var count = await svc.GetUnreadCountAsync(userId.Value, ct);
+        return Results.Ok(new { count });
+    })
+    .RequirePermission(Permission.ViewMessages);
+
+app.MapGet("/api/admin/messages", async (IMessageService svc, CancellationToken ct) =>
+    {
+        var messages = await svc.GetAllMessagesAsync(ct);
+        return Results.Ok(new { items = messages });
+    })
+    .RequirePermission(Permission.ViewAllMessages);
 
 app.Run();
