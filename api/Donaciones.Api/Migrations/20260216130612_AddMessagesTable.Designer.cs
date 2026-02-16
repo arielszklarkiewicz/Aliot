@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Donaciones.Api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260216030535_AddMessagesTable")]
+    [Migration("20260216130612_AddMessagesTable")]
     partial class AddMessagesTable
     {
         /// <inheritdoc />
