@@ -82,6 +82,7 @@ export default function DonationsAdmin() {
 
   const startEdit = (d) => setEdit({ 
     ...d, 
+    donorName: d.donorName || '',
     donationDate: d.donationDate?.slice(0,10) || '',
     amount: d.amount?.toString() || ''
   });
@@ -90,8 +91,10 @@ export default function DonationsAdmin() {
 
   const save = async () => {
     if (!edit?.donorId) { alert('Seleccione un donante'); return; }
-    const amt = parseFloat(edit.amount) || 0;
-    if (amt <= 0) { alert('Ingrese un monto válido'); return; }
+    
+    // If matana is true, amount should be 0; otherwise validate it's greater than 0
+    const amt = edit.matana ? 0 : (parseFloat(edit.amount) || 0);
+    if (!edit.matana && amt <= 0) { alert('Ingrese un monto válido'); return; }
     
     const payload = {
       donorId: edit.donorId,
@@ -211,33 +214,37 @@ export default function DonationsAdmin() {
                 <thead>
                   <tr>
                     <th>Fecha</th>
-                    <th>Donante</th>
-                    <th>Monto</th>
-                    <th>Moneda</th>
-                    <th>Concepto</th>
-                    <th>Destino</th>
-                    <th>Minian</th>
                     <th>Parasha</th>
-                    <th>Matana</th>
+                    <th>Donante</th>
+                    <th>Aclaración</th>
+                    <th>Minian</th>
+                    <th>Destino</th>
+                    <th>Monto</th>
+                    <th>Concepto</th>
                     <th>Virtual</th>
                     <th>Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
                   {items.length === 0 ? (
-                    <tr><td colSpan={11} style={{ textAlign: 'center', padding: 20 }}>No hay donaciones</td></tr>
+                    <tr><td colSpan={10} style={{ textAlign: 'center', padding: 20 }}>No hay donaciones</td></tr>
                   ) : (
                     items.map(d => (
                       <tr key={d.id}>
                         <td>{d.donationDate?.slice(0,10)}</td>
-                        <td>{d.donorName}</td>
-                        <td style={{ textAlign: 'right' }}>{d.amount?.toLocaleString()}</td>
-                        <td>{d.currency}</td>
-                        <td>{d.concept}</td>
-                        <td>{d.destination}{d.destinationOther ? ` (${d.destinationOther})` : ''}</td>
-                        <td>{d.minian}</td>
                         <td>{d.perasha || '-'}</td>
-                        <td>{d.matana ? '✓' : ''}</td>
+                        <td>{d.donorName}</td>
+                        <td>{d.donorObservations || '-'}</td>
+                        <td>{d.minian}</td>
+                        <td>{d.destination}{d.destinationOther ? ` (${d.destinationOther})` : ''}</td>
+                        <td style={{ textAlign: 'right' }}>
+                          {d.matana ? (
+                            <span style={{ fontStyle: 'italic', color: '#059669' }}>Matana</span>
+                          ) : (
+                            <>{d.amount?.toLocaleString()} {d.currency}</>
+                          )}
+                        </td>
+                        <td>{d.concept}</td>
                         <td>{d.isVirtual ? '✓' : ''}</td>
                         <td>
                           <button className="btn-icon" onClick={() => startEdit(d)} title="Editar">✏️</button>
@@ -288,15 +295,10 @@ export default function DonationsAdmin() {
               <div className="form-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                 <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                   <label>Donante *</label>
-                  {isNew ? (
-                    <DonorAutocomplete
-                      value={edit.donorName}
-                      onSelect={(donor) => setEdit({ ...edit, donorId: donor.id, donorName: donor.fullName })}
-                      onChange={(val) => setEdit({ ...edit, donorName: val })}
-                    />
-                  ) : (
-                    <input type="text" value={edit.donorName} disabled className="form-input" />
-                  )}
+                  <DonorAutocomplete
+                    value={edit.donorName}
+                    onChange={(id, donor) => setEdit({ ...edit, donorId: id, donorName: donor?.fullName || '' })}
+                  />
                 </div>
 
                 <div className="form-group">
@@ -306,7 +308,15 @@ export default function DonationsAdmin() {
 
                 <div className="form-group">
                   <label>Monto *</label>
-                  <input type="number" value={edit.amount} onChange={e => setEdit({ ...edit, amount: e.target.value })} className="form-input" step="0.01" />
+                  <input 
+                    type="number" 
+                    value={edit.matana ? '0' : edit.amount} 
+                    onChange={e => setEdit({ ...edit, amount: e.target.value })} 
+                    className="form-input" 
+                    step="0.01"
+                    disabled={edit.matana}
+                    style={edit.matana ? { backgroundColor: '#f3f4f6', cursor: 'not-allowed' } : {}}
+                  />
                 </div>
 
                 <div className="form-group">
@@ -354,7 +364,11 @@ export default function DonationsAdmin() {
 
                 <div className="form-group">
                   <label className="checkbox-label">
-                    <input type="checkbox" checked={edit.matana} onChange={e => setEdit({ ...edit, matana: e.target.checked })} />
+                    <input 
+                      type="checkbox" 
+                      checked={edit.matana} 
+                      onChange={e => setEdit({ ...edit, matana: e.target.checked, amount: e.target.checked ? '0' : edit.amount })} 
+                    />
                     <span>Matana</span>
                   </label>
                 </div>

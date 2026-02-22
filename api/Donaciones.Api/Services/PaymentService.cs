@@ -31,12 +31,14 @@ public class PaymentService(AppDbContext db) : IPaymentService
                 DonorName = (x.Donor.LastName == null || x.Donor.LastName.Trim() == "") 
                     ? (x.Donor.FirstName ?? "")
                     : (((x.Donor.FirstName ?? "") + " " + x.Donor.LastName)),
+                DonorObservations = x.Donor.Observations,
                 Currency = x.Payment.Currency,
                 Amount = x.Payment.Amount,
                 PaymentDate = x.Payment.PaymentDate,
                 Destination = x.Destination != null ? x.Destination.Name : x.Payment.Destination,
                 Collector = coll != null ? coll.Name : x.Payment.Collector,
-                Comment = x.Payment.Comment
+                Comment = x.Payment.Comment,
+                IsVirtual = x.Payment.IsVirtual
             })
             .ToListAsync(ct);
         return (items, total);

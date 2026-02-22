@@ -37,6 +37,9 @@ export default function DonorAutocomplete({ value, onChange, placeholder = 'Sear
       setOpen(false);
       setActiveIndex(-1);
       setError('');
+    } else if (value && query !== value) {
+      // Initialize query from value prop when it's provided
+      setQuery(value);
     }
   }, [value]);
 

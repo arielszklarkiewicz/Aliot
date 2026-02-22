@@ -81,6 +81,7 @@ export default function PaymentsAdmin() {
 
   const startEdit = (p) => setEdit({ 
     ...p, 
+    donorName: p.donorName || '',
     paymentDate: p.paymentDate?.slice(0,10) || '',
     amount: p.amount?.toString() || ''
   });
@@ -207,9 +208,10 @@ export default function PaymentsAdmin() {
                   <tr>
                     <th>Fecha</th>
                     <th>Donante</th>
+                    <th>Aclaración</th>
+                    <th>Destino</th>
                     <th>Monto</th>
                     <th>Moneda</th>
-                    <th>Destino</th>
                     <th>Cobrador</th>
                     <th>Comentario</th>
                     <th>Virtual</th>
@@ -218,15 +220,16 @@ export default function PaymentsAdmin() {
                 </thead>
                 <tbody>
                   {items.length === 0 ? (
-                    <tr><td colSpan={9} style={{ textAlign: 'center', padding: 20 }}>No hay pagos</td></tr>
+                    <tr><td colSpan={10} style={{ textAlign: 'center', padding: 20 }}>No hay pagos</td></tr>
                   ) : (
                     items.map(p => (
                       <tr key={p.id}>
                         <td>{p.paymentDate?.slice(0,10)}</td>
                         <td>{p.donorName}</td>
+                        <td>{p.donorObservations || '-'}</td>
+                        <td>{p.destination}</td>
                         <td style={{ textAlign: 'right' }}>{p.amount?.toLocaleString()}</td>
                         <td>{p.currency}</td>
-                        <td>{p.destination}</td>
                         <td>{p.collector || '-'}</td>
                         <td>{p.comment || '-'}</td>
                         <td>{p.isVirtual ? '✓' : ''}</td>
@@ -279,15 +282,10 @@ export default function PaymentsAdmin() {
               <div className="form-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                 <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                   <label>Donante *</label>
-                  {isNew ? (
-                    <DonorAutocomplete
-                      value={edit.donorName}
-                      onSelect={(donor) => setEdit({ ...edit, donorId: donor.id, donorName: donor.fullName })}
-                      onChange={(val) => setEdit({ ...edit, donorName: val })}
-                    />
-                  ) : (
-                    <input type="text" value={edit.donorName} disabled className="form-input" />
-                  )}
+                  <DonorAutocomplete
+                    value={edit.donorName}
+                    onChange={(id, donor) => setEdit({ ...edit, donorId: id, donorName: donor?.fullName || '' })}
+                  />
                 </div>
 
                 <div className="form-group">
