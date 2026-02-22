@@ -114,11 +114,16 @@ def main():
         # Step 3: Insert donors
         print(f"Step 3: Inserting {len(donor_records)} donors...")
         for i, donor in enumerate(donor_records):
+            # Clean up observations - remove "Aclaración: " prefix if present
+            observations = donor['observations']
+            if observations and observations.startswith('Aclaración: '):
+                observations = observations[12:]  # Remove "Aclaración: " (12 characters)
+            
             cur.execute("""
                 INSERT INTO donors (id, first_name, last_name, observations, is_occasional_donor, created_at, created_by)
                 VALUES (%s, %s, %s, %s, %s, NOW(), %s)
             """, (donor['id'], donor['first_name'], donor['last_name'], 
-                  donor['observations'], False, import_user_id))
+                  observations, False, import_user_id))
             
             if (i + 1) % 100 == 0:
                 print(f"  Progress: {i + 1}/{len(donor_records)}")
