@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import axios from '../api/client';
 import DonorAutocomplete from '../components/DonorAutocomplete';
 import useDebounced from '../hooks/useDebounced';
+import { formatCurrency, getCurrencyStyle } from '../utils/currency';
 
 export default function DonationsAdmin() {
   const [items, setItems] = useState([]);
@@ -17,6 +18,7 @@ export default function DonationsAdmin() {
   const [filterDonorId, setFilterDonorId] = useState('');
   const [filterDonorName, setFilterDonorName] = useState('');
   const [filterDestination, setFilterDestination] = useState('');
+  const [filterPerasha, setFilterPerasha] = useState('');
   const [filterFrom, setFilterFrom] = useState('');
   const [filterTo, setFilterTo] = useState('');
   
@@ -42,6 +44,7 @@ export default function DonationsAdmin() {
         pageSize,
         donorId: filterDonorId || undefined,
         destination: filterDestination || undefined,
+        perasha: filterPerasha || undefined,
         from: filterFrom || undefined,
         to: filterTo || undefined
       };
@@ -53,12 +56,13 @@ export default function DonationsAdmin() {
     } finally { setLoading(false); }
   }
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [page, pageSize, filterDonorId, filterDestination, filterFrom, filterTo]);
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [page, pageSize, filterDonorId, filterDestination, filterPerasha, filterFrom, filterTo]);
 
   const clearFilters = () => {
     setFilterDonorId('');
     setFilterDonorName('');
     setFilterDestination('');
+    setFilterPerasha('');
     setFilterFrom('');
     setFilterTo('');
     setPage(1);
@@ -158,8 +162,16 @@ export default function DonationsAdmin() {
               <label style={{ fontSize: '0.875rem', marginBottom: 4 }}>Donante</label>
               <DonorAutocomplete
                 value={filterDonorName}
-                onSelect={(donor) => { setFilterDonorId(donor.id); setFilterDonorName(donor.fullName); setPage(1); }}
-                onChange={(val) => { if (!val) { setFilterDonorId(''); setFilterDonorName(''); } else { setFilterDonorName(val); } }}
+                onChange={(id, donor) => { 
+                  if (!donor) { 
+                    setFilterDonorId(''); 
+                    setFilterDonorName(''); 
+                  } else { 
+                    setFilterDonorId(id); 
+                    setFilterDonorName(donor.fullName); 
+                  } 
+                  setPage(1); 
+                }}
                 placeholder="Buscar donante..."
               />
             </div>
@@ -174,6 +186,17 @@ export default function DonationsAdmin() {
                 <option value="">Todos</option>
                 {lookups.destinations.map(d => <option key={d} value={d}>{d}</option>)}
               </select>
+            </div>
+
+            <div className="form-group" style={{ minWidth: 150, marginBottom: 0 }}>
+              <label style={{ fontSize: '0.875rem', marginBottom: 4 }}>Parashá</label>
+              <input 
+                type="text" 
+                value={filterPerasha} 
+                onChange={e => { setFilterPerasha(e.target.value); setPage(1); }} 
+                className="form-input"
+                placeholder="Filtrar por Parashá..."
+              />
             </div>
 
             <div className="form-group" style={{ minWidth: 140, marginBottom: 0 }}>
@@ -196,7 +219,7 @@ export default function DonationsAdmin() {
               />
             </div>
 
-            {(filterDonorId || filterDestination || filterFrom || filterTo) && (
+            {(filterDonorId || filterDestination || filterPerasha || filterFrom || filterTo) && (
               <button className="btn btn-secondary" onClick={clearFilters} style={{ marginBottom: 0 }}>
                 Limpiar filtros
               </button>
@@ -239,9 +262,9 @@ export default function DonationsAdmin() {
                         <td>{d.destination}{d.destinationOther ? ` (${d.destinationOther})` : ''}</td>
                         <td style={{ textAlign: 'right' }}>
                           {d.matana ? (
-                            <span style={{ fontStyle: 'italic', color: '#059669' }}>Matana</span>
+                            <span style={{ fontWeight: 600, color: '#f97316' }}>MATANA</span>
                           ) : (
-                            <>{d.amount?.toLocaleString()} {d.currency}</>
+                            <span style={getCurrencyStyle(d.currency)}>{formatCurrency(d.amount, d.currency)}</span>
                           )}
                         </td>
                         <td>{d.concept}</td>

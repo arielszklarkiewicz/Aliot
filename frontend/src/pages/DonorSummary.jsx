@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import axios from '../api/client';
 import DonorAutocomplete from '../components/DonorAutocomplete';
 import { useCurrentUser } from '../hooks/useCurrentUser';
+import { formatCurrency, getCurrencyStyle } from '../utils/currency';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import '../styles/GlobalStyles.css';
@@ -662,8 +663,8 @@ export default function DonorSummary() {
                     </div>
                     {b.matanaCount > 0 && (
                       <div className="balance-row" style={{ marginTop: '8px', borderTop: '1px solid #f0f0f0', paddingTop: '8px' }}>
-                        <span style={{ color: '#722ed1', fontWeight: 600 }}>Matana</span>
-                        <span style={{ color: '#722ed1', fontWeight: 600 }}>{b.matanaCount}</span>
+                        <span style={{ color: '#f97316', fontWeight: 600 }}>MATANA</span>
+                        <span style={{ color: '#f97316', fontWeight: 600 }}>{b.matanaCount}</span>
                       </div>
                     )}
                   </div>
@@ -712,7 +713,7 @@ export default function DonorSummary() {
                     </div>
                     <div style={{ fontSize: '1.75rem', fontWeight: 700, marginBottom: '1rem' }}>
                       {mostRecentDonation.matana ? (
-                        <span style={{ color: '#ffd700' }}>Matana</span>
+                        <span style={{ color: '#f97316' }}>MATANA</span>
                       ) : (
                         fmt(mostRecentDonation.amount)
                       )}
@@ -802,7 +803,6 @@ export default function DonorSummary() {
                   <tr>
                     <th>Fecha</th>
                     <th className="text-right">Monto</th>
-                    <th>Moneda</th>
                     <th>Minián</th>
                     <th>Concepto</th>
                     <th>Destino</th>
@@ -813,29 +813,17 @@ export default function DonorSummary() {
                 </thead>
                 <tbody>
                   {filteredDonations.length === 0 && (
-                    <tr><td colSpan={9} className="empty-state">Sin donaciones</td></tr>
+                    <tr><td colSpan={8} className="empty-state">Sin donaciones</td></tr>
                   )}
                   {filteredDonations.map(d => (
                     <tr key={d.id}>
                       <td>{d.donationDate}</td>
                       <td className="text-right">
                         {d.matana ? (
-                          <span style={{ fontWeight: 600, color: '#722ed1' }}>Matana</span>
+                          <span style={{ fontWeight: 600, color: '#f97316' }}>MATANA</span>
                         ) : (
-                          fmt(d.amount)
+                          <span style={getCurrencyStyle(d.currency)}>{formatCurrency(d.amount, d.currency)}</span>
                         )}
-                      </td>
-                      <td>
-                        {(() => {
-                          const cur = (d.currency || '').toString();
-                          const curNorm = cur.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-                          const isUsd = curNorm === 'dolares' || curNorm === 'usd' || curNorm === 'dolares estadounidenses' || curNorm === 'u$s' || curNorm === 'us$';
-                          return (
-                            <span className={`currency-badge ${isUsd ? 'currency-usd' : 'currency-other'}`}>
-                              {d.currency}
-                            </span>
-                          );
-                        })()}
                       </td>
                       <td>{d.minian}</td>
                       <td>{d.concept}</td>
@@ -860,7 +848,6 @@ export default function DonorSummary() {
                   <tr>
                     <th>Fecha</th>
                     <th className="text-right">Monto</th>
-                    <th>Moneda</th>
                     <th>Destino</th>
                     <th>Cobrador</th>
                     <th className="text-center">Virtual</th>
@@ -868,23 +855,13 @@ export default function DonorSummary() {
                 </thead>
                 <tbody>
                   {filteredPayments.length === 0 && (
-                    <tr><td colSpan={6} className="empty-state">Sin pagos</td></tr>
+                    <tr><td colSpan={5} className="empty-state">Sin pagos</td></tr>
                   )}
                   {filteredPayments.map(p => (
                     <tr key={p.id}>
                       <td>{p.paymentDate}</td>
-                      <td className="text-right">{fmt(p.amount)}</td>
-                      <td>
-                        {(() => {
-                          const cur = (p.currency || '').toString();
-                          const curNorm = cur.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-                          const isUsd = curNorm === 'dolares' || curNorm === 'usd' || curNorm === 'dolares estadounidenses' || curNorm === 'u$s' || curNorm === 'us$';
-                          return (
-                            <span className={`currency-badge ${isUsd ? 'currency-usd' : 'currency-other'}`}>
-                              {p.currency}
-                            </span>
-                          );
-                        })()}
+                      <td className="text-right">
+                        <span style={getCurrencyStyle(p.currency)}>{formatCurrency(p.amount, p.currency)}</span>
                       </td>
                       <td>{p.destination}</td>
                       <td>{p.collector || '—'}</td>

@@ -7,7 +7,7 @@ namespace Donaciones.Api.Services;
 public class DonationService(AppDbContext db) : IDonationService
 {
     public async Task<(IReadOnlyList<DonationListItem> items, int total)> ListAsync(Guid? donorId, string? currency,
-        string? minian, string? concept, string? destination, bool includeOccasionalDonors, DateOnly? from, DateOnly? to,
+        string? minian, string? concept, string? destination, string? perasha, bool includeOccasionalDonors, DateOnly? from, DateOnly? to,
         int page, int pageSize, CancellationToken ct)
     {
         var qry = db.Donations.AsNoTracking().AsQueryable();
@@ -15,10 +15,20 @@ public class DonationService(AppDbContext db) : IDonationService
         if (!string.IsNullOrWhiteSpace(currency)) qry = qry.Where(x => x.Currency.ToLower() == currency.ToLower());
         if (!string.IsNullOrWhiteSpace(minian)) qry = qry.Where(x => x.Minian.ToLower() == minian.ToLower());
         if (!string.IsNullOrWhiteSpace(concept)) qry = qry.Where(x => x.Concept.ToLower() == concept.ToLower());
-        if (!string.IsNullOrWhiteSpace(destination))
-            qry = qry.Where(x => x.Destination.ToLower() == destination.ToLower());
+        if (!string.IsNullOrWhiteSpace(perasha))
+            qry = qry.Where(x => x.Perasha != null && x.Perasha.ToLower().Contains(perasha.ToLower()));
         if (from.HasValue) qry = qry.Where(x => x.DonationDate >= from);
         if (to.HasValue) qry = qry.Where(x => x.DonationDate <= to);
+        
+        // Filter by destination name (need to join with Destinations table)
+        if (!string.IsNullOrWhiteSpace(destination))
+        {
+            qry = from d in qry
+                  join dest in db.Destinations.AsNoTracking() on d.Destination equals dest.Id.ToString().ToLower()
+                  where dest.Name.ToLower() == destination.ToLower()
+                  select d;
+        }
+        
         // Apply filter only when IncludeOccasionalDonors is false (exclude occasional donors)
         if (!includeOccasionalDonors)
         {

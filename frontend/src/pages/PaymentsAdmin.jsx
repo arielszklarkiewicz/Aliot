@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import axios from '../api/client';
 import DonorAutocomplete from '../components/DonorAutocomplete';
+import { formatCurrency, getCurrencyStyle } from '../utils/currency';
 
 export default function PaymentsAdmin() {
   const [items, setItems] = useState([]);
@@ -151,8 +152,16 @@ export default function PaymentsAdmin() {
               <label style={{ fontSize: '0.875rem', marginBottom: 4 }}>Donante</label>
               <DonorAutocomplete
                 value={filterDonorName}
-                onSelect={(donor) => { setFilterDonorId(donor.id); setFilterDonorName(donor.fullName); setPage(1); }}
-                onChange={(val) => { if (!val) { setFilterDonorId(''); setFilterDonorName(''); } else { setFilterDonorName(val); } }}
+                onChange={(id, donor) => { 
+                  if (!donor) { 
+                    setFilterDonorId(''); 
+                    setFilterDonorName(''); 
+                  } else { 
+                    setFilterDonorId(id); 
+                    setFilterDonorName(donor.fullName); 
+                  } 
+                  setPage(1); 
+                }}
                 placeholder="Buscar donante..."
               />
             </div>
@@ -211,7 +220,6 @@ export default function PaymentsAdmin() {
                     <th>Aclaración</th>
                     <th>Destino</th>
                     <th>Monto</th>
-                    <th>Moneda</th>
                     <th>Cobrador</th>
                     <th>Comentario</th>
                     <th>Virtual</th>
@@ -220,7 +228,7 @@ export default function PaymentsAdmin() {
                 </thead>
                 <tbody>
                   {items.length === 0 ? (
-                    <tr><td colSpan={10} style={{ textAlign: 'center', padding: 20 }}>No hay pagos</td></tr>
+                    <tr><td colSpan={9} style={{ textAlign: 'center', padding: 20 }}>No hay pagos</td></tr>
                   ) : (
                     items.map(p => (
                       <tr key={p.id}>
@@ -228,8 +236,9 @@ export default function PaymentsAdmin() {
                         <td>{p.donorName}</td>
                         <td>{p.donorObservations || '-'}</td>
                         <td>{p.destination}</td>
-                        <td style={{ textAlign: 'right' }}>{p.amount?.toLocaleString()}</td>
-                        <td>{p.currency}</td>
+                        <td style={{ textAlign: 'right' }}>
+                          <span style={getCurrencyStyle(p.currency)}>{formatCurrency(p.amount, p.currency)}</span>
+                        </td>
                         <td>{p.collector || '-'}</td>
                         <td>{p.comment || '-'}</td>
                         <td>{p.isVirtual ? '✓' : ''}</td>

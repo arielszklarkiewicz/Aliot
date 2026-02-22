@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import axios from '../api/client';
 import DonorAutocomplete from '../components/DonorAutocomplete';
 import useDebounced from '../hooks/useDebounced';
+import { formatCurrency, getCurrencyStyle } from '../utils/currency';
 import '../styles/DonationsListImproved.css';
 
 export default function DonationsList() {
@@ -413,7 +414,6 @@ export default function DonationsList() {
                 <th scope="col">Fecha</th>
                 <th scope="col">Donante</th>
                 <th scope="col" style={{ textAlign: 'right' }}>Monto</th>
-                <th scope="col">Moneda</th>
                 <th scope="col">Minián</th>
                 <th scope="col">Concepto</th>
                 <th scope="col">Destino</th>
@@ -424,7 +424,7 @@ export default function DonationsList() {
             <tbody>
               {items.length === 0 && (
                 <tr>
-                  <td colSpan={9}>
+                  <td colSpan={8}>
                     <div className="empty-state">
                       <svg className="empty-icon" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                         <circle cx="12" cy="12" r="10"></circle>
@@ -443,9 +443,6 @@ export default function DonationsList() {
                 </tr>
               )}
               {items.map((d, idx) => {
-                const cur = (d.currency || '').toString();
-                const curNorm = cur.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-                const isUsd = curNorm === 'dolares' || curNorm === 'usd' || curNorm === 'dolares estadounidenses' || curNorm === 'u$s' || curNorm === 'us$';
                 return (
                   <tr key={d.id} className="donation-row">
                     <td data-label="Fecha">{d.donationDate}</td>
@@ -454,15 +451,10 @@ export default function DonationsList() {
                     </td>
                     <td data-label="Monto" className="amount-cell">
                       {d.matana ? (
-                        <span style={{ fontWeight: 600, color: '#722ed1' }}>Matana</span>
+                        <span style={{ fontWeight: 600, color: '#f97316' }}>MATANA</span>
                       ) : (
-                        typeof d.amount === 'number' ? new Intl.NumberFormat('es-AR').format(Math.round(d.amount)) : d.amount
+                        <span style={getCurrencyStyle(d.currency)}>{formatCurrency(d.amount, d.currency)}</span>
                       )}
-                    </td>
-                    <td data-label="Moneda">
-                      <span className={'currency-badge ' + (isUsd ? 'usd' : 'other')}>
-                        {d.currency}
-                      </span>
                     </td>
                     <td data-label="Minián">{d.minian || '—'}</td>
                     <td data-label="Concepto">{d.concept || '—'}</td>
