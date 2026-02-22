@@ -12,4 +12,6 @@ public interface IDonorService
     Task<DonorBalance> GetBalanceAsync(Guid donorId, string? currency, CancellationToken ct);
     Task<IReadOnlyList<DonorCurrencyBalance>> GetBalancesByCurrencyAsync(Guid donorId, CancellationToken ct);
     Task<DonorSummary?> GetSummaryAsync(Guid donorId, CancellationToken ct);
+    Task<(int donationsCount, int paymentsCount)> GetDonorDataCountAsync(Guid donorId, CancellationToken ct);
+    Task<bool> MergeDonorAsync(Guid fromDonorId, Guid toDonorId, Guid userId, CancellationToken ct);
 }

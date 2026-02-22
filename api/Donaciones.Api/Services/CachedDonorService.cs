@@ -117,5 +117,18 @@ public class CachedDonorService : IDonorService
 
     public Task<DonorSummary?> GetSummaryAsync(Guid donorId, CancellationToken ct)
         => _innerService.GetSummaryAsync(donorId, ct);
+
+    public Task<(int donationsCount, int paymentsCount)> GetDonorDataCountAsync(Guid donorId, CancellationToken ct)
+        => _innerService.GetDonorDataCountAsync(donorId, ct);
+
+    public async Task<bool> MergeDonorAsync(Guid fromDonorId, Guid toDonorId, Guid userId, CancellationToken ct)
+    {
+        var result = await _innerService.MergeDonorAsync(fromDonorId, toDonorId, userId, ct);
+        if (result)
+        {
+            InvalidateCache();
+        }
+        return result;
+    }
 }
 

@@ -338,4 +338,55 @@ public class DonorService(AppDbContext db, IAuthService authService) : IDonorSer
             Balances = balances
         };
     }
+
+    public async Task<(int donationsCount, int paymentsCount)> GetDonorDataCountAsync(Guid donorId, CancellationToken ct)
+    {
+        var donationsCount = await db.Donations.AsNoTracking().CountAsync(d => d.DonorId == donorId, ct);
+        var paymentsCount = await db.Payments.AsNoTracking().CountAsync(p => p.DonorId == donorId, ct);
+        return (donationsCount, paymentsCount);
+    }
+
+    public async Task<bool> MergeDonorAsync(Guid fromDonorId, Guid toDonorId, Guid userId, CancellationToken ct)
+    {
+        var fromDonor = await db.Donors.FirstOrDefaultAsync(d => d.Id == fromDonorId, ct);
+        var toDonor = await db.Donors.FirstOrDefaultAsync(d => d.Id == toDonorId, ct);
+        
+        if (fromDonor == null || toDonor == null) return false;
+
+        // Move all donations from fromDonor to toDonor
+        var donations = await db.Donations.Where(d => d.DonorId == fromDonorId).ToListAsync(ct);
+        foreach (var donation in donations)
+        {
+            donation.DonorId = toDonorId;
+            donation.UpdatedAt = DateTimeOffset.UtcNow;
+            donation.UpdatedBy = userId;
+        }
+
+        // Move all payments from fromDonor to toDonor
+        var payments = await db.Payments.Where(p => p.DonorId == fromDonorId).ToListAsync(ct);
+        foreach (var payment in payments)
+        {
+            payment.DonorId = toDonorId;
+            payment.UpdatedAt = DateTimeOffset.UtcNow;
+            payment.UpdatedBy = userId;
+        }
+
+        // Log the merge before deletion
+        var deletionLog = new DeletionLog
+        {
+            Id = Guid.NewGuid(),
+            EntityType = "Donor",
+            EntityId = fromDonor.Id,
+            EntityDetails = $"{fromDonor.FirstName} {fromDonor.LastName} merged into {toDonor.FirstName} {toDonor.LastName} (ID: {toDonorId})",
+            DeletedBy = userId,
+            DeletedAt = DateTimeOffset.UtcNow
+        };
+        db.DeletionLogs.Add(deletionLog);
+
+        // Delete the fromDonor
+        db.Donors.Remove(fromDonor);
+        
+        await db.SaveChangesAsync(ct);
+        return true;
+    }
 }

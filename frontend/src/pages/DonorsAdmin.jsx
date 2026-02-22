@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import axios from '../api/client';
 import useDebounced from '../hooks/useDebounced';
 import { useCurrentUser } from '../hooks/useCurrentUser';
+import DonorAutocomplete from '../components/DonorAutocomplete';
 
 export default function DonorsAdmin() {
   const { isAdmin } = useCurrentUser();
@@ -19,6 +20,7 @@ export default function DonorsAdmin() {
   const isNew = useMemo(() => edit && !edit.id, [edit]);
   
   const [showInstructions, setShowInstructions] = useState(null); // donor object to show instructions for
+  const [mergeState, setMergeState] = useState(null); // { donor, targetDonorId, targetDonor, donationsCount, paymentsCount, loading }
 
   async function load() {
     setLoading(true); setError('');
@@ -74,6 +76,48 @@ export default function DonorsAdmin() {
       await load();
     } catch (e) {
       alert('No se pudo eliminar el donante');
+    }
+  };
+
+  const startMerge = async (donor) => {
+    try {
+      const { data } = await axios.get(`/api/donors/${donor.id}/data-count`);
+      setMergeState({
+        donor,
+        targetDonorId: '',
+        targetDonor: null,
+        donationsCount: data.donationsCount,
+        paymentsCount: data.paymentsCount,
+        loading: false
+      });
+    } catch (e) {
+      alert('Error al obtener datos del donante');
+    }
+  };
+
+  const confirmMerge = async () => {
+    if (!mergeState?.targetDonorId) {
+      alert('Por favor seleccione un donante destino');
+      return;
+    }
+    if (mergeState.donor.id === mergeState.targetDonorId) {
+      alert('No puede fusionar un donante consigo mismo');
+      return;
+    }
+    
+    const msg = `¿Está seguro de que desea mover todas las donaciones y pagos de "${mergeState.donor.fullName}" a "${mergeState.targetDonor?.fullName}"?\n\nSe moverán:\n- ${mergeState.donationsCount} donación${mergeState.donationsCount !== 1 ? 'es' : ''}\n- ${mergeState.paymentsCount} pago${mergeState.paymentsCount !== 1 ? 's' : ''}\n\nEl donante "${mergeState.donor.fullName}" será eliminado.`;
+    
+    if (!window.confirm(msg)) return;
+
+    setMergeState(prev => ({ ...prev, loading: true }));
+    try {
+      await axios.post(`/api/donors/${mergeState.donor.id}/merge/${mergeState.targetDonorId}`);
+      alert('Donante fusionado exitosamente');
+      setMergeState(null);
+      await load();
+    } catch (e) {
+      alert('Error al fusionar donantes');
+      setMergeState(prev => ({ ...prev, loading: false }));
     }
   };
 
@@ -166,6 +210,9 @@ export default function DonorsAdmin() {
                             📋 Instrucciones
                           </button>
                         )}
+                        <button className="btn btn-sm btn-warning" onClick={() => startMerge(d)} title="Fusionar con otro donante">
+                          🔀 Fusionar
+                        </button>
                         <button className="btn btn-sm btn-ghost" onClick={() => del(d.id)}>Eliminar</button>
                       </div>
                     </td>
@@ -210,6 +257,7 @@ export default function DonorsAdmin() {
                 </div>
                 <div className="mobile-card-actions">
                   <button className="btn btn-sm btn-secondary" onClick={() => startEdit(d)}>Editar</button>
+                  <button className="btn btn-sm btn-warning" onClick={() => startMerge(d)}>🔀 Fusionar</button>
                   <button className="btn btn-sm btn-ghost" onClick={() => del(d.id)}>Eliminar</button>
                 </div>
               </div>
@@ -290,6 +338,91 @@ export default function DonorsAdmin() {
         </div>
       )}
       
+      {/* Merge Modal */}
+      {mergeState && (
+        <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && !mergeState.loading && setMergeState(null)}>
+          <div className="modal-content">
+            <div className="modal-header">
+              <h2>Fusionar Donante</h2>
+              <button className="modal-close" onClick={() => !mergeState.loading && setMergeState(null)}>&times;</button>
+            </div>
+            <div className="modal-body">
+              <div style={{ marginBottom: 24 }}>
+                <p style={{ marginBottom: 16, fontSize: '1rem' }}>
+                  Fusionar: <strong style={{ color: '#dc2626' }}>{mergeState.donor.fullName}</strong>
+                </p>
+                <div style={{ 
+                  padding: 16, 
+                  background: '#fef3c7', 
+                  border: '1px solid #f59e0b', 
+                  borderRadius: 8,
+                  marginBottom: 20
+                }}>
+                  <p style={{ margin: 0, fontSize: '0.875rem', color: '#92400e' }}>
+                    Este donante tiene:
+                  </p>
+                  <ul style={{ margin: '8px 0 0 0', paddingLeft: 20, color: '#92400e', fontSize: '0.875rem' }}>
+                    <li><strong>{mergeState.donationsCount}</strong> donación{mergeState.donationsCount !== 1 ? 'es' : ''}</li>
+                    <li><strong>{mergeState.paymentsCount}</strong> pago{mergeState.paymentsCount !== 1 ? 's' : ''}</li>
+                  </ul>
+                </div>
+
+                <div className="form-group">
+                  <label>Fusionar con el donante:</label>
+                  <DonorAutocomplete 
+                    value={mergeState.targetDonorId}
+                    onChange={(id, donor) => setMergeState(prev => ({ ...prev, targetDonorId: id, targetDonor: donor }))}
+                    placeholder="Buscar donante destino..."
+                    style={{ width: '100%', maxWidth: 'none' }}
+                  />
+                  {mergeState.targetDonor && (
+                    <div style={{ 
+                      marginTop: 12, 
+                      padding: 12, 
+                      background: '#f0fdf4', 
+                      border: '1px solid #86efac', 
+                      borderRadius: 6 
+                    }}>
+                      <p style={{ margin: 0, fontSize: '0.875rem', color: '#15803d' }}>
+                        ✓ Se moverán todas las donaciones y pagos a: <strong>{mergeState.targetDonor.fullName}</strong>
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ 
+                  marginTop: 20, 
+                  padding: 12, 
+                  background: '#fee2e2', 
+                  border: '1px solid #ef4444', 
+                  borderRadius: 6 
+                }}>
+                  <p style={{ margin: 0, fontSize: '0.875rem', color: '#991b1b' }}>
+                    ⚠️ <strong>Advertencia:</strong> El donante "{mergeState.donor.fullName}" será eliminado después de la fusión. Esta acción no se puede deshacer.
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button 
+                className="btn btn-ghost" 
+                onClick={() => setMergeState(null)}
+                disabled={mergeState.loading}
+              >
+                Cancelar
+              </button>
+              <button 
+                className="btn btn-warning" 
+                onClick={confirmMerge}
+                disabled={!mergeState.targetDonorId || mergeState.loading}
+              >
+                {mergeState.loading ? 'Fusionando...' : 'Fusionar y Eliminar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Instructions Modal */}
       {showInstructions && (
         <div className="modal-overlay" onClick={() => setShowInstructions(null)}>

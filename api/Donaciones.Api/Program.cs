@@ -535,6 +535,21 @@ app.MapDelete("/api/donors/{id:guid}", async (IDonorService svc, HttpContext htt
     })
     .RequirePermission(Permission.DeleteDonors);
 
+app.MapGet("/api/donors/{id:guid}/data-count", async (IDonorService svc, Guid id, CancellationToken ct) =>
+    {
+        var (donationsCount, paymentsCount) = await svc.GetDonorDataCountAsync(id, ct);
+        return Results.Ok(new { donationsCount, paymentsCount });
+    })
+    .RequirePermission(Permission.ViewDonors);
+
+app.MapPost("/api/donors/{fromId:guid}/merge/{toId:guid}", async (IDonorService svc, HttpContext httpContext, Guid fromId, Guid toId, CancellationToken ct) =>
+    {
+        var userId = httpContext.User.GetUserId() ?? Guid.Empty;
+        var ok = await svc.MergeDonorAsync(fromId, toId, userId, ct);
+        return ok ? Results.NoContent() : Results.NotFound();
+    })
+    .RequirePermission(Permission.DeleteDonors);
+
 // Donations
 app.MapGet("/api/donations", async (IDonationService svc, Guid? donorId, string? currency, string? minian,
         string? concept, string? destination, bool? isOccasionalDonor, DateOnly? from, DateOnly? to, int page = 1,
