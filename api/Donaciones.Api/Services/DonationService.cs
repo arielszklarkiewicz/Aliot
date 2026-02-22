@@ -33,31 +33,65 @@ public class DonationService(AppDbContext db) : IDonationService
             .OrderByDescending(x => x.DonationDate)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Join(db.Donors.AsNoTracking(), d => d.DonorId, o => o.Id, (d, o) => new DonationListItem
+            .Join(db.Donors.AsNoTracking(), d => d.DonorId, o => o.Id, (d, o) => new { Donation = d, Donor = o })
+            .GroupJoin(db.Concepts.AsNoTracking(), x => x.Donation.Concept, c => c.Id.ToString().ToLower(), (x, concepts) => new { x.Donation, x.Donor, Concepts = concepts })
+            .SelectMany(x => x.Concepts.DefaultIfEmpty(), (x, concept) => new { x.Donation, x.Donor, Concept = concept })
+            .GroupJoin(db.Destinations.AsNoTracking(), x => x.Donation.Destination, d => d.Id.ToString().ToLower(), (x, dests) => new { x.Donation, x.Donor, x.Concept, Destinations = dests })
+            .SelectMany(x => x.Destinations.DefaultIfEmpty(), (x, dest) => new DonationListItem
             {
-                Id = d.Id,
-                DonorId = d.DonorId,
-                DonorName = (o.LastName == null || o.LastName.Trim() == "")
-                    ? (o.FirstName ?? "")
-                    : ((o.FirstName ?? "") + " " + o.LastName),
-                DonorObservations = o.Observations,
-                Currency = d.Currency,
-                Amount = d.Amount,
-                DonationDate = d.DonationDate,
-                Perasha = d.Perasha,
-                Minian = d.Minian,
-                Concept = d.Concept,
-                Destination = d.Destination,
-                DestinationOther = d.DestinationOther,
-                Comment = d.Comment,
-                Matana = d.Matana
+                Id = x.Donation.Id,
+                DonorId = x.Donation.DonorId,
+                DonorName = (x.Donor.LastName == null || x.Donor.LastName.Trim() == "")
+                    ? (x.Donor.FirstName ?? "")
+                    : ((x.Donor.FirstName ?? "") + " " + x.Donor.LastName),
+                DonorObservations = x.Donor.Observations,
+                Currency = x.Donation.Currency,
+                Amount = x.Donation.Amount,
+                DonationDate = x.Donation.DonationDate,
+                Perasha = x.Donation.Perasha,
+                Minian = x.Donation.Minian,
+                Concept = x.Concept != null ? x.Concept.Name : x.Donation.Concept,
+                Destination = dest != null ? dest.Name : x.Donation.Destination,
+                DestinationOther = x.Donation.DestinationOther,
+                Comment = x.Donation.Comment,
+                Matana = x.Donation.Matana
             })
             .ToListAsync(ct);
         return (items, total);
     }
 
-    public Task<Donation?> GetAsync(Guid id, CancellationToken ct)
-        => db.Donations.AsNoTracking().FirstOrDefaultAsync(d => d.Id == id, ct);
+    public async Task<Donation?> GetAsync(Guid id, CancellationToken ct)
+    {
+        var result = await (from d in db.Donations
+                           join c in db.Concepts on d.Concept equals c.Id.ToString().ToLower() into concepts
+                           from concept in concepts.DefaultIfEmpty()
+                           join dest in db.Destinations on d.Destination equals dest.Id.ToString().ToLower() into dests
+                           from destination in dests.DefaultIfEmpty()
+                           where d.Id == id
+                           select new Donation
+                           {
+                               Id = d.Id,
+                               DonorId = d.DonorId,
+                               Currency = d.Currency,
+                               Amount = d.Amount,
+                               DonationDate = d.DonationDate,
+                               Perasha = d.Perasha,
+                               Minian = d.Minian,
+                               Concept = concept != null ? concept.Name : d.Concept,
+                               Destination = destination != null ? destination.Name : d.Destination,
+                               DestinationOther = d.DestinationOther,
+                               Comment = d.Comment,
+                               IsVirtual = d.IsVirtual,
+                               Matana = d.Matana,
+                               CreatedAt = d.CreatedAt,
+                               CreatedBy = d.CreatedBy,
+                               UpdatedAt = d.UpdatedAt,
+                               UpdatedBy = d.UpdatedBy
+                           })
+                           .AsNoTracking()
+                           .FirstOrDefaultAsync(ct);
+        return result;
+    }
 
     public async Task<Donation?> CreateAsync(DonationCreate dto, Guid userId, CancellationToken ct)
     {

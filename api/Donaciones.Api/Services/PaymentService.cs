@@ -20,26 +20,56 @@ public class PaymentService(AppDbContext db) : IPaymentService
             .OrderByDescending(x => x.PaymentDate)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Join(db.Donors.AsNoTracking(), p => p.DonorId, o => o.Id, (p, o) => new PaymentListItem
+            .Join(db.Donors.AsNoTracking(), p => p.DonorId, o => o.Id, (p, o) => new { Payment = p, Donor = o })
+            .GroupJoin(db.Destinations.AsNoTracking(), x => x.Payment.Destination, d => d.Id.ToString().ToLower(), (x, dests) => new { x.Payment, x.Donor, Destinations = dests })
+            .SelectMany(x => x.Destinations.DefaultIfEmpty(), (x, dest) => new { x.Payment, x.Donor, Destination = dest })
+            .GroupJoin(db.Collectors.AsNoTracking(), x => x.Payment.Collector ?? "", c => c.Id.ToString().ToLower(), (x, colls) => new { x.Payment, x.Donor, x.Destination, Collectors = colls })
+            .SelectMany(x => x.Collectors.DefaultIfEmpty(), (x, coll) => new PaymentListItem
             {
-                Id = p.Id,
-                DonorId = p.DonorId,
-                DonorName = (o.LastName == null || o.LastName.Trim() == "") 
-                    ? (o.FirstName ?? "")
-                    : (((o.FirstName ?? "") + " " + o.LastName)),
-                Currency = p.Currency,
-                Amount = p.Amount,
-                PaymentDate = p.PaymentDate,
-                Destination = p.Destination,
-                Collector = p.Collector,
-                Comment = p.Comment
+                Id = x.Payment.Id,
+                DonorId = x.Payment.DonorId,
+                DonorName = (x.Donor.LastName == null || x.Donor.LastName.Trim() == "") 
+                    ? (x.Donor.FirstName ?? "")
+                    : (((x.Donor.FirstName ?? "") + " " + x.Donor.LastName)),
+                Currency = x.Payment.Currency,
+                Amount = x.Payment.Amount,
+                PaymentDate = x.Payment.PaymentDate,
+                Destination = x.Destination != null ? x.Destination.Name : x.Payment.Destination,
+                Collector = coll != null ? coll.Name : x.Payment.Collector,
+                Comment = x.Payment.Comment
             })
             .ToListAsync(ct);
         return (items, total);
     }
 
-    public Task<Payment?> GetAsync(Guid id, CancellationToken ct)
-        => db.Payments.AsNoTracking().FirstOrDefaultAsync(p => p.Id == id, ct);
+    public async Task<Payment?> GetAsync(Guid id, CancellationToken ct)
+    {
+        var result = await (from p in db.Payments
+                           join dest in db.Destinations on p.Destination equals dest.Id.ToString().ToLower() into dests
+                           from destination in dests.DefaultIfEmpty()
+                           join coll in db.Collectors on (p.Collector ?? "") equals coll.Id.ToString().ToLower() into colls
+                           from collector in colls.DefaultIfEmpty()
+                           where p.Id == id
+                           select new Payment
+                           {
+                               Id = p.Id,
+                               DonorId = p.DonorId,
+                               Currency = p.Currency,
+                               Amount = p.Amount,
+                               PaymentDate = p.PaymentDate,
+                               Destination = destination != null ? destination.Name : p.Destination,
+                               Collector = collector != null ? collector.Name : p.Collector,
+                               Comment = p.Comment,
+                               IsVirtual = p.IsVirtual,
+                               CreatedAt = p.CreatedAt,
+                               CreatedBy = p.CreatedBy,
+                               UpdatedAt = p.UpdatedAt,
+                               UpdatedBy = p.UpdatedBy
+                           })
+                           .AsNoTracking()
+                           .FirstOrDefaultAsync(ct);
+        return result;
+    }
 
     public async Task<Payment?> CreateAsync(PaymentCreate dto, Guid userId, CancellationToken ct)
     {

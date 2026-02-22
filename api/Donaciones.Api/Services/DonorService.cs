@@ -270,15 +270,63 @@ public class DonorService(AppDbContext db, IAuthService authService) : IDonorSer
         var donor = await db.Donors.AsNoTracking().FirstOrDefaultAsync(d => d.Id == donorId, ct);
         if (donor == null) return null;
 
-        var donations = await db.Donations.AsNoTracking()
-            .Where(d => d.DonorId == donorId)
-            .OrderByDescending(d => d.DonationDate)
-            .ToListAsync(ct);
+        // Get donations with concept and destination names
+        var donations = await (from d in db.Donations
+                              join c in db.Concepts on d.Concept equals c.Id.ToString().ToLower() into concepts
+                              from concept in concepts.DefaultIfEmpty()
+                              join dest in db.Destinations on d.Destination equals dest.Id.ToString().ToLower() into dests
+                              from destination in dests.DefaultIfEmpty()
+                              where d.DonorId == donorId
+                              orderby d.DonationDate descending
+                              select new Donation
+                              {
+                                  Id = d.Id,
+                                  DonorId = d.DonorId,
+                                  Currency = d.Currency,
+                                  Amount = d.Amount,
+                                  DonationDate = d.DonationDate,
+                                  Perasha = d.Perasha,
+                                  Minian = d.Minian,
+                                  Concept = concept != null ? concept.Name : d.Concept,
+                                  Destination = destination != null ? destination.Name : d.Destination,
+                                  DestinationOther = d.DestinationOther,
+                                  Comment = d.Comment,
+                                  IsVirtual = d.IsVirtual,
+                                  Matana = d.Matana,
+                                  CreatedAt = d.CreatedAt,
+                                  CreatedBy = d.CreatedBy,
+                                  UpdatedAt = d.UpdatedAt,
+                                  UpdatedBy = d.UpdatedBy
+                              })
+                              .AsNoTracking()
+                              .ToListAsync(ct);
 
-        var payments = await db.Payments.AsNoTracking()
-            .Where(p => p.DonorId == donorId)
-            .OrderByDescending(p => p.PaymentDate)
-            .ToListAsync(ct);
+        // Get payments with destination and collector names
+        var payments = await (from p in db.Payments
+                             join dest in db.Destinations on p.Destination equals dest.Id.ToString().ToLower() into dests
+                             from destination in dests.DefaultIfEmpty()
+                             join coll in db.Collectors on (p.Collector ?? "") equals coll.Id.ToString().ToLower() into colls
+                             from collector in colls.DefaultIfEmpty()
+                             where p.DonorId == donorId
+                             orderby p.PaymentDate descending
+                             select new Payment
+                             {
+                                 Id = p.Id,
+                                 DonorId = p.DonorId,
+                                 Currency = p.Currency,
+                                 Amount = p.Amount,
+                                 PaymentDate = p.PaymentDate,
+                                 Destination = destination != null ? destination.Name : p.Destination,
+                                 Collector = collector != null ? collector.Name : p.Collector,
+                                 Comment = p.Comment,
+                                 IsVirtual = p.IsVirtual,
+                                 CreatedAt = p.CreatedAt,
+                                 CreatedBy = p.CreatedBy,
+                                 UpdatedAt = p.UpdatedAt,
+                                 UpdatedBy = p.UpdatedBy
+                             })
+                             .AsNoTracking()
+                             .ToListAsync(ct);
 
         var balances = await GetBalancesByCurrencyAsync(donorId, ct);
 
