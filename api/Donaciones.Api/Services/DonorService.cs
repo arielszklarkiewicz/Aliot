@@ -39,30 +39,72 @@ public class DonorService(AppDbContext db, IAuthService authService) : IDonorSer
         donor.CreatedAt = DateTimeOffset.UtcNow;
         donor.CreatedBy = userId;
         
-        // Create user account for donor portal access
-        var username = await GenerateUniqueUsernameAsync(donor.FirstName, donor.LastName, ct);
+        // Create a user account for donor portal access with retry mechanism
+        var maxRetries = 10;
+        var retryCount = 0;
+        User? user = null;
+        string? username = null;
         var password = GeneratePassword();
         
-        try
+        while (user == null)
         {
-            var user = await authService.CreateUserAsync(
-                email: username,
-                password: password,
-                role: UserRole.Donor,
-                fullName: donor.FullName,
-                createdBy: userId,
-                ct: ct
-            );
-            
+            try
+            {
+                username = await GenerateUniqueUsernameAsync(donor.FirstName, donor.LastName, ct);
+                
+                // Diagnostic logging
+                Console.WriteLine($"[ATTEMPTING USER CREATE] Username: {username} | Donor: {donor.FirstName} {donor.LastName} | Attempt: {retryCount + 1}");
+                
+                user = await authService.CreateUserAsync(
+                    email: username,
+                    password: password,
+                    role: UserRole.Donor,
+                    fullName: donor.FullName,
+                    createdBy: userId,
+                    ct: ct
+                );
+            }
+            catch (InvalidOperationException ex) when (ex.Message.Contains("Email already exists"))
+            {
+                retryCount++;
+                Console.WriteLine($"[USER CREATE FAILED] Username: {username} already exists (app check) | Retry: {retryCount}/{maxRetries}");
+                if (retryCount >= maxRetries)
+                {
+                    // If still failing after retries, continue without user account
+                    Console.WriteLine($"[USER CREATE ABORTED] Max retries reached for donor: {donor.FirstName} {donor.LastName}");
+                    break;
+                }
+                // Wait a bit before retrying to allow concurrent transactions to complete
+                await Task.Delay(50 * retryCount, ct);
+            }
+            catch (DbUpdateException ex) 
+                when (ex.InnerException?.Message?.Contains("duplicate key") == true || 
+                      ex.InnerException?.Message?.Contains("IX_users_email") == true)
+            {
+                retryCount++;
+                Console.WriteLine($"[USER CREATE FAILED] Username: {username} already exists (DB constraint) | Retry: {retryCount}/{maxRetries}");
+                if (retryCount >= maxRetries)
+                {
+                    // If still failing after retries, continue without user account
+                    Console.WriteLine($"[USER CREATE ABORTED] Max retries reached for donor: {donor.FirstName} {donor.LastName}");
+                    break;
+                }
+                // Wait a bit before retrying to allow concurrent transactions to complete
+                await Task.Delay(50 * retryCount, ct);
+            }
+            catch (Exception ex)
+            {
+                // Other exceptions, break and continue without user
+                Console.WriteLine($"[USER CREATE ERROR] Unexpected error for username: {username} | Error: {ex.Message}");
+                break;
+            }
+        }
+        
+        if (user != null)
+        {
             donor.UserId = user.Id;
-            
             // Log credentials for admin to retrieve
             Console.WriteLine($"[DONOR CREATED] Username: {username} | Password: {password} | Donor: {donor.FullName}");
-        }
-        catch (Exception)
-        {
-            // If user creation fails, continue without linking user (optional)
-            // You could also throw to prevent donor creation without user
         }
         
         db.Donors.Add(donor);
@@ -88,13 +130,26 @@ public class DonorService(AppDbContext db, IAuthService authService) : IDonorSer
         var username = baseUsername;
         var counter = 1;
         
+        Console.WriteLine($"[USERNAME GENERATION] Base username: {baseUsername} | Name: {firstName} {lastName}");
+        
         // Check if username exists and append number if needed
-        while (await db.Users.AnyAsync(u => u.Email == username, ct))
+        // Limit iterations to prevent infinite loop
+        while (await db.Users.AnyAsync(u => u.Email == username, ct) && counter <= 1000)
         {
-            username = $"{baseUsername}{counter}";
+            Console.WriteLine($"[USERNAME CONFLICT] {username} already exists, trying {baseUsername}.{counter}");
+            username = $"{baseUsername}.{counter}";
             counter++;
         }
         
+        // If we exhausted counter attempts, add a random suffix to ensure uniqueness
+        if (counter > 1000)
+        {
+            var random = new Random();
+            username = $"{baseUsername}.{random.Next(10000, 99999)}";
+            Console.WriteLine($"[USERNAME FALLBACK] Using random suffix: {username}");
+        }
+        
+        Console.WriteLine($"[USERNAME SELECTED] Final username: {username}");
         return username;
     }
     
@@ -369,6 +424,12 @@ public class DonorService(AppDbContext db, IAuthService authService) : IDonorSer
             payment.DonorId = toDonorId;
             payment.UpdatedAt = DateTimeOffset.UtcNow;
             payment.UpdatedBy = userId;
+        }
+
+        // Delete the user associated with fromDonor if it exists
+        if (fromDonor.UserId.HasValue)
+        {
+            await authService.DeleteUserAsync(fromDonor.UserId.Value, ct);
         }
 
         // Log the merge before deletion

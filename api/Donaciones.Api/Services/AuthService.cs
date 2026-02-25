@@ -61,7 +61,19 @@ public class AuthService(AppDbContext db, IConfiguration config, ILogger<AuthSer
         };
 
         db.Users.Add(user);
-        await db.SaveChangesAsync(ct);
+        
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException ex) 
+            when (ex.InnerException?.Message?.Contains("duplicate key") == true || 
+                  ex.InnerException?.Message?.Contains("IX_users_email") == true)
+        {
+            // Remove the failed entity from tracking to clean up the context
+            db.Entry(user).State = EntityState.Detached;
+            throw new InvalidOperationException("Email already exists");
+        }
 
         logger.LogInformation("User created: {Email} with role {Role}", email, role);
         return user;

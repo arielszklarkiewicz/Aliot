@@ -23,7 +23,7 @@ export default function DonorAutocomplete({ value, onChange, placeholder = 'Sear
   useEffect(() => {
     if (!debounced) { setResults([]); setLoading(false); setError(''); return; }
     setLoading(true); setError('');
-    axios.get(`/api/donors`, { params: { q: debounced, page: 1, pageSize: 8 } })
+    axios.get(`/api/donors`, { params: { q: debounced, page: 1, pageSize: 50 } })
       .then(r => { setResults(r.data.items || []); setOpen(true); setActiveIndex(-1); })
       .catch(() => { setResults([]); setError('Failed to search'); })
       .finally(() => setLoading(false));
@@ -37,9 +37,6 @@ export default function DonorAutocomplete({ value, onChange, placeholder = 'Sear
       setOpen(false);
       setActiveIndex(-1);
       setError('');
-    } else if (value && query !== value) {
-      // Initialize query from value prop when it's provided
-      setQuery(value);
     }
   }, [value]);
 

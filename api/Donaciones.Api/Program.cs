@@ -1252,7 +1252,7 @@ app.MapPost("/api/admin/backup", async (AppDbContext db) =>
             var password = connStr.Password;
 
             // Create SQL script using plain SQL dump
-            var sb = new System.Text.StringBuilder();
+            var sb = new StringBuilder();
             sb.AppendLine($"-- Database backup created on {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC");
             sb.AppendLine($"-- Database: {dbName}");
             sb.AppendLine();
@@ -1303,7 +1303,7 @@ app.MapPost("/api/admin/backup", async (AppDbContext db) =>
 
             var fileName = $"backup_{DateTime.UtcNow:yyyyMMdd_HHmmss}.sql";
             var sqlContent = sb.ToString();
-            var bytes = System.Text.Encoding.UTF8.GetBytes(sqlContent);
+            var bytes = Encoding.UTF8.GetBytes(sqlContent);
 
             return Results.File(bytes, "application/sql", fileName);
         }
