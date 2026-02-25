@@ -6,16 +6,16 @@ CREATE EXTENSION IF NOT EXISTS pg_trgm;
 -- ENUM types
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'currency_enum') THEN
-    CREATE TYPE currency_enum AS ENUM ('pesos', 'dollars');
+    CREATE TYPE currency_enum AS ENUM ('Pesos', 'Dólares');
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'minian_enum') THEN
     CREATE TYPE minian_enum AS ENUM ('Ashkenazi', 'Sefaradi', 'Netz');
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'donation_concept_enum') THEN
-    CREATE TYPE donation_concept_enum AS ENUM ('Cohen', 'Levi', '3rd', '4th', '5th', '6th', 'Mosif', 'Mashlim');
+    CREATE TYPE donation_concept_enum AS ENUM ('Cohen', 'Levi', '3ro', '4to', '5to', '6to', 'Mosif', 'Mashlim', 'Agve', 'Glile', 'Aliá');
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'destination_enum') THEN
-    CREATE TYPE destination_enum AS ENUM ('Yeshiva', 'Ashkenazi Minian', 'Other');
+    CREATE TYPE destination_enum AS ENUM ('Yeshivá', 'Ashkenazi Minian', 'Other');
   END IF;
 END $$;
 

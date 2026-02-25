@@ -515,6 +515,20 @@ app.MapPost("/api/donors/{fromId:guid}/merge/{toId:guid}",
         })
     .RequirePermission(Permission.DeleteDonors);
 
+app.MapPost("/api/donors/{id:guid}/create-user",
+        async (IDonorService svc, HttpContext httpContext, Guid id, CancellationToken ct) =>
+        {
+            var userId = httpContext.User.GetUserId() ?? Guid.Empty;
+            var (success, username, password, error) = await svc.CreateUserForDonorAsync(id, userId, ct);
+            
+            if (success)
+            {
+                return Results.Ok(new { username, password });
+            }
+            return Results.BadRequest(new { error });
+        })
+    .RequirePermission(Permission.ManageUsers);
+
 // Donations
 app.MapGet("/api/donations", async (IDonationService svc, Guid? donorId, string? currency, string? minian,
         string? concept, string? destination, string? perasha, bool? isOccasionalDonor, DateOnly? from, DateOnly? to,

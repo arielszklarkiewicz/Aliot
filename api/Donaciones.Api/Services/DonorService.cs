@@ -450,4 +450,46 @@ public class DonorService(AppDbContext db, IAuthService authService) : IDonorSer
         await db.SaveChangesAsync(ct);
         return true;
     }
+
+    public async Task<(bool success, string? username, string? password, string? error)> CreateUserForDonorAsync(Guid donorId, Guid createdBy, CancellationToken ct)
+    {
+        var donor = await db.Donors.FirstOrDefaultAsync(d => d.Id == donorId, ct);
+        if (donor == null)
+        {
+            return (false, null, null, "Donante no encontrado");
+        }
+
+        if (donor.UserId.HasValue)
+        {
+            return (false, null, null, "El donante ya tiene un usuario asociado");
+        }
+
+        var username = await GenerateUniqueUsernameAsync(donor.FirstName, donor.LastName, ct);
+        var password = GeneratePassword();
+
+        try
+        {
+            var user = await authService.CreateUserAsync(
+                email: username,
+                password: password,
+                role: UserRole.Donor,
+                fullName: donor.FullName,
+                createdBy: createdBy,
+                ct: ct
+            );
+
+            donor.UserId = user.Id;
+            donor.UpdatedAt = DateTimeOffset.UtcNow;
+            donor.UpdatedBy = createdBy;
+            await db.SaveChangesAsync(ct);
+
+            Console.WriteLine($"[USER CREATED FOR DONOR] DonorId: {donorId} | Username: {username} | Password: {password}");
+            return (true, username, password, null);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[USER CREATE FAILED FOR DONOR] DonorId: {donorId} | Error: {ex.Message}");
+            return (false, null, null, "Error al crear el usuario");
+        }
+    }
 }

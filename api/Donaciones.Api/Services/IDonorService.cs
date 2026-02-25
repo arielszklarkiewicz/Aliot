@@ -14,4 +14,5 @@ public interface IDonorService
     Task<DonorSummary?> GetSummaryAsync(Guid donorId, CancellationToken ct);
     Task<(int donationsCount, int paymentsCount)> GetDonorDataCountAsync(Guid donorId, CancellationToken ct);
     Task<bool> MergeDonorAsync(Guid fromDonorId, Guid toDonorId, Guid userId, CancellationToken ct);
+    Task<(bool success, string? username, string? password, string? error)> CreateUserForDonorAsync(Guid donorId, Guid createdBy, CancellationToken ct);
 }

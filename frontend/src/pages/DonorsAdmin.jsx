@@ -79,6 +79,18 @@ export default function DonorsAdmin() {
     }
   };
 
+  const createUserForDonor = async (donor) => {
+    if (!window.confirm(`¿Crear usuario para ${donor.fullName}?`)) return;
+    try {
+      const { data } = await axios.post(`/api/donors/${donor.id}/create-user`);
+      alert(`Usuario creado exitosamente.\n\nUsuario: ${data.username}\nContraseña: ${data.password}\n\n⚠️ El donante deberá cambiar su contraseña al iniciar sesión por primera vez.`);
+      await load();
+    } catch (e) {
+      const errorMsg = e.response?.data?.error || 'No se pudo crear el usuario';
+      alert(errorMsg);
+    }
+  };
+
   const startMerge = async (donor) => {
     try {
       const { data } = await axios.get(`/api/donors/${donor.id}/data-count`);
@@ -205,7 +217,12 @@ export default function DonorsAdmin() {
                     <td>
                       <div className="table-actions">
                         <button className="btn btn-sm btn-secondary" onClick={() => startEdit(d)}>Editar</button>
-                        {isAdmin && (
+                        {isAdmin && !d.userId && (
+                          <button className="btn btn-sm btn-success" onClick={() => createUserForDonor(d)} title="Crear usuario para el donante">
+                            👤 Crear Usuario
+                          </button>
+                        )}
+                        {isAdmin && d.userId && (
                           <button className="btn btn-sm btn-primary" onClick={() => setShowInstructions(d)} title="Ver instrucciones de acceso">
                             📋 Instrucciones
                           </button>
@@ -257,6 +274,12 @@ export default function DonorsAdmin() {
                 </div>
                 <div className="mobile-card-actions">
                   <button className="btn btn-sm btn-secondary" onClick={() => startEdit(d)}>Editar</button>
+                  {isAdmin && !d.userId && (
+                    <button className="btn btn-sm btn-success" onClick={() => createUserForDonor(d)}>👤 Crear Usuario</button>
+                  )}
+                  {isAdmin && d.userId && (
+                    <button className="btn btn-sm btn-primary" onClick={() => setShowInstructions(d)}>📋 Instrucciones</button>
+                  )}
                   <button className="btn btn-sm btn-warning" onClick={() => startMerge(d)}>🔀 Fusionar</button>
                   <button className="btn btn-sm btn-ghost" onClick={() => del(d.id)}>Eliminar</button>
                 </div>

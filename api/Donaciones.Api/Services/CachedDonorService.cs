@@ -130,5 +130,15 @@ public class CachedDonorService : IDonorService
         }
         return result;
     }
+
+    public async Task<(bool success, string? username, string? password, string? error)> CreateUserForDonorAsync(Guid donorId, Guid createdBy, CancellationToken ct)
+    {
+        var result = await _innerService.CreateUserForDonorAsync(donorId, createdBy, ct);
+        if (result.success)
+        {
+            InvalidateCache();
+        }
+        return result;
+    }
 }
 
