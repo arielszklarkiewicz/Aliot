@@ -132,14 +132,14 @@ using (var scope = app.Services.CreateScope())
             db.Database.EnsureCreated();
         }
 
-        // Seed default admin user if no users exist
-        var hasUsers = await db.Users.AnyAsync();
-        if (!hasUsers)
+        // Seed default admin user if no admin exists
+        var hasAdmin = await db.Users.AnyAsync(u => u.Role == UserRole.Admin);
+        if (!hasAdmin)
         {
-            logger.LogInformation("No users found. Creating default admin user...");
-            await authService.CreateUserAsync("admin@admin.com", "admin123", UserRole.Admin, "System Administrator");
+            logger.LogInformation("No admin user found. Creating default admin user...");
+            await authService.CreateUserAsync("admin@aliot.com", "123456", UserRole.Admin, "System Administrator");
             logger.LogInformation(
-                "Default admin user created: email='admin@admin.com', password='admin123' (CHANGE THIS!)");
+                "Default admin user created: email='admin@aliot.com', password='123456' (CHANGE THIS!)");
         }
     }
     catch (Exception ex)

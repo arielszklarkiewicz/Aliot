@@ -54,7 +54,7 @@ def main():
         print("Step 1: Creating import user...")
         cur.execute("""
             INSERT INTO users (id, email, password_hash, role, is_active, created_at)
-            VALUES (gen_random_uuid(), 'import@donaciones.internal', 'IMPORT_USER_NO_LOGIN', 1, true, NOW())
+            VALUES (gen_random_uuid(), 'import@donaciones.internal', 'IMPORT_USER_NO_LOGIN', 2, true, NOW())
             ON CONFLICT (email) DO UPDATE SET email = EXCLUDED.email
             RETURNING id
         """)
@@ -213,6 +213,13 @@ def main():
         
         cur.execute("SELECT COUNT(*) FROM donations WHERE created_by = %s AND matana = true", (import_user_id,))
         print(f"Matana Records:  {cur.fetchone()[0]}")
+        
+        # Create default admin user
+        print()
+        print("Note: Default admin user will be created automatically by the API on first startup")
+        print("  Email: admin@aliot.com")
+        print("  Password: 123456")
+        print("  (API creates this if no admin exists)")
         
         print()
         print("You can now start the API and frontend to view the imported data!")
