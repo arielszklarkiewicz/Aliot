@@ -48,15 +48,29 @@ export default function DonationsAdmin() {
         from: filterFrom || undefined,
         to: filterTo || undefined
       };
+      console.log('Loading donations with params:', params);
       const { data } = await axios.get('/api/donations', { params });
+      console.log('Loaded donations:', data);
+      console.log('Setting items count:', data.items?.length);
       setItems(data.items || []);
       setTotal(data.total || 0);
+      console.log('Items state should be updated');
     } catch (e) {
+      console.error('Error loading donations:', e);
       setError('No se pudieron cargar las donaciones');
     } finally { setLoading(false); }
   }
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [page, pageSize, filterDonorId, filterDestination, filterPerasha, filterFrom, filterTo]);
+  useEffect(() => { 
+    console.log('useEffect triggered - filters changed');
+    load(); 
+    /* eslint-disable-next-line */ 
+  }, [page, pageSize, filterDonorId, filterDestination, filterPerasha, filterFrom, filterTo]);
+
+  // Debug: log items whenever they change
+  useEffect(() => {
+    console.log('Items state changed:', items.length, 'items');
+  }, [items]);
 
   const clearFilters = () => {
     setFilterDonorId('');
@@ -162,15 +176,14 @@ export default function DonationsAdmin() {
               <label style={{ fontSize: '0.875rem', marginBottom: 4 }}>Donante</label>
               <DonorAutocomplete
                 value={filterDonorName}
-                onChange={(id, donor) => { 
+                onChange={(id, donor) => { setPage(1); 
                   if (!donor) { 
                     setFilterDonorId(''); 
                     setFilterDonorName(''); 
                   } else { 
                     setFilterDonorId(id); 
                     setFilterDonorName(donor.fullName); 
-                  } 
-                  setPage(1); 
+                  }
                 }}
                 placeholder="Buscar donante..."
               />
@@ -180,7 +193,7 @@ export default function DonationsAdmin() {
               <label style={{ fontSize: '0.875rem', marginBottom: 4 }}>Destino</label>
               <select 
                 value={filterDestination} 
-                onChange={e => { setFilterDestination(e.target.value); setPage(1); }} 
+                onChange={e => setFilterDestination(e.target.value)} 
                 className="form-select"
               >
                 <option value="">Todos</option>
@@ -193,7 +206,7 @@ export default function DonationsAdmin() {
               <input 
                 type="text" 
                 value={filterPerasha} 
-                onChange={e => { setFilterPerasha(e.target.value); setPage(1); }} 
+                onChange={e => setFilterPerasha(e.target.value)} 
                 className="form-input"
                 placeholder="Filtrar por Parashá..."
               />
@@ -204,7 +217,7 @@ export default function DonationsAdmin() {
               <input 
                 type="date" 
                 value={filterFrom} 
-                onChange={e => { setFilterFrom(e.target.value); setPage(1); }} 
+                onChange={e => setFilterFrom(e.target.value)} 
                 className="form-input"
               />
             </div>
@@ -214,7 +227,7 @@ export default function DonationsAdmin() {
               <input 
                 type="date" 
                 value={filterTo} 
-                onChange={e => { setFilterTo(e.target.value); setPage(1); }} 
+                onChange={e => setFilterTo(e.target.value)} 
                 className="form-input"
               />
             </div>
@@ -249,6 +262,10 @@ export default function DonationsAdmin() {
                   </tr>
                 </thead>
                 <tbody>
+                  {(() => {
+                    console.log('Rendering table with items.length:', items.length);
+                    return null;
+                  })()}
                   {items.length === 0 ? (
                     <tr><td colSpan={10} style={{ textAlign: 'center', padding: 20 }}>No hay donaciones</td></tr>
                   ) : (
@@ -298,6 +315,7 @@ export default function DonationsAdmin() {
                     <option value="20">20</option>
                     <option value="50">50</option>
                     <option value="100">100</option>
+                    <option value="1000">Todos</option>
                   </select>
                 </label>
               </div>

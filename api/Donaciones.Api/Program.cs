@@ -530,14 +530,14 @@ app.MapPost("/api/donors/{id:guid}/create-user",
     .RequirePermission(Permission.ManageUsers);
 
 // Donations
-app.MapGet("/api/donations", async (IDonationService svc, Guid? donorId, string? currency, string? minian,
+app.MapGet("/api/donations", async (IDonationService svc, Guid? donorId, string? donorName, string? currency, string? minian,
         string? concept, string? destination, string? perasha, bool? isOccasionalDonor, DateOnly? from, DateOnly? to,
         int page = 1,
         int pageSize = 20, CancellationToken ct = default) =>
     {
         // Translate legacy query param isOccasionalDonor into service parameter IncludeOcasionalDonors (default true)
         var IncludeOcasionalDonors = !(isOccasionalDonor.HasValue && isOccasionalDonor.Value == false);
-        var (items, total) = await svc.ListAsync(donorId, currency, minian, concept, destination, perasha,
+        var (items, total) = await svc.ListAsync(donorId, donorName, currency, minian, concept, destination, perasha,
             IncludeOcasionalDonors, from, to, page, pageSize, ct);
         return Results.Ok(new { items, total, page, pageSize });
     })

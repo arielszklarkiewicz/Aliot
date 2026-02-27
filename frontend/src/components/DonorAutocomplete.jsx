@@ -22,9 +22,15 @@ export default function DonorAutocomplete({ value, onChange, placeholder = 'Sear
 
   useEffect(() => {
     if (!debounced) { setResults([]); setLoading(false); setError(''); return; }
+    console.log('DonorAutocomplete - Searching for:', debounced);
     setLoading(true); setError('');
     axios.get(`/api/donors`, { params: { q: debounced, page: 1, pageSize: 50 } })
-      .then(r => { setResults(r.data.items || []); setOpen(true); setActiveIndex(-1); })
+      .then(r => { 
+        console.log('DonorAutocomplete - Results:', r.data.items?.length, 'donors');
+        setResults(r.data.items || []); 
+        setOpen(true); 
+        setActiveIndex(-1); 
+      })
       .catch(() => { setResults([]); setError('Failed to search'); })
       .finally(() => setLoading(false));
   }, [debounced]);
@@ -41,6 +47,7 @@ export default function DonorAutocomplete({ value, onChange, placeholder = 'Sear
   }, [value]);
 
   const selectDonor = (donor) => {
+    console.log('DonorAutocomplete - Donor selected:', donor);
     onChange?.(donor?.id || '', donor || null);
     setQuery(donor?.fullName || '');
     setOpen(false);

@@ -11,7 +11,8 @@ export default function DonationsList() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
 
-  const [donorId, setDonorId] = useState('');
+  const [donorFilter, setDonorFilter] = useState('');
+  const debouncedDonorFilter = useDebounced(donorFilter, 300);
   const [destination, setDestination] = useState('');
   const [minian, setMinian] = useState('');
   const [from, setFrom] = useState('');
@@ -71,33 +72,30 @@ export default function DonationsList() {
         pageSize,
         destination: destination || undefined,
         minian: minian || undefined,
-        donorId: donorId || undefined,
+        donorName: debouncedDonorFilter || undefined,
+        perasha: debouncedPerasha || undefined,
         isOccasionalDonor: includeOccasional ? undefined : false,
         from: from || undefined,
         to: to || undefined,
       };
+      console.log('DonationsList - Loading with params:', params);
+      console.log('DonationsList - debouncedSearch:', debouncedSearch);
       const { data } = await axios.get('/api/donations', { params });
+      console.log('DonationsList - Loaded data:', data);
       let list = data.items || [];
       
-      if (perasha && perasha.trim()) {
-        const p = perasha.trim().toLowerCase();
-        list = list.filter(x => (x.perasha || '').toLowerCase().includes(p));
-      }
+      // NOTE: Client-side search is disabled because it breaks pagination
+      // The search would only filter the current page's results, not all results
+      // TODO: Implement server-side search in the API
       
-      if (debouncedSearch && debouncedSearch.trim()) {
-        const s = debouncedSearch.trim().toLowerCase();
-        list = list.filter(x => 
-          (x.donorName || '').toLowerCase().includes(s) ||
-          (x.comment || '').toLowerCase().includes(s) ||
-          (x.concept || '').toLowerCase().includes(s)
-        );
-      }
-      
+      // Client-side sort
       list = sortDonations(list, sortBy, sortOrder);
       
+      console.log('DonationsList - Final items count:', list.length);
       setItems(list);
-      setTotal(data.total || list.length || 0);
+      setTotal(data.total || 0);
     } catch (e) {
+      console.error('DonationsList - Error loading:', e);
       setError('No se pudieron cargar las donaciones. Por favor, intente nuevamente.');
     } finally { setLoading(false); }
   }
@@ -125,11 +123,20 @@ export default function DonationsList() {
   }
 
   useEffect(() => { 
+    console.log('DonationsList - useEffect triggered, loading...');
+    console.log('DonationsList - Current debouncedDonorFilter:', debouncedDonorFilter);
+    console.log('DonationsList - Current page:', page);
     load(); 
-  }, [page, pageSize, donorId, destination, minian, from, to, debouncedPerasha, includeOccasional, debouncedSearch, sortBy, sortOrder]);
+    /* eslint-disable-next-line */
+  }, [page, pageSize, debouncedDonorFilter, destination, minian, from, to, debouncedPerasha, includeOccasional, sortBy, sortOrder]);
+
+  // Debug: log items changes
+  useEffect(() => {
+    console.log('DonationsList - Items state changed:', items.length, 'items');
+  }, [items]);
 
   const clearFilters = () => {
-    setDonorId(''); 
+    setDonorFilter('');
     setDestination(''); 
     setMinian('');
     setFrom(''); 
@@ -141,7 +148,7 @@ export default function DonationsList() {
   };
 
   const totalPages = Math.max(1, Math.ceil((total || 0) / pageSize));
-  const hasActiveFilters = donorId || destination || minian || from || to || perasha || searchQuery || !includeOccasional;
+  const hasActiveFilters = debouncedDonorFilter || destination || minian || from || to || perasha || searchQuery || !includeOccasional;
 
   return (
     <div className="page-container">
@@ -232,7 +239,7 @@ export default function DonationsList() {
             type="text"
             placeholder="Buscar por donante, concepto o comentario..."
             value={searchQuery}
-            onChange={e => { setSearchQuery(e.target.value); setPage(1); }}
+            onChange={e => setSearchQuery(e.target.value)}
             className="search-input"
             aria-label="Buscar donaciones"
           />
@@ -260,7 +267,7 @@ export default function DonationsList() {
             <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
           </svg>
           Filtros
-          {hasActiveFilters && <span className="filter-badge">{[donorId, destination, minian, from, to, perasha, searchQuery, !includeOccasional].filter(Boolean).length}</span>}
+          {hasActiveFilters && <span className="filter-badge">{[debouncedDonorFilter, destination, minian, from, to, perasha, searchQuery, !includeOccasional].filter(Boolean).length}</span>}
         </button>
 
         <div className="sort-controls">
@@ -291,12 +298,14 @@ export default function DonationsList() {
           <div className="filters-grid">
             <div className="filter-field">
               <label htmlFor="donor-filter">Donante</label>
-              <DonorAutocomplete 
+              <input
                 id="donor-filter"
-                value={donorId} 
-                onChange={(id) => { setDonorId(id); setPage(1); }} 
-                placeholder="Buscar donante" 
-                style={{ width: '100%' }} 
+                type="text"
+                value={donorFilter}
+                onChange={e => { setDonorFilter(e.target.value); setPage(1); }}
+                placeholder="Filtrar por nombre de donante..."
+                className="filter-input"
+                style={{ width: '100%' }}
               />
             </div>
             

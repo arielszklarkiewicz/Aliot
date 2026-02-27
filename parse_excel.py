@@ -10,7 +10,7 @@ import re
 import uuid
 from datetime import datetime
 
-EXCEL_FILE = '/Users/ariel/Downloads/Bueno7.xlsx'
+EXCEL_FILE = '/Users/ariel/Downloads/Bueno8.xlsx'
 
 def normalize_name(name):
     """Convert name to Pascal Case"""

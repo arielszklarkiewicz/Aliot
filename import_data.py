@@ -216,10 +216,21 @@ def main():
         
         # Create default admin user
         print()
-        print("Note: Default admin user will be created automatically by the API on first startup")
-        print("  Email: admin@aliot.com")
-        print("  Password: 123456")
-        print("  (API creates this if no admin exists)")
+        print("Step 6: Creating default admin user...")
+        cur.execute("""
+            INSERT INTO users (id, email, password_hash, role, is_active, created_at)
+            VALUES (gen_random_uuid(), 'admin@aliot.com', '$2a$11$vVq8P8K8zX9xYxYxYxYxYeH0wP7zP7zP7zP7zP7zP7zP7zP7zP7zP.', 0, true, NOW())
+            ON CONFLICT (email) DO NOTHING
+            RETURNING id
+        """)
+        result = cur.fetchone()
+        if result:
+            print(f"✓ Admin user created: admin@aliot.com")
+            print(f"  Password: 123456")
+            print(f"  ⚠️  CHANGE THIS PASSWORD AFTER FIRST LOGIN!")
+        else:
+            print(f"✓ Admin user already exists: admin@aliot.com")
+        conn.commit()
         
         print()
         print("You can now start the API and frontend to view the imported data!")

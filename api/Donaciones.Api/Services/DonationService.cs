@@ -6,12 +6,24 @@ namespace Donaciones.Api.Services;
 
 public class DonationService(AppDbContext db) : IDonationService
 {
-    public async Task<(IReadOnlyList<DonationListItem> items, int total)> ListAsync(Guid? donorId, string? currency,
+    public async Task<(IReadOnlyList<DonationListItem> items, int total)> ListAsync(Guid? donorId, string? donorName, string? currency,
         string? minian, string? concept, string? destination, string? perasha, bool includeOccasionalDonors, DateOnly? from, DateOnly? to,
         int page, int pageSize, CancellationToken ct)
     {
         var qry = db.Donations.AsNoTracking().AsQueryable();
         if (donorId.HasValue) qry = qry.Where(x => x.DonorId == donorId);
+        
+        // Filter by donor name
+        if (!string.IsNullOrWhiteSpace(donorName))
+        {
+            var donorNameLower = donorName.ToLower();
+            qry = from d in qry
+                  join o in db.Donors.AsNoTracking() on d.DonorId equals o.Id
+                  where (o.FirstName != null && o.FirstName.ToLower().Contains(donorNameLower)) ||
+                        (o.LastName != null && o.LastName.ToLower().Contains(donorNameLower))
+                  select d;
+        }
+        
         if (!string.IsNullOrWhiteSpace(currency)) qry = qry.Where(x => x.Currency.ToLower() == currency.ToLower());
         if (!string.IsNullOrWhiteSpace(minian)) qry = qry.Where(x => x.Minian.ToLower() == minian.ToLower());
         if (!string.IsNullOrWhiteSpace(concept)) qry = qry.Where(x => x.Concept.ToLower() == concept.ToLower());

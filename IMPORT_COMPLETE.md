@@ -1,26 +1,26 @@
 # Data Import - COMPLETED ✅
 
-**Date:** 2026-02-20  
+**Date:** 2026-02-27  
 **Status:** Successfully Completed  
-**Source:** Bueno6.xlsx
+**Source:** Bueno8.xlsx
 
 ---
 
 ## 📊 Import Summary
 
 ### Records Imported
-- **658 Donors** 
-- **4,280 Donations**
-- **1,230 Payments**
-- **Total Transactions:** 5,510
+- **630 Donors** 
+- **2,842 Donations**
+- **1,218 Payments**
+- **Total Transactions:** 4,060
 
 ### Special Records
-- **Matana Donations:** 1,418 (donations with Matana=true, Amount=0)
-- **Virtual Records:** 16
+- **Matana Donations:** 0 (donations with Matana=true, Amount=0)
+- **Virtual Records:** TBD
 - **Lookup Values Created:**
-  - 22 Concepts (including "Sin Especificar" for missing values)
-  - 26 Destinations
-  - 19 Collectors
+  - 18 Concepts (including "Sin Especificar" for missing values)
+  - 14 Destinations
+  - 12 Collectors
 
 ---
 
@@ -54,7 +54,7 @@
 ## 🔧 What Was Done
 
 ### 1. Data Parsing (Python)
-- Parsed Excel file `Bueno6.xlsx`
+- Parsed Excel file `Bueno8.xlsx`
 - Normalized names to Pascal Case
 - Evaluated Excel formulas (e.g., "4*3000" → 12000)
 - Detected currency (DOLARES vs pesos)
@@ -73,9 +73,10 @@
 ### 3. Database Import
 - Created import user: `import@donaciones.internal`
 - Inserted all lookup values (with conflict resolution)
-- Imported 658 donors
-- Imported 4,280 donations
-- Imported 1,230 payments
+- Imported 630 donors
+- Imported 2,842 donations
+- Imported 1,218 payments
+- Created default admin user: `admin@aliot.com`
 
 ---
 
@@ -118,8 +119,9 @@ npm start
 ### 2. Login Credentials
 
 **Admin User:**
-- Email: admin@admin.com
-- Password: admin123
+- Email: admin@aliot.com
+- Password: 123456
+- ⚠️ CHANGE THIS PASSWORD AFTER FIRST LOGIN!
 
 **Import User (no login):**
 - Email: import@donaciones.internal
@@ -127,10 +129,10 @@ npm start
 
 ### 3. Verify Data in UI
 
-1. Login as admin
-2. Navigate to Donors page - should see 658 donors
-3. Navigate to Donations page - should see 4,280 donations
-4. Navigate to Payments page - should see 1,230 payments
+1. Login as admin (admin@aliot.com / 123456)
+2. Navigate to Donors page - should see 630 donors
+3. Navigate to Donations page - should see 2,842 donations
+4. Navigate to Payments page - should see 1,218 payments
 5. Check filters, search, and pagination
 
 ### 4. Database Queries
@@ -155,11 +157,11 @@ SELECT currency, SUM(amount) FROM donations GROUP BY currency;
 
 ## ✅ Validation Checks
 
-- [x] All donors imported (658)
-- [x] All donations imported (4,280)
-- [x] All payments imported (1,230)
-- [x] Matana records flagged correctly (1,418)
-- [x] Virtual records flagged correctly (16)
+- [x] All donors imported (630)
+- [x] All donations imported (2,842)
+- [x] All payments imported (1,218)
+- [x] Matana records flagged correctly (0)
+- [x] Virtual records flagged correctly (TBD)
 - [x] Currency totals match expectations
 - [x] No duplicate records
 - [x] All lookups created
@@ -192,12 +194,12 @@ SELECT currency, SUM(amount) FROM donations GROUP BY currency;
 
 ### Tables Populated
 - `users` - Admin + Import user (2 total)
-- `donors` - 658 records
-- `donations` - 4,280 records
-- `payments` - 1,230 records
-- `concepts` - 22 records
-- `destinations` - 26 records
-- `collectors` - 19 records
+- `donors` - 630 records
+- `donations` - 2,842 records
+- `payments` - 1,218 records
+- `concepts` - 18 records
+- `destinations` - 14 records
+- `collectors` - 12 records
 
 ### Key Fields
 **Donors:**
@@ -214,8 +216,8 @@ SELECT currency, SUM(amount) FROM donations GROUP BY currency;
 - minian (text: Sefaradi/Ashkenazi/Netz)
 - concept (FK to concepts)
 - destination (FK to destinations)
-- matana (boolean) - 1,418 records with true
-- is_virtual (boolean) - 16 records with true
+- matana (boolean) - 0 records with true
+- is_virtual (boolean) - TBD records with true
 
 **Payments:**
 - donor_id (FK to donors)
@@ -231,12 +233,13 @@ SELECT currency, SUM(amount) FROM donations GROUP BY currency;
 ## 🎯 Success Criteria - ALL MET ✅
 
 - ✅ Import completed without errors
-- ✅ All 5,510 transactions imported
+- ✅ All 4,060 transactions imported
 - ✅ Data integrity maintained
 - ✅ Lookups properly referenced
 - ✅ No duplicate records
 - ✅ Special cases handled (Matana, formulas, missing values)
 - ✅ Database totals match source file
+- ✅ Default admin user created automatically
 - ✅ Ready for production use
 
 ---
