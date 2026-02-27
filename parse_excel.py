@@ -26,6 +26,10 @@ def parse_amount(value):
     
     value_str = str(value).strip()
     
+    # Check if it's MI (Matana) - return special marker
+    if value_str.upper() == 'MI':
+        return -1  # Special marker for Matana
+    
     # Handle negative formulas like "=-450000"
     if value_str.startswith('=-'):
         return abs(float(value_str[2:]))
@@ -43,14 +47,11 @@ def parse_amount(value):
     except:
         return 0
 
-def detect_currency(concepto_str):
-    """Detect currency from concepto field"""
-    if pd.isna(concepto_str):
+def detect_currency(dolares_field):
+    """Detect currency from Dolares column - if not empty, it's dollars"""
+    if pd.isna(dolares_field) or dolares_field == '' or dolares_field == 0:
         return 'pesos'
-    concepto_lower = str(concepto_str).lower()
-    if 'dolares' in concepto_lower or 'dólares' in concepto_lower or 'usd' in concepto_lower:
-        return 'dolares'
-    return 'pesos'
+    return 'dolares'
 
 def clean_text(text):
     """Clean text field"""
@@ -122,11 +123,21 @@ def main():
         
         # Parse transaction data
         monto = parse_amount(row.get('Monto', 0))
+        
+        # Check if it's MI (matana) - parse_amount returns -1 for MI
+        is_matana = (monto == -1)
+        
+        # Skip if monto is 0 and NOT matana
         if monto == 0:
             continue
         
+        # If matana, set amount to 0
+        if is_matana:
+            monto = 0
+        
         concepto_raw = row.get('Concepto', '')
-        currency = detect_currency(concepto_raw)
+        dolares_field = row.get('Dolares')
+        currency = detect_currency(dolares_field)
         
         perasha = clean_text(row.get('Perasha')) or 'Sin Especificar'
         minian = clean_text(row.get('Minian')) or 'Sin Especificar'
@@ -137,9 +148,6 @@ def main():
             concepto = re.sub(r'\b(dolares|dólares|usd|pesos)\b', '', concepto, flags=re.IGNORECASE).strip()
             if not concepto or concepto in ['?', '??']:
                 concepto = None
-        
-        # Check if it's MI (matana)
-        is_matana = bool(concepto and concepto.upper() == 'MI')
         
         destino = clean_text(row.get('Destino'))
         if destino == 'Kupá':

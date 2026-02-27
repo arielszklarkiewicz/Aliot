@@ -1,4 +1,5 @@
 using System.Text;
+using System.IO.Compression;
 using Donaciones.Api.Authorization;
 using Donaciones.Api.Data;
 using Donaciones.Api.Models;
@@ -1310,7 +1311,7 @@ app.MapPost("/api/admin/backup", async (AppDbContext db) =>
             foreach (var user in users)
             {
                 sb.AppendLine(
-                    $"INSERT INTO users (id, email, password_hash, role, full_name, is_active, created_at, created_by) VALUES ('{user.Id}', {EscapeString(user.Email)}, {EscapeString(user.PasswordHash)}, {user.Role}, {EscapeString(user.FullName)}, {user.IsActive.ToString().ToUpper()}, '{user.CreatedAt:yyyy-MM-dd HH:mm:ss}', {(user.CreatedBy.HasValue ? $"'{user.CreatedBy}'" : "NULL")});");
+                    $"INSERT INTO users (id, email, password_hash, role, full_name, is_active, created_at, created_by) VALUES ('{user.Id}', {EscapeString(user.Email)}, {EscapeString(user.PasswordHash)}, {(int)user.Role}, {EscapeString(user.FullName)}, {user.IsActive.ToString().ToUpper()}, '{user.CreatedAt:yyyy-MM-dd HH:mm:ss}', {(user.CreatedBy.HasValue ? $"'{user.CreatedBy}'" : "NULL")});");
             }
 
             sb.AppendLine();
@@ -1460,6 +1461,128 @@ app.MapGet("/api/admin/export-excel", async (AppDbContext db) =>
         catch (Exception ex)
         {
             return Results.Problem($"Error exporting to Excel: {ex.Message}");
+        }
+    })
+    .RequireAuthorization(policy => policy.RequireRole("Admin"));
+
+app.MapGet("/api/admin/export-csv", async (AppDbContext db) =>
+    {
+        try
+        {
+            using var memoryStream = new MemoryStream();
+            using (var archive = new ZipArchive(memoryStream, ZipArchiveMode.Create, true))
+            {
+                // Export Donors to CSV
+                var donors = await db.Donors.OrderBy(d => d.FirstName).ThenBy(d => d.LastName).ToListAsync();
+                var donorsEntry = archive.CreateEntry("donantes.csv");
+                using (var entryStream = donorsEntry.Open())
+                using (var writer = new StreamWriter(entryStream, Encoding.UTF8))
+                {
+                    writer.WriteLine("id,first_name,last_name,email,phone,address,observations,is_occasional_donor,UserId,created_at,updated_at,created_by,updated_by");
+                    foreach (var donor in donors)
+                    {
+                        writer.WriteLine($"{donor.Id},{EscapeCsv(donor.FirstName)},{EscapeCsv(donor.LastName)},{EscapeCsv(donor.Email)},{EscapeCsv(donor.Phone)},{EscapeCsv(donor.Address)},{EscapeCsv(donor.Observations)},{(donor.IsOccasionalDonor ? "true" : "false")},{donor.UserId?.ToString() ?? ""},{donor.CreatedAt:yyyy-MM-dd HH:mm:ss},{donor.UpdatedAt?.ToString("yyyy-MM-dd HH:mm:ss") ?? ""},{donor.CreatedBy},{donor.UpdatedBy?.ToString() ?? ""}");
+                    }
+                }
+
+                // Export Donations to CSV
+                var donations = await db.Donations.OrderByDescending(d => d.DonationDate).ToListAsync();
+
+                var donationsEntry = archive.CreateEntry("donaciones.csv");
+                using (var entryStream = donationsEntry.Open())
+                using (var writer = new StreamWriter(entryStream, Encoding.UTF8))
+                {
+                    writer.WriteLine("id,donor_id,currency,amount,donation_date,perasha,minian,concept,destination,destination_other,comment,created_at,updated_at,is_virtual,matana,created_by,updated_by");
+                    foreach (var donation in donations)
+                    {
+                        writer.WriteLine($"{donation.Id},{donation.DonorId},{donation.Currency},{donation.Amount.ToString("0", System.Globalization.CultureInfo.InvariantCulture)},{donation.DonationDate:yyyy-MM-dd},{EscapeCsv(donation.Perasha)},{EscapeCsv(donation.Minian)},{EscapeCsv(donation.Concept)},{EscapeCsv(donation.Destination)},{EscapeCsv(donation.DestinationOther)},{EscapeCsv(donation.Comment)},{donation.CreatedAt:yyyy-MM-dd HH:mm:ss},{donation.UpdatedAt?.ToString("yyyy-MM-dd HH:mm:ss") ?? ""},{(donation.IsVirtual ? "true" : "false")},{(donation.Matana ? "true" : "false")},{donation.CreatedBy},{donation.UpdatedBy?.ToString() ?? ""}");
+                    }
+                }
+
+                // Export Payments to CSV
+                var payments = await db.Payments.OrderByDescending(p => p.PaymentDate).ToListAsync();
+
+                var paymentsEntry = archive.CreateEntry("pagos.csv");
+                using (var entryStream = paymentsEntry.Open())
+                using (var writer = new StreamWriter(entryStream, Encoding.UTF8))
+                {
+                    writer.WriteLine("id,donor_id,currency,amount,payment_date,destination,collector,comment,created_at,updated_at,is_virtual,created_by,updated_by");
+                    foreach (var payment in payments)
+                    {
+                        writer.WriteLine($"{payment.Id},{payment.DonorId},{payment.Currency},{payment.Amount.ToString("0", System.Globalization.CultureInfo.InvariantCulture)},{payment.PaymentDate:yyyy-MM-dd},{EscapeCsv(payment.Destination)},{EscapeCsv(payment.Collector)},{EscapeCsv(payment.Comment)},{payment.CreatedAt:yyyy-MM-dd HH:mm:ss},{payment.UpdatedAt?.ToString("yyyy-MM-dd HH:mm:ss") ?? ""},{(payment.IsVirtual ? "true" : "false")},{payment.CreatedBy},{payment.UpdatedBy?.ToString() ?? ""}");
+                    }
+                }
+
+                // Export Concepts to CSV
+                var concepts = await db.Concepts.OrderBy(c => c.Name).ToListAsync();
+                var conceptsEntry = archive.CreateEntry("conceptos.csv");
+                using (var entryStream = conceptsEntry.Open())
+                using (var writer = new StreamWriter(entryStream, Encoding.UTF8))
+                {
+                    writer.WriteLine("id,name,created_at,updated_at,created_by,updated_by");
+                    foreach (var concept in concepts)
+                    {
+                        writer.WriteLine($"{concept.Id},{EscapeCsv(concept.Name)},{concept.CreatedAt:yyyy-MM-dd HH:mm:ss},{concept.UpdatedAt?.ToString("yyyy-MM-dd HH:mm:ss") ?? ""},{concept.CreatedBy},{concept.UpdatedBy?.ToString() ?? ""}");
+                    }
+                }
+
+                // Export Destinations to CSV
+                var destinations = await db.Destinations.OrderBy(d => d.Name).ToListAsync();
+                var destinationsEntry = archive.CreateEntry("destinos.csv");
+                using (var entryStream = destinationsEntry.Open())
+                using (var writer = new StreamWriter(entryStream, Encoding.UTF8))
+                {
+                    writer.WriteLine("id,name,created_at,updated_at,created_by,updated_by");
+                    foreach (var destination in destinations)
+                    {
+                        writer.WriteLine($"{destination.Id},{EscapeCsv(destination.Name)},{destination.CreatedAt:yyyy-MM-dd HH:mm:ss},{destination.UpdatedAt?.ToString("yyyy-MM-dd HH:mm:ss") ?? ""},{destination.CreatedBy},{destination.UpdatedBy?.ToString() ?? ""}");
+                    }
+                }
+
+                // Export Collectors to CSV
+                var collectors = await db.Collectors.OrderBy(c => c.Name).ToListAsync();
+                var collectorsEntry = archive.CreateEntry("cobradores.csv");
+                using (var entryStream = collectorsEntry.Open())
+                using (var writer = new StreamWriter(entryStream, Encoding.UTF8))
+                {
+                    writer.WriteLine("id,name,created_at,updated_at,created_by,updated_by");
+                    foreach (var collector in collectors)
+                    {
+                        writer.WriteLine($"{collector.Id},{EscapeCsv(collector.Name)},{collector.CreatedAt:yyyy-MM-dd HH:mm:ss},{collector.UpdatedAt?.ToString("yyyy-MM-dd HH:mm:ss") ?? ""},{collector.CreatedBy},{collector.UpdatedBy?.ToString() ?? ""}");
+                    }
+                }
+
+                // Export Users to CSV
+                var users = await db.Users.OrderBy(u => u.Email).ToListAsync();
+                var usersEntry = archive.CreateEntry("usuarios.csv");
+                using (var entryStream = usersEntry.Open())
+                using (var writer = new StreamWriter(entryStream, Encoding.UTF8))
+                {
+                    writer.WriteLine("id,email,password_hash,full_name,role,is_active,created_at,updated_at,created_by,updated_by");
+                    foreach (var user in users)
+                    {
+                        writer.WriteLine($"{user.Id},{EscapeCsv(user.Email)},{EscapeCsv(user.PasswordHash)},{EscapeCsv(user.FullName)},{(int)user.Role},{(user.IsActive ? "true" : "false")},{user.CreatedAt:yyyy-MM-dd HH:mm:ss},{user.UpdatedAt?.ToString("yyyy-MM-dd HH:mm:ss") ?? ""},{user.CreatedBy?.ToString() ?? ""},{user.UpdatedBy?.ToString() ?? ""}");
+                    }
+                }
+            }
+
+            memoryStream.Position = 0;
+            var fileName = $"datos_csv_{DateTime.UtcNow:yyyyMMdd_HHmmss}.zip";
+            return Results.File(memoryStream.ToArray(), "application/zip", fileName);
+        }
+        catch (Exception ex)
+        {
+            return Results.Problem($"Error exporting to CSV: {ex.Message}");
+        }
+
+        static string EscapeCsv(string? value)
+        {
+            if (string.IsNullOrEmpty(value)) return "";
+            if (value.Contains(',') || value.Contains('"') || value.Contains('\n'))
+            {
+                return $"\"{value.Replace("\"", "\"\"")}\"";
+            }
+            return value;
         }
     })
     .RequireAuthorization(policy => policy.RequireRole("Admin"));

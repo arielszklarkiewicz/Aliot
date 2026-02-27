@@ -9,6 +9,9 @@ export default function SystemAdmin() {
   const [excelLoading, setExcelLoading] = useState(false);
   const [excelError, setExcelError] = useState('');
   
+  const [csvLoading, setCsvLoading] = useState(false);
+  const [csvError, setCsvError] = useState('');
+  
   const [createUsersLoading, setCreateUsersLoading] = useState(false);
   const [createUsersError, setCreateUsersError] = useState('');
   const [createUsersSuccess, setCreateUsersSuccess] = useState('');
@@ -81,6 +84,41 @@ export default function SystemAdmin() {
       setExcelError('Error al exportar los datos a Excel');
     } finally {
       setExcelLoading(false);
+    }
+  };
+
+  const exportToCsv = async () => {
+    if (!window.confirm('¿Está seguro de que desea exportar todos los datos a CSV?\n\nSe descargará un archivo ZIP con todas las tablas en formato CSV.')) {
+      return;
+    }
+
+    setCsvLoading(true);
+    setCsvError('');
+
+    try {
+      const response = await axios.get('/api/admin/export-csv', {
+        responseType: 'blob'
+      });
+
+      // Create download link
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      
+      // Generate filename with timestamp
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').substring(0, 19);
+      link.setAttribute('download', `datos_csv_${timestamp}.zip`);
+      
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      
+      alert('Datos exportados exitosamente a CSV');
+    } catch (e) {
+      console.error('CSV export error:', e);
+      setCsvError('Error al exportar los datos a CSV');
+    } finally {
+      setCsvLoading(false);
     }
   };
 
@@ -240,6 +278,59 @@ export default function SystemAdmin() {
           }}>
             <p style={{ margin: 0, fontSize: '0.875rem', color: '#1e40af' }}>
               ℹ️ <strong>Información:</strong> El archivo Excel incluirá todas las tablas principales del sistema con formato y filtros.
+            </p>
+          </div>
+        </div>
+
+        {/* CSV Export Section */}
+        <div className="form-section" style={{ marginTop: 24 }}>
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: 12, 
+            marginBottom: 16,
+            paddingBottom: 12,
+            borderBottom: '2px solid #e5e7eb'
+          }}>
+            <span style={{ fontSize: '1.5rem' }}>📄</span>
+            <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600 }}>Exportar a CSV</h2>
+          </div>
+
+          <p style={{ marginBottom: 16, color: '#64748b' }}>
+            Exporta todos los datos del sistema a archivos CSV comprimidos en un ZIP. Incluye todas las tablas (Donantes, Donaciones, Pagos, Conceptos, Destinos, Cobradores, Usuarios).
+          </p>
+
+          {csvError && (
+            <div style={{ 
+              padding: 12, 
+              background: '#fee2e2', 
+              border: '1px solid #ef4444', 
+              borderRadius: 6, 
+              marginBottom: 16,
+              color: '#991b1b'
+            }}>
+              ❌ {csvError}
+            </div>
+          )}
+
+          <button 
+            className="btn btn-success"
+            onClick={exportToCsv}
+            disabled={csvLoading}
+            style={{ minWidth: 200 }}
+          >
+            {csvLoading ? '⏳ Exportando...' : '📄 Exportar a CSV (ZIP)'}
+          </button>
+
+          <div style={{ 
+            marginTop: 16, 
+            padding: 12, 
+            background: '#dbeafe', 
+            border: '1px solid #3b82f6', 
+            borderRadius: 6 
+          }}>
+            <p style={{ margin: 0, fontSize: '0.875rem', color: '#1e40af' }}>
+              ℹ️ <strong>Información:</strong> El archivo ZIP contendrá archivos CSV separados para cada tabla del sistema.
             </p>
           </div>
         </div>
