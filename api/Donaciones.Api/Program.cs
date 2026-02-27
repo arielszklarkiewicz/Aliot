@@ -1277,7 +1277,7 @@ app.MapPost("/api/admin/backup", async (AppDbContext db) =>
             foreach (var donor in donors)
             {
                 sb.AppendLine(
-                    $"INSERT INTO \"Donors\" (\"Id\", \"FirstName\", \"LastName\", \"Email\", \"Phone\", \"Address\", \"Observations\", \"IsOccasionalDonor\", \"UserId\", \"CreatedAt\", \"CreatedBy\", \"UpdatedAt\", \"UpdatedBy\") VALUES ('{donor.Id}', {EscapeString(donor.FirstName)}, {EscapeString(donor.LastName)}, {EscapeString(donor.Email)}, {EscapeString(donor.Phone)}, {EscapeString(donor.Address)}, {EscapeString(donor.Observations)}, {donor.IsOccasionalDonor.ToString().ToUpper()}, {(donor.UserId.HasValue ? $"'{donor.UserId}'" : "NULL")}, '{donor.CreatedAt:yyyy-MM-dd HH:mm:ss}', '{donor.CreatedBy}', {(donor.UpdatedAt.HasValue ? $"'{donor.UpdatedAt:yyyy-MM-dd HH:mm:ss}'" : "NULL")}, {(donor.UpdatedBy.HasValue ? $"'{donor.UpdatedBy}'" : "NULL")});");
+                    $"INSERT INTO donors (id, first_name, last_name, email, phone, address, observations, is_occasional_donor, \"UserId\", created_at, created_by, updated_at, updated_by) VALUES ('{donor.Id}', {EscapeString(donor.FirstName)}, {EscapeString(donor.LastName)}, {EscapeString(donor.Email)}, {EscapeString(donor.Phone)}, {EscapeString(donor.Address)}, {EscapeString(donor.Observations)}, {donor.IsOccasionalDonor.ToString().ToUpper()}, {(donor.UserId.HasValue ? $"'{donor.UserId}'" : "NULL")}, '{donor.CreatedAt:yyyy-MM-dd HH:mm:ss}', '{donor.CreatedBy}', {(donor.UpdatedAt.HasValue ? $"'{donor.UpdatedAt:yyyy-MM-dd HH:mm:ss}'" : "NULL")}, {(donor.UpdatedBy.HasValue ? $"'{donor.UpdatedBy}'" : "NULL")});");
             }
 
             sb.AppendLine();
@@ -1288,7 +1288,7 @@ app.MapPost("/api/admin/backup", async (AppDbContext db) =>
             foreach (var donation in donations)
             {
                 sb.AppendLine(
-                    $"INSERT INTO \"Donations\" (\"Id\", \"DonorId\", \"Currency\", \"Amount\", \"DonationDate\", \"Perasha\", \"Minian\", \"Concept\", \"Destination\", \"DestinationOther\", \"Comment\", \"IsVirtual\", \"Matana\", \"CreatedAt\", \"CreatedBy\", \"UpdatedAt\", \"UpdatedBy\") VALUES ('{donation.Id}', '{donation.DonorId}', {EscapeString(donation.Currency)}, {donation.Amount}, '{donation.DonationDate:yyyy-MM-dd}', {EscapeString(donation.Perasha)}, {EscapeString(donation.Minian)}, {EscapeString(donation.Concept)}, {EscapeString(donation.Destination)}, {EscapeString(donation.DestinationOther)}, {EscapeString(donation.Comment)}, {donation.IsVirtual.ToString().ToUpper()}, {donation.Matana.ToString().ToUpper()}, '{donation.CreatedAt:yyyy-MM-dd HH:mm:ss}', '{donation.CreatedBy}', {(donation.UpdatedAt.HasValue ? $"'{donation.UpdatedAt:yyyy-MM-dd HH:mm:ss}'" : "NULL")}, {(donation.UpdatedBy.HasValue ? $"'{donation.UpdatedBy}'" : "NULL")});");
+                    $"INSERT INTO donations (id, donor_id, currency, amount, donation_date, perasha, minian, concept, destination, destination_other, comment, is_virtual, matana, created_at, created_by, updated_at, updated_by) VALUES ('{donation.Id}', '{donation.DonorId}', {EscapeString(donation.Currency)}, {donation.Amount}, '{donation.DonationDate:yyyy-MM-dd}', {EscapeString(donation.Perasha)}, {EscapeString(donation.Minian)}, {EscapeString(donation.Concept)}, {EscapeString(donation.Destination)}, {EscapeString(donation.DestinationOther)}, {EscapeString(donation.Comment)}, {donation.IsVirtual.ToString().ToUpper()}, {donation.Matana.ToString().ToUpper()}, '{donation.CreatedAt:yyyy-MM-dd HH:mm:ss}', '{donation.CreatedBy}', {(donation.UpdatedAt.HasValue ? $"'{donation.UpdatedAt:yyyy-MM-dd HH:mm:ss}'" : "NULL")}, {(donation.UpdatedBy.HasValue ? $"'{donation.UpdatedBy}'" : "NULL")});");
             }
 
             sb.AppendLine();
@@ -1299,7 +1299,7 @@ app.MapPost("/api/admin/backup", async (AppDbContext db) =>
             foreach (var payment in payments)
             {
                 sb.AppendLine(
-                    $"INSERT INTO \"Payments\" (\"Id\", \"DonorId\", \"Currency\", \"Amount\", \"PaymentDate\", \"Destination\", \"Comment\", \"IsVirtual\", \"CreatedAt\", \"CreatedBy\", \"UpdatedAt\", \"UpdatedBy\") VALUES ('{payment.Id}', '{payment.DonorId}', {EscapeString(payment.Currency)}, {payment.Amount}, '{payment.PaymentDate:yyyy-MM-dd}', {EscapeString(payment.Destination)}, {EscapeString(payment.Comment)}, {payment.IsVirtual.ToString().ToUpper()}, '{payment.CreatedAt:yyyy-MM-dd HH:mm:ss}', '{payment.CreatedBy}', {(payment.UpdatedAt.HasValue ? $"'{payment.UpdatedAt:yyyy-MM-dd HH:mm:ss}'" : "NULL")}, {(payment.UpdatedBy.HasValue ? $"'{payment.UpdatedBy}'" : "NULL")});");
+                    $"INSERT INTO payments (id, donor_id, currency, amount, payment_date, destination, collector, comment, is_virtual, created_at, created_by, updated_at, updated_by) VALUES ('{payment.Id}', '{payment.DonorId}', {EscapeString(payment.Currency)}, {payment.Amount}, '{payment.PaymentDate:yyyy-MM-dd}', {EscapeString(payment.Destination)}, {EscapeString(payment.Collector)}, {EscapeString(payment.Comment)}, {payment.IsVirtual.ToString().ToUpper()}, '{payment.CreatedAt:yyyy-MM-dd HH:mm:ss}', '{payment.CreatedBy}', {(payment.UpdatedAt.HasValue ? $"'{payment.UpdatedAt:yyyy-MM-dd HH:mm:ss}'" : "NULL")}, {(payment.UpdatedBy.HasValue ? $"'{payment.UpdatedBy}'" : "NULL")});");
             }
 
             sb.AppendLine();
@@ -1310,7 +1310,7 @@ app.MapPost("/api/admin/backup", async (AppDbContext db) =>
             foreach (var user in users)
             {
                 sb.AppendLine(
-                    $"INSERT INTO \"Users\" (\"Id\", \"Email\", \"PasswordHash\", \"Role\", \"FullName\", \"IsActive\", \"CreatedAt\", \"CreatedBy\") VALUES ('{user.Id}', {EscapeString(user.Email)}, {EscapeString(user.PasswordHash)}, '{user.Role}', {EscapeString(user.FullName)}, {user.IsActive.ToString().ToUpper()}, '{user.CreatedAt:yyyy-MM-dd HH:mm:ss}', {(user.CreatedBy.HasValue ? $"'{user.CreatedBy}'" : "NULL")});");
+                    $"INSERT INTO users (id, email, password_hash, role, full_name, is_active, created_at, created_by) VALUES ('{user.Id}', {EscapeString(user.Email)}, {EscapeString(user.PasswordHash)}, {user.Role}, {EscapeString(user.FullName)}, {user.IsActive.ToString().ToUpper()}, '{user.CreatedAt:yyyy-MM-dd HH:mm:ss}', {(user.CreatedBy.HasValue ? $"'{user.CreatedBy}'" : "NULL")});");
             }
 
             sb.AppendLine();
