@@ -28,6 +28,7 @@ export default function DonorSummary() {
   const [filterMatana, setFilterMatana] = useState('');
   const [creatingVirtual, setCreatingVirtual] = useState(false);
   const [showRecentTransactions, setShowRecentTransactions] = useState(true);
+  const [showCombinedList, setShowCombinedList] = useState(false);
 
   const hasAnyFilters = fromDate || toDate || filterDestination || filterCurrency || filterIsVirtual || filterMatana;
 
@@ -345,6 +346,47 @@ export default function DonorSummary() {
           5: { cellWidth: 25, halign: 'center' }
         }
       });
+
+      yPos = doc.lastAutoTable.finalY + 15;
+    }
+
+    // Combined Transactions List
+    if (combinedTransactions.length > 0) {
+      if (yPos > 250) {
+        doc.addPage();
+        yPos = 20;
+      }
+
+      doc.setFontSize(14);
+      doc.setFont(undefined, 'bold');
+      doc.text('Todas las Transacciones', 14, yPos);
+      yPos += 8;
+
+      const combinedData = combinedTransactions.map(t => [
+        t.date,
+        t.type === 'donation' ? 'Donacion' : 'Pago',
+        t.matana ? 'Matana' : fmt(t.amount),
+        t.currency,
+        t.destination,
+        t.isVirtual ? 'Si' : 'No'
+      ]);
+
+      autoTable(doc, {
+        startY: yPos,
+        head: [['Fecha', 'Tipo', 'Monto', 'Moneda', 'Destino', 'Virtual']],
+        body: combinedData,
+        theme: 'striped',
+        headStyles: { fillColor: [156, 39, 176], fontSize: 9, fontStyle: 'bold' },
+        styles: { fontSize: 8, cellPadding: 2.5 },
+        columnStyles: {
+          0: { cellWidth: 28 },
+          1: { cellWidth: 28 },
+          2: { halign: 'right', cellWidth: 28 },
+          3: { cellWidth: 28 },
+          4: { cellWidth: 35 },
+          5: { cellWidth: 25, halign: 'center' }
+        }
+      });
     }
 
     // Save PDF
@@ -466,6 +508,33 @@ export default function DonorSummary() {
     if (allPayments.length === 0) return null;
     return [...allPayments].sort((a, b) => new Date(b.paymentDate) - new Date(a.paymentDate))[0];
   }, [allPayments]);
+
+  // Combined list of donations and payments ordered by date (desc)
+  const combinedTransactions = useMemo(() => {
+    const donations = filteredDonations.map(d => ({
+      type: 'donation',
+      date: d.donationDate,
+      amount: d.matana ? null : d.amount,
+      currency: d.currency,
+      destination: d.destination === 'Other' ? 'Otro' : d.destination,
+      matana: d.matana,
+      isVirtual: d.isVirtual,
+      details: d
+    }));
+
+    const payments = filteredPayments.map(p => ({
+      type: 'payment',
+      date: p.paymentDate,
+      amount: p.amount,
+      currency: p.currency,
+      destination: p.destination,
+      matana: false,
+      isVirtual: p.isVirtual,
+      details: p
+    }));
+
+    return [...donations, ...payments].sort((a, b) => new Date(b.date) - new Date(a.date));
+  }, [filteredDonations, filteredPayments]);
 
   return (
     <div className="page-container">
@@ -627,7 +696,7 @@ export default function DonorSummary() {
           <div className="balances-section">
             <h2 className="section-title">Totales por Destino y Moneda</h2>
             <div className="balances-grid">
-              {balances.map(b => (
+              {balances.filter(b => b.total !== 0 || b.matanaCount > 0).map(b => (
                 <div key={`${b.destination}|${b.currency}`} className="balance-card">
                   <div className="balance-header">
                     <span className="balance-label">Destino</span>
@@ -789,6 +858,82 @@ export default function DonorSummary() {
                     </div>
                   </div>
                 )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {donor && combinedTransactions.length > 0 && (
+          <div className="combined-transactions-section" style={{ marginTop: '2rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+              <h2 className="section-title" style={{ margin: 0 }}>Todas las Transacciones</h2>
+              <button
+                onClick={() => setShowCombinedList(!showCombinedList)}
+                className="btn btn-secondary btn-sm"
+                style={{ padding: '0.5rem 1rem' }}
+              >
+                {showCombinedList ? '▼ Ocultar' : '▶ Mostrar'}
+              </button>
+            </div>
+            
+            {showCombinedList && (
+              <div className="table-container">
+                <div className="table-wrapper">
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>Fecha</th>
+                        <th>Tipo</th>
+                        <th className="text-right">Monto</th>
+                        <th>Destino</th>
+                        <th className="text-center">Virtual</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {combinedTransactions.map((t, idx) => (
+                        <tr key={`${t.type}-${t.date}-${idx}`}>
+                          <td>{t.date}</td>
+                          <td>
+                            {t.type === 'donation' ? (
+                              <span className="badge" style={{ 
+                                backgroundColor: '#e0e7ff', 
+                                color: '#4338ca',
+                                fontWeight: 500,
+                                padding: '4px 8px',
+                                borderRadius: '4px',
+                                fontSize: '0.875rem'
+                              }}>
+                                Donación
+                              </span>
+                            ) : (
+                              <span className="badge" style={{ 
+                                backgroundColor: '#fce7f3', 
+                                color: '#be185d',
+                                fontWeight: 500,
+                                padding: '4px 8px',
+                                borderRadius: '4px',
+                                fontSize: '0.875rem'
+                              }}>
+                                Pago
+                              </span>
+                            )}
+                          </td>
+                          <td className="text-right">
+                            {t.matana ? (
+                              <span style={{ fontWeight: 600, color: '#f97316' }}>MATANA</span>
+                            ) : (
+                              <span style={getCurrencyStyle(t.currency)}>{formatCurrency(t.amount, t.currency)}</span>
+                            )}
+                          </td>
+                          <td>{t.destination}</td>
+                          <td className="text-center">
+                            {t.isVirtual ? <span className="badge badge-warning">SÍ</span> : '—'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
           </div>

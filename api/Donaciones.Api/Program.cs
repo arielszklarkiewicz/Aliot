@@ -674,6 +674,10 @@ app.MapGet("/api/reports/donor-balances", async (AppDbContext db, CancellationTo
         var donors = await db.Donors.AsNoTracking()
             .Select(d => new { d.Id, d.FirstName, d.LastName })
             .ToListAsync(ct);
+        var destinations = await db.Destinations.AsNoTracking()
+            .Select(d => new { d.Id, d.Name })
+            .ToListAsync(ct);
+        var destinationsMap = destinations.ToDictionary(d => d.Id.ToString(), d => d.Name);
 
         // Find last virtual payment date for each donor/currency/destination combination
         var lastVirtualPayments = allPayments
@@ -720,6 +724,7 @@ app.MapGet("/api/reports/donor-balances", async (AppDbContext db, CancellationTo
                 var paymentsTotal = paymentTotals.FirstOrDefault(x =>
                     x.DonorId == k.DonorId && x.Currency == k.Currency && x.Destination == k.Destination)?.Total ?? 0m;
                 var saldo = donationsTotal - paymentsTotal;
+                var destinationName = destinationsMap.ContainsKey(k.Destination) ? destinationsMap[k.Destination] : k.Destination;
                 return new
                 {
                     donorId = k.DonorId,
@@ -727,7 +732,7 @@ app.MapGet("/api/reports/donor-balances", async (AppDbContext db, CancellationTo
                         ? "(Desconocido)"
                         : (string.IsNullOrWhiteSpace(d.LastName) ? d.FirstName : ($"{d.FirstName} {d.LastName}")),
                     currency = k.Currency,
-                    destino = k.Destination,
+                    destino = destinationName,
                     donationsTotal,
                     paymentsTotal,
                     saldo

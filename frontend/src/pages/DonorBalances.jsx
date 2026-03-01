@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from '../api/client';
+import { formatCurrency, getCurrencyStyle, getCurrencyColor } from '../utils/currency';
 
 export default function DonorBalances() {
   const [items, setItems] = useState([]);
@@ -21,8 +22,6 @@ export default function DonorBalances() {
     };
     load();
   }, []);
-
-  const fmt = (n) => (n ?? 0).toLocaleString('es-AR');
 
   return (
     <div className="page-container">
@@ -68,17 +67,26 @@ export default function DonorBalances() {
                       const curNorm = cur.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
                       const isUsd = curNorm === 'dolares' || curNorm === 'usd' || curNorm === 'dolares estadounidenses' || curNorm === 'u$s' || curNorm === 'us$';
                       const label = curNorm === 'pesos' ? 'Pesos' : (curNorm === 'dolares' ? 'Dólares' : r.currency);
+                      const color = getCurrencyColor(r.currency);
                       return (
-                        <span className={isUsd ? 'badge badge-success' : 'badge badge-primary'}>
+                        <span className="badge" style={{ 
+                          backgroundColor: isUsd ? '#d1fae5' : '#dbeafe',
+                          color: color,
+                          fontWeight: 500
+                        }}>
                           {label}
                         </span>
                       );
                     })()}
                   </td>
-                  <td style={{ textAlign: 'right' }}>{fmt(r.donationsTotal)}</td>
-                  <td style={{ textAlign: 'right' }}>{fmt(r.paymentsTotal)}</td>
                   <td style={{ textAlign: 'right' }}>
-                    <strong>{fmt(r.saldo)}</strong>
+                    <span style={getCurrencyStyle(r.currency)}>{formatCurrency(r.donationsTotal, r.currency)}</span>
+                  </td>
+                  <td style={{ textAlign: 'right' }}>
+                    <span style={getCurrencyStyle(r.currency)}>{formatCurrency(r.paymentsTotal, r.currency)}</span>
+                  </td>
+                  <td style={{ textAlign: 'right' }}>
+                    <strong style={getCurrencyStyle(r.currency)}>{formatCurrency(r.saldo, r.currency)}</strong>
                   </td>
                 </tr>
               ))}
