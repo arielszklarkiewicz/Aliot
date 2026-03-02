@@ -11,11 +11,15 @@ public class DonorService(AppDbContext db, IAuthService authService) : IDonorSer
         var qry = db.Donors.AsNoTracking();
         if (!string.IsNullOrWhiteSpace(q))
         {
-            var ql = q.ToLower();
-            qry = qry.Where(d =>
-                ((d.FirstName + " " + (d.LastName ?? "")).ToLower().Contains(ql))
-                || (d.Observations != null && d.Observations.ToLower().Contains(ql))
-            );
+            var terms = q.ToLower().Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (var term in terms)
+            {
+                qry = qry.Where(d =>
+                    d.FirstName.ToLower().Contains(term)
+                    || (d.LastName != null && d.LastName.ToLower().Contains(term))
+                    || (d.Observations != null && d.Observations.ToLower().Contains(term))
+                );
+            }
         }
         if (isOccasionalDonor.HasValue)
         {
