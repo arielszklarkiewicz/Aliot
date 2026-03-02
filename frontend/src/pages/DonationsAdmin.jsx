@@ -18,6 +18,7 @@ export default function DonationsAdmin() {
   const [filterDonorId, setFilterDonorId] = useState('');
   const [filterDonorName, setFilterDonorName] = useState('');
   const [filterDestination, setFilterDestination] = useState('');
+  const [filterMinian, setFilterMinian] = useState('');
   const [filterPerasha, setFilterPerasha] = useState('');
   const [filterFrom, setFilterFrom] = useState('');
   const [filterTo, setFilterTo] = useState('');
@@ -44,6 +45,7 @@ export default function DonationsAdmin() {
         pageSize,
         donorId: filterDonorId || undefined,
         destination: filterDestination || undefined,
+        minian: filterMinian || undefined,
         perasha: filterPerasha || undefined,
         from: filterFrom || undefined,
         to: filterTo || undefined
@@ -65,7 +67,7 @@ export default function DonationsAdmin() {
     console.log('useEffect triggered - filters changed');
     load(); 
     /* eslint-disable-next-line */ 
-  }, [page, pageSize, filterDonorId, filterDestination, filterPerasha, filterFrom, filterTo]);
+  }, [page, pageSize, filterDonorId, filterDestination, filterMinian, filterPerasha, filterFrom, filterTo]);
 
   // Debug: log items whenever they change
   useEffect(() => {
@@ -76,6 +78,7 @@ export default function DonationsAdmin() {
     setFilterDonorId('');
     setFilterDonorName('');
     setFilterDestination('');
+    setFilterMinian('');
     setFilterPerasha('');
     setFilterFrom('');
     setFilterTo('');
@@ -202,6 +205,18 @@ export default function DonationsAdmin() {
             </div>
 
             <div className="form-group" style={{ minWidth: 150, marginBottom: 0 }}>
+              <label style={{ fontSize: '0.875rem', marginBottom: 4 }}>Minián</label>
+              <select 
+                value={filterMinian} 
+                onChange={e => setFilterMinian(e.target.value)} 
+                className="form-select"
+              >
+                <option value="">Todos</option>
+                {lookups.minian.map(m => <option key={m} value={m}>{m}</option>)}
+              </select>
+            </div>
+
+            <div className="form-group" style={{ minWidth: 150, marginBottom: 0 }}>
               <label style={{ fontSize: '0.875rem', marginBottom: 4 }}>Parashá</label>
               <input 
                 type="text" 
@@ -232,7 +247,7 @@ export default function DonationsAdmin() {
               />
             </div>
 
-            {(filterDonorId || filterDestination || filterPerasha || filterFrom || filterTo) && (
+            {(filterDonorId || filterDestination || filterMinian || filterPerasha || filterFrom || filterTo) && (
               <button className="btn btn-secondary" onClick={clearFilters} style={{ marginBottom: 0 }}>
                 Limpiar filtros
               </button>
