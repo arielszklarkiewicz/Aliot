@@ -4,6 +4,6 @@ public record DonorSummary
 {
     public Donor? Donor { get; set; }
     public IReadOnlyList<Donation> Donations { get; set; } = Array.Empty<Donation>();
-    public IReadOnlyList<Payment> Payments { get; set; } = Array.Empty<Payment>();
+    public IReadOnlyList<PaymentListItem> Payments { get; set; } = Array.Empty<PaymentListItem>();
     public IReadOnlyList<DonorCurrencyBalance> Balances { get; set; } = Array.Empty<DonorCurrencyBalance>();
 }

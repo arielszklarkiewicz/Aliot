@@ -18,6 +18,7 @@ export default function DonorSummary() {
   const [donor, setDonor] = useState(null);
   const [allDonations, setAllDonations] = useState([]);
   const [allPayments, setAllPayments] = useState([]);
+  const [destinations, setDestinations] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [fromDate, setFromDate] = useState('');
@@ -31,6 +32,19 @@ export default function DonorSummary() {
   const [showCombinedList, setShowCombinedList] = useState(false);
 
   const hasAnyFilters = fromDate || toDate || filterDestination || filterCurrency || filterIsVirtual || filterMatana;
+
+  // Load destinations list
+  useEffect(() => {
+    async function loadDestinations() {
+      try {
+        const { data } = await axios.get('/api/admin/destinations');
+        setDestinations(data.items || []);
+      } catch (e) {
+        console.error('Error loading destinations:', e);
+      }
+    }
+    loadDestinations();
+  }, []);
 
   // Auto-load donor for Donor role users
   useEffect(() => {
@@ -99,13 +113,21 @@ export default function DonorSummary() {
     });
   }, [allPayments, fromDate, toDate, filterDestination, filterCurrency, filterIsVirtual]);
 
-  async function createVirtualTransaction(currency, destination, saldoAmount, matanaCount = 0) {
+  async function createVirtualTransaction(currency, destinationName, saldoAmount, matanaCount = 0) {
     if (!donorId) return;
     setCreatingVirtual(true);
     setError('');
     
     try {
       const today = new Date().toISOString().split('T')[0];
+      
+      // Find destination ID from name
+      const destination = destinations.find(d => d.name.toLowerCase() === destinationName.toLowerCase());
+      if (!destination) {
+        console.error('Destination not found. Looking for:', destinationName, 'Available:', destinations.map(d => d.name));
+        setError(`No se encontró el destino: ${destinationName}`);
+        return;
+      }
       
       if (saldoAmount > 0) {
         // Positive saldo means donor owes money -> create virtual payment
@@ -114,7 +136,7 @@ export default function DonorSummary() {
           currency,
           amount: saldoAmount,
           paymentDate: today,
-          destination,
+          destinationId: destination.id,
           comment: 'Pago virtual para representar que esta en 0',
           isVirtual: true
         });
@@ -128,7 +150,7 @@ export default function DonorSummary() {
           perasha: '-',
           minian: '-',
           concept: '-',
-          destination,
+          destination: destination.id.toString(),
           comment: 'Donacion virtual para representar que esta en 0',
           isVirtual: true
         });
@@ -139,7 +161,7 @@ export default function DonorSummary() {
           currency,
           amount: 1,
           paymentDate: today,
-          destination,
+          destinationId: destination.id,
           comment: `Pago virtual para marcar ${matanaCount} Matana(s) como pagadas`,
           isVirtual: true
         });
@@ -441,9 +463,13 @@ export default function DonorSummary() {
       const lastVirtualDate = lastVirtualTransactions.get(key);
       const donationDate = new Date(d.donationDate);
       
-      // Skip virtual donations at or before the last virtual transaction (they've already "reset" the balance)
-      // Also skip regular donations at or before the last virtual transaction
-      if (lastVirtualDate && donationDate <= lastVirtualDate) {
+      // Skip transactions before the last virtual transaction
+      if (lastVirtualDate && donationDate < lastVirtualDate) {
+        continue;
+      }
+      
+      // Skip virtual transactions - they are only reset points, not actual amounts
+      if (d.isVirtual) {
         continue;
       }
 
@@ -460,9 +486,13 @@ export default function DonorSummary() {
       const lastVirtualDate = lastVirtualTransactions.get(key);
       const paymentDate = new Date(p.paymentDate);
       
-      // Skip virtual payments at or before the last virtual transaction (they've already "reset" the balance)
-      // Also skip regular payments at or before the last virtual transaction
-      if (lastVirtualDate && paymentDate <= lastVirtualDate) {
+      // Skip transactions before the last virtual transaction
+      if (lastVirtualDate && paymentDate < lastVirtualDate) {
+        continue;
+      }
+      
+      // Skip virtual transactions - they are only reset points, not actual amounts
+      if (p.isVirtual) {
         continue;
       }
       

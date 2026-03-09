@@ -375,12 +375,29 @@ public class DonorService(AppDbContext db, IAuthService authService) : IDonorSer
                               .AsNoTracking()
                               .ToListAsync(ct);
 
-        // Get payments - these will have GUIDs not names
-        var payments = await db.Payments
-                              .Where(p => p.DonorId == donorId)
-                              .OrderByDescending(p => p.PaymentDate)
-                              .AsNoTracking()
-                              .ToListAsync(ct);
+        // Get payments with destination and collector names
+        var payments = await (from p in db.Payments
+                             join dest in db.Destinations on p.DestinationId equals dest.Id
+                             join coll in db.Collectors on p.CollectorId equals coll.Id into collectors
+                             from collector in collectors.DefaultIfEmpty()
+                             where p.DonorId == donorId
+                             orderby p.PaymentDate descending
+                             select new PaymentListItem
+                             {
+                                 Id = p.Id,
+                                 DonorId = p.DonorId,
+                                 DonorName = "", // Not needed in summary context
+                                 DonorObservations = null,
+                                 Currency = p.Currency,
+                                 Amount = p.Amount,
+                                 PaymentDate = p.PaymentDate,
+                                 Destination = dest.Name,
+                                 Collector = collector != null ? collector.Name : null,
+                                 Comment = p.Comment,
+                                 IsVirtual = p.IsVirtual
+                             })
+                             .AsNoTracking()
+                             .ToListAsync(ct);
 
         var balances = await GetBalancesByCurrencyAsync(donorId, ct);
 
