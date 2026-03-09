@@ -11,7 +11,15 @@ public class PaymentService(AppDbContext db) : IPaymentService
         var qry = db.Payments.AsNoTracking().AsQueryable();
         if (donorId.HasValue) qry = qry.Where(x => x.DonorId == donorId);
         if (!string.IsNullOrWhiteSpace(currency)) qry = qry.Where(x => x.Currency.ToLower() == currency.ToLower());
-        if (!string.IsNullOrWhiteSpace(collector)) qry = qry.Where(x => (x.Collector ?? "").ToLower().Contains(collector.ToLower()));
+        if (!string.IsNullOrWhiteSpace(collector))
+        {
+            var collectorLower = collector.ToLower();
+            var collectorIds = db.Collectors.AsNoTracking()
+                .Where(c => c.Name.ToLower().Contains(collectorLower))
+                .Select(c => c.Id)
+                .ToList();
+            qry = qry.Where(x => x.CollectorId.HasValue && collectorIds.Contains(x.CollectorId.Value));
+        }
         if (from.HasValue) qry = qry.Where(x => x.PaymentDate >= from);
         if (to.HasValue) qry = qry.Where(x => x.PaymentDate <= to);
 
@@ -21,9 +29,8 @@ public class PaymentService(AppDbContext db) : IPaymentService
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .Join(db.Donors.AsNoTracking(), p => p.DonorId, o => o.Id, (p, o) => new { Payment = p, Donor = o })
-            .GroupJoin(db.Destinations.AsNoTracking(), x => x.Payment.Destination, d => d.Id.ToString().ToLower(), (x, dests) => new { x.Payment, x.Donor, Destinations = dests })
-            .SelectMany(x => x.Destinations.DefaultIfEmpty(), (x, dest) => new { x.Payment, x.Donor, Destination = dest })
-            .GroupJoin(db.Collectors.AsNoTracking(), x => x.Payment.Collector ?? "", c => c.Id.ToString().ToLower(), (x, colls) => new { x.Payment, x.Donor, x.Destination, Collectors = colls })
+            .Join(db.Destinations.AsNoTracking(), x => x.Payment.DestinationId, d => d.Id, (x, dest) => new { x.Payment, x.Donor, Destination = dest })
+            .GroupJoin(db.Collectors.AsNoTracking(), x => x.Payment.CollectorId, c => c.Id, (x, colls) => new { x.Payment, x.Donor, x.Destination, Collectors = colls })
             .SelectMany(x => x.Collectors.DefaultIfEmpty(), (x, coll) => new PaymentListItem
             {
                 Id = x.Payment.Id,
@@ -35,8 +42,8 @@ public class PaymentService(AppDbContext db) : IPaymentService
                 Currency = x.Payment.Currency,
                 Amount = x.Payment.Amount,
                 PaymentDate = x.Payment.PaymentDate,
-                Destination = x.Destination != null ? x.Destination.Name : x.Payment.Destination,
-                Collector = coll != null ? coll.Name : x.Payment.Collector,
+                Destination = x.Destination.Name,
+                Collector = coll != null ? coll.Name : null,
                 Comment = x.Payment.Comment,
                 IsVirtual = x.Payment.IsVirtual
             })
@@ -46,36 +53,12 @@ public class PaymentService(AppDbContext db) : IPaymentService
 
     public async Task<Payment?> GetAsync(Guid id, CancellationToken ct)
     {
-        var result = await (from p in db.Payments
-                           join dest in db.Destinations on p.Destination equals dest.Id.ToString().ToLower() into dests
-                           from destination in dests.DefaultIfEmpty()
-                           join coll in db.Collectors on (p.Collector ?? "") equals coll.Id.ToString().ToLower() into colls
-                           from collector in colls.DefaultIfEmpty()
-                           where p.Id == id
-                           select new Payment
-                           {
-                               Id = p.Id,
-                               DonorId = p.DonorId,
-                               Currency = p.Currency,
-                               Amount = p.Amount,
-                               PaymentDate = p.PaymentDate,
-                               Destination = destination != null ? destination.Name : p.Destination,
-                               Collector = collector != null ? collector.Name : p.Collector,
-                               Comment = p.Comment,
-                               IsVirtual = p.IsVirtual,
-                               CreatedAt = p.CreatedAt,
-                               CreatedBy = p.CreatedBy,
-                               UpdatedAt = p.UpdatedAt,
-                               UpdatedBy = p.UpdatedBy
-                           })
-                           .AsNoTracking()
-                           .FirstOrDefaultAsync(ct);
-        return result;
+        return await db.Payments.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, ct);
     }
 
     public async Task<Payment?> CreateAsync(PaymentCreate dto, Guid userId, CancellationToken ct)
     {
-        if (dto.DonorId == Guid.Empty || string.IsNullOrWhiteSpace(dto.Currency) || string.IsNullOrWhiteSpace(dto.Destination) || dto.Amount is null)
+        if (dto.DonorId == Guid.Empty || string.IsNullOrWhiteSpace(dto.Currency) || !dto.DestinationId.HasValue || dto.Amount is null)
             return null;
         // Enforce integer-only amounts
         if (dto.Amount is null || decimal.Truncate(dto.Amount.Value) != dto.Amount.Value || dto.Amount.Value <= 0)
@@ -87,8 +70,8 @@ public class PaymentService(AppDbContext db) : IPaymentService
             Currency = dto.Currency!,
             Amount = dto.Amount ?? 0,
             PaymentDate = dto.PaymentDate,
-            Destination = dto.Destination!,
-            Collector = dto.Collector,
+            DestinationId = dto.DestinationId.Value,
+            CollectorId = dto.CollectorId,
             Comment = dto.Comment,
             IsVirtual = dto.IsVirtual,
             CreatedAt = DateTimeOffset.UtcNow,
@@ -110,8 +93,8 @@ public class PaymentService(AppDbContext db) : IPaymentService
         entity.Currency = dto.Currency!;
         entity.Amount = dto.Amount ?? entity.Amount;
         entity.PaymentDate = dto.PaymentDate;
-        entity.Destination = dto.Destination!;
-        entity.Collector = dto.Collector;
+        entity.DestinationId = dto.DestinationId ?? entity.DestinationId;
+        entity.CollectorId = dto.CollectorId;
         entity.Comment = dto.Comment;
         entity.IsVirtual = dto.IsVirtual;
         entity.UpdatedAt = DateTimeOffset.UtcNow;

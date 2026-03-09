@@ -6,8 +6,8 @@ public record PaymentCreate
     public string? Currency { get; set; }
     public decimal? Amount { get; set; }
     public DateOnly PaymentDate { get; set; }
-    public string? Destination { get; set; }
-    public string? Collector { get; set; }
+    public Guid? DestinationId { get; set; }
+    public Guid? CollectorId { get; set; }
     public string? Comment { get; set; }
     public bool IsVirtual { get; set; }
 }

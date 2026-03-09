@@ -15,8 +15,8 @@ export default function Payments() {
   const [collectorsLoading, setCollectorsLoading] = useState(false);
   const [currency, setCurrency] = useState('');
   const [amount, setAmount] = useState('');
-  const [destination, setDestination] = useState('');
-  const [collector, setCollector] = useState('');
+  const [destinationId, setDestinationId] = useState('');
+  const [collectorId, setCollectorId] = useState('');
   const [date, setDate] = useState(new Date().toISOString().slice(0,10));
   const [comment, setComment] = useState('');
 
@@ -31,20 +31,36 @@ export default function Payments() {
         destinations: data.destinations || []
       });
       setCurrency((data.currencies || [])[0] || '');
-      setDestination((data.destinations || [])[0] || '');
     });
-    loadCollectors();
+    loadDestinationsAndCollectors();
     /* eslint-disable-next-line */
   }, []);
+
+  const loadDestinationsAndCollectors = async () => {
+    try {
+      const [destResp, collResp] = await Promise.all([
+        axios.get('/api/admin/destinations'),
+        axios.get('/api/admin/collectors')
+      ]);
+      const destinations = (destResp.data.items || []).sort((a,b) => a.name.localeCompare(b.name));
+      const collectors = (collResp.data.items || []).sort((a,b) => a.name.localeCompare(b.name));
+      
+      setLookups(prev => ({ ...prev, destinations }));
+      setCollectors(collectors);
+      
+      if (destinations.length > 0) setDestinationId(destinations[0].id);
+      if (collectors.length > 0) setCollectorId(collectors[0].id);
+    } catch (e) {
+      console.error('Failed to load destinations/collectors', e);
+    }
+  };
 
   const loadCollectors = async () => {
     setCollectorsLoading(true);
     try {
       const { data } = await axios.get('/api/admin/collectors');
-      const names = (data.items || []).map(x => x.name).sort((a,b)=>a.localeCompare(b));
-      setCollectors(names);
-      // only set default if none selected
-      setCollector(prev => prev || names[0] || '');
+      const items = (data.items || []).sort((a,b)=>a.name.localeCompare(b.name));
+      setCollectors(items);
     } catch (e) {
       setCollectors([]);
     } finally {
@@ -71,7 +87,15 @@ export default function Payments() {
     const amt = parseInt((amount || '').toString().replace(/[^0-9]/g, ''), 10) || 0;
     if (!isFinite(amt) || amt <= 0) { setErrorMsg('Ingrese un monto entero válido (> 0)'); return; }
     try {
-      await axios.post(`/api/payments`, { donorId, currency, amount: amt, paymentDate: date, destination, collector, comment });
+      await axios.post(`/api/payments`, { 
+        donorId, 
+        currency, 
+        amount: amt, 
+        paymentDate: date, 
+        destinationId, 
+        collectorId: collectorId || null, 
+        comment 
+      });
       setSuccessMsg('Pago creado');
       setErrorMsg('');
       // preparar formulario para una nueva entrada: restablecer campos incluyendo donante
@@ -107,16 +131,17 @@ export default function Payments() {
             </div>
 
             <div className="form-group">
-              <label htmlFor="payment-destination">Destino</label>
-              <select id="payment-destination" value={destination} onChange={e=>setDestination(e.target.value)}>
-                {lookups.destinations.map(d => (<option key={d} value={d}>{d}</option>))}
+              <label htmlFor="payment-destination">Destino *</label>
+              <select id="payment-destination" value={destinationId} onChange={e=>setDestinationId(e.target.value)}>
+                {lookups.destinations.map(d => (<option key={d.id} value={d.id}>{d.name}</option>))}
               </select>
             </div>
 
             <div className="form-group">
               <label htmlFor="payment-collector">Cobrador</label>
-              <select id="payment-collector" value={collector} onChange={e=>setCollector(e.target.value)} onFocus={loadCollectors}>
-                {collectors.map(c => (<option key={c} value={c}>{c}</option>))}
+              <select id="payment-collector" value={collectorId} onChange={e=>setCollectorId(e.target.value)} onFocus={loadCollectors}>
+                <option value="">-- Sin cobrador --</option>
+                {collectors.map(c => (<option key={c.id} value={c.id}>{c.name}</option>))}
               </select>
             </div>
           </div>

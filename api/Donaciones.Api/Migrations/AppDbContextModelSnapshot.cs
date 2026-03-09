@@ -373,9 +373,9 @@ namespace Donaciones.Api.Migrations
                         .HasColumnType("numeric")
                         .HasColumnName("amount");
 
-                    b.Property<string>("Collector")
-                        .HasColumnType("text")
-                        .HasColumnName("collector");
+                    b.Property<Guid?>("CollectorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("collector_id");
 
                     b.Property<string>("Comment")
                         .HasColumnType("text")
@@ -394,10 +394,9 @@ namespace Donaciones.Api.Migrations
                         .HasColumnType("text")
                         .HasColumnName("currency");
 
-                    b.Property<string>("Destination")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("destination");
+                    b.Property<Guid>("DestinationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("destination_id");
 
                     b.Property<Guid>("DonorId")
                         .HasColumnType("uuid")

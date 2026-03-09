@@ -95,8 +95,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(x => x.Currency).HasColumnName("currency").IsRequired();
             e.Property(x => x.Amount).HasColumnName("amount");
             e.Property(x => x.PaymentDate).HasColumnName("payment_date");
-            e.Property(x => x.Destination).HasColumnName("destination").IsRequired();
-            e.Property(x => x.Collector).HasColumnName("collector");
+            e.Property(x => x.DestinationId).HasColumnName("destination_id").IsRequired();
+            e.Property(x => x.CollectorId).HasColumnName("collector_id");
             e.Property(x => x.Comment).HasColumnName("comment");
             e.Property(x => x.IsVirtual).HasColumnName("is_virtual").HasDefaultValue(false);
             e.Property(x => x.CreatedAt).HasColumnName("created_at");

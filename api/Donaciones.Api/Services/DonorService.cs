@@ -223,14 +223,14 @@ public class DonorService(AppDbContext db, IAuthService authService) : IDonorSer
         // Find last virtual payment date for each currency/destination combination
         var lastVirtualPayments = allPayments
             .Where(p => p.IsVirtual)
-            .GroupBy(p => new { Currency = p.Currency.ToLower(), p.Destination })
-            .Select(g => new { g.Key.Currency, g.Key.Destination, LastDate = g.Max(p => p.PaymentDate) })
-            .ToDictionary(x => (x.Currency, x.Destination), x => x.LastDate);
+            .GroupBy(p => new { Currency = p.Currency.ToLower(), p.DestinationId })
+            .Select(g => new { g.Key.Currency, g.Key.DestinationId, LastDate = g.Max(p => p.PaymentDate) })
+            .ToDictionary(x => (x.Currency, x.DestinationId), x => x.LastDate);
 
         // Calculate donations considering virtual payment cutoff
         var donationsTotal = allDonations
             .Where(d => {
-                var key = (d.Currency.ToLower(), d.Destination);
+                var key = (d.Currency.ToLower(), Guid.Parse(d.Destination));
                 var cutoffDate = lastVirtualPayments.ContainsKey(key) ? lastVirtualPayments[key] : (DateOnly?)null;
                 return !cutoffDate.HasValue || d.DonationDate > cutoffDate.Value;
             })
@@ -239,7 +239,7 @@ public class DonorService(AppDbContext db, IAuthService authService) : IDonorSer
         // Calculate payments considering virtual payment cutoff
         var paymentsTotal = allPayments
             .Where(p => {
-                var key = (p.Currency.ToLower(), p.Destination);
+                var key = (p.Currency.ToLower(), p.DestinationId);
                 var cutoffDate = lastVirtualPayments.ContainsKey(key) ? lastVirtualPayments[key] : (DateOnly?)null;
                 return !cutoffDate.HasValue || p.PaymentDate > cutoffDate.Value;
             })
@@ -270,9 +270,9 @@ public class DonorService(AppDbContext db, IAuthService authService) : IDonorSer
         // Find last virtual payment date for each currency/destination combination
         var lastVirtualPayments = allPayments
             .Where(p => p.IsVirtual)
-            .GroupBy(p => new { Currency = p.Currency.ToLower(), p.Destination })
-            .Select(g => new { g.Key.Currency, g.Key.Destination, LastDate = g.Max(p => p.PaymentDate) })
-            .ToDictionary(x => (x.Currency, x.Destination), x => x.LastDate);
+            .GroupBy(p => new { Currency = p.Currency.ToLower(), p.DestinationId })
+            .Select(g => new { g.Key.Currency, g.Key.DestinationId, LastDate = g.Max(p => p.PaymentDate) })
+            .ToDictionary(x => (x.Currency, x.DestinationId), x => x.LastDate);
 
         // Calculate donations considering virtual payment cutoff
         var donations = allDonations
@@ -281,7 +281,7 @@ public class DonorService(AppDbContext db, IAuthService authService) : IDonorSer
                 var total = 0m;
                 foreach (var d in g)
                 {
-                    var key = (g.Key, d.Destination);
+                    var key = (g.Key, Guid.Parse(d.Destination));
                     var cutoffDate = lastVirtualPayments.ContainsKey(key) ? lastVirtualPayments[key] : (DateOnly?)null;
                     if (!cutoffDate.HasValue || d.DonationDate > cutoffDate.Value)
                     {
@@ -299,7 +299,7 @@ public class DonorService(AppDbContext db, IAuthService authService) : IDonorSer
                 var total = 0m;
                 foreach (var p in g)
                 {
-                    var key = (g.Key, p.Destination);
+                    var key = (g.Key, p.DestinationId);
                     var cutoffDate = lastVirtualPayments.ContainsKey(key) ? lastVirtualPayments[key] : (DateOnly?)null;
                     if (!cutoffDate.HasValue || p.PaymentDate > cutoffDate.Value)
                     {
@@ -360,32 +360,12 @@ public class DonorService(AppDbContext db, IAuthService authService) : IDonorSer
                               .AsNoTracking()
                               .ToListAsync(ct);
 
-        // Get payments with destination and collector names
-        var payments = await (from p in db.Payments
-                             join dest in db.Destinations on p.Destination equals dest.Id.ToString().ToLower() into dests
-                             from destination in dests.DefaultIfEmpty()
-                             join coll in db.Collectors on (p.Collector ?? "") equals coll.Id.ToString().ToLower() into colls
-                             from collector in colls.DefaultIfEmpty()
-                             where p.DonorId == donorId
-                             orderby p.PaymentDate descending
-                             select new Payment
-                             {
-                                 Id = p.Id,
-                                 DonorId = p.DonorId,
-                                 Currency = p.Currency,
-                                 Amount = p.Amount,
-                                 PaymentDate = p.PaymentDate,
-                                 Destination = destination != null ? destination.Name : p.Destination,
-                                 Collector = collector != null ? collector.Name : p.Collector,
-                                 Comment = p.Comment,
-                                 IsVirtual = p.IsVirtual,
-                                 CreatedAt = p.CreatedAt,
-                                 CreatedBy = p.CreatedBy,
-                                 UpdatedAt = p.UpdatedAt,
-                                 UpdatedBy = p.UpdatedBy
-                             })
-                             .AsNoTracking()
-                             .ToListAsync(ct);
+        // Get payments - these will have GUIDs not names
+        var payments = await db.Payments
+                              .Where(p => p.DonorId == donorId)
+                              .OrderByDescending(p => p.PaymentDate)
+                              .AsNoTracking()
+                              .ToListAsync(ct);
 
         var balances = await GetBalancesByCurrencyAsync(donorId, ct);
 

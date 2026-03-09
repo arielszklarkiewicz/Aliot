@@ -17,7 +17,7 @@ export default function PaymentsAdmin() {
   // Filters
   const [filterDonorId, setFilterDonorId] = useState('');
   const [filterDonorName, setFilterDonorName] = useState('');
-  const [filterDestination, setFilterDestination] = useState('');
+  const [filterDestinationName, setFilterDestinationName] = useState('');
   const [filterFrom, setFilterFrom] = useState('');
   const [filterTo, setFilterTo] = useState('');
   
@@ -32,9 +32,14 @@ export default function PaymentsAdmin() {
       });
     }).catch(() => {});
 
-    axios.get('/api/admin/collectors').then(r => {
-      const names = (r.data.items || []).map(x => x.name).sort((a,b)=>a.localeCompare(b));
-      setCollectors(names);
+    Promise.all([
+      axios.get('/api/admin/destinations'),
+      axios.get('/api/admin/collectors')
+    ]).then(([destResp, collResp]) => {
+      const destinations = (destResp.data.items || []).sort((a,b) => a.name.localeCompare(b.name));
+      const collectors = (collResp.data.items || []).sort((a,b) => a.name.localeCompare(b.name));
+      setLookups(prev => ({ ...prev, destinations }));
+      setCollectors(collectors);
     }).catch(() => {});
   }, []);
 
@@ -45,7 +50,7 @@ export default function PaymentsAdmin() {
         page,
         pageSize,
         donorId: filterDonorId || undefined,
-        destination: filterDestination || undefined,
+        collector: filterDestinationName || undefined,
         from: filterFrom || undefined,
         to: filterTo || undefined
       };
@@ -74,8 +79,8 @@ export default function PaymentsAdmin() {
     currency: lookups.currencies[0] || 'Pesos', 
     amount: '', 
     paymentDate: new Date().toISOString().slice(0,10),
-    destination: lookups.destinations[0] || '',
-    collector: collectors[0] || '',
+    destinationId: lookups.destinations[0]?.id || '',
+    collectorId: collectors[0]?.id || '',
     comment: '',
     isVirtual: false
   });
@@ -99,8 +104,8 @@ export default function PaymentsAdmin() {
       currency: edit.currency,
       amount: amt,
       paymentDate: edit.paymentDate,
-      destination: edit.destination || '',
-      collector: edit.collector || '',
+      destinationId: edit.destinationId || '',
+      collectorId: edit.collectorId || null,
       comment: edit.comment || '',
       isVirtual: edit.isVirtual || false
     };
@@ -315,17 +320,17 @@ export default function PaymentsAdmin() {
                 </div>
 
                 <div className="form-group">
-                  <label>Destino</label>
-                  <select value={edit.destination} onChange={e => setEdit({ ...edit, destination: e.target.value })} className="form-select">
-                    {lookups.destinations.map(d => <option key={d} value={d}>{d}</option>)}
+                  <label>Destino *</label>
+                  <select value={edit.destinationId} onChange={e => setEdit({ ...edit, destinationId: e.target.value })} className="form-select">
+                    {lookups.destinations.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                   </select>
                 </div>
 
                 <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                   <label>Cobrador</label>
-                  <select value={edit.collector} onChange={e => setEdit({ ...edit, collector: e.target.value })} className="form-select">
-                    <option value="">Seleccione...</option>
-                    {collectors.map(c => <option key={c} value={c}>{c}</option>)}
+                  <select value={edit.collectorId || ''} onChange={e => setEdit({ ...edit, collectorId: e.target.value || null })} className="form-select">
+                    <option value="">-- Sin cobrador --</option>
+                    {collectors.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
                 </div>
 

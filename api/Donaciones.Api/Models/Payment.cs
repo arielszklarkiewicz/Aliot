@@ -7,8 +7,8 @@ public record Payment
     public string Currency { get; set; } = string.Empty;
     public decimal Amount { get; set; }
     public DateOnly PaymentDate { get; set; }
-    public string Destination { get; set; } = string.Empty;
-    public string? Collector { get; set; }
+    public Guid DestinationId { get; set; }
+    public Guid? CollectorId { get; set; }
     public string? Comment { get; set; }
     public bool IsVirtual { get; set; }
     public DateTimeOffset CreatedAt { get; set; }

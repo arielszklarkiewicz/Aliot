@@ -682,37 +682,37 @@ app.MapGet("/api/reports/donor-balances", async (AppDbContext db, CancellationTo
         // Find last virtual payment date for each donor/currency/destination combination
         var lastVirtualPayments = allPayments
             .Where(p => p.IsVirtual)
-            .GroupBy(p => new { p.DonorId, Currency = p.Currency.ToLower(), p.Destination })
-            .Select(g => new { g.Key.DonorId, g.Key.Currency, g.Key.Destination, LastDate = g.Max(p => p.PaymentDate) })
-            .ToDictionary(x => (x.DonorId, x.Currency, x.Destination), x => x.LastDate);
+            .GroupBy(p => new { p.DonorId, Currency = p.Currency.ToLower(), p.DestinationId })
+            .Select(g => new { g.Key.DonorId, g.Key.Currency, g.Key.DestinationId, LastDate = g.Max(p => p.PaymentDate) })
+            .ToDictionary(x => (x.DonorId, x.Currency, x.DestinationId), x => x.LastDate);
 
         // Calculate donations and payments considering virtual payment cutoff
         var donationTotals = allDonations
-            .GroupBy(d => new { d.DonorId, Currency = d.Currency.ToLower(), d.Destination })
+            .GroupBy(d => new { d.DonorId, Currency = d.Currency.ToLower(), DestinationId = Guid.Parse(d.Destination) })
             .Select(g =>
             {
-                var key = (g.Key.DonorId, g.Key.Currency, g.Key.Destination);
+                var key = (g.Key.DonorId, g.Key.Currency, g.Key.DestinationId);
                 var cutoffDate = lastVirtualPayments.ContainsKey(key) ? lastVirtualPayments[key] : (DateOnly?)null;
                 var total = g.Where(d => !cutoffDate.HasValue || d.DonationDate > cutoffDate.Value)
                     .Sum(d => d.Matana ? 0 : d.Amount);
-                return new { g.Key.DonorId, g.Key.Currency, g.Key.Destination, Total = total };
+                return new { g.Key.DonorId, g.Key.Currency, g.Key.DestinationId, Total = total };
             })
             .ToList();
 
         var paymentTotals = allPayments
-            .GroupBy(p => new { p.DonorId, Currency = p.Currency.ToLower(), p.Destination })
+            .GroupBy(p => new { p.DonorId, Currency = p.Currency.ToLower(), p.DestinationId })
             .Select(g =>
             {
-                var key = (g.Key.DonorId, g.Key.Currency, g.Key.Destination);
+                var key = (g.Key.DonorId, g.Key.Currency, g.Key.DestinationId);
                 var cutoffDate = lastVirtualPayments.ContainsKey(key) ? lastVirtualPayments[key] : (DateOnly?)null;
                 var total = g.Where(p => !cutoffDate.HasValue || p.PaymentDate > cutoffDate.Value)
                     .Sum(p => p.Amount);
-                return new { g.Key.DonorId, g.Key.Currency, g.Key.Destination, Total = total };
+                return new { g.Key.DonorId, g.Key.Currency, g.Key.DestinationId, Total = total };
             })
             .ToList();
 
-        var keys = donationTotals.Select(x => new { x.DonorId, x.Currency, x.Destination })
-            .Union(paymentTotals.Select(x => new { x.DonorId, x.Currency, x.Destination }))
+        var keys = donationTotals.Select(x => new { x.DonorId, x.Currency, x.DestinationId })
+            .Union(paymentTotals.Select(x => new { x.DonorId, x.Currency, x.DestinationId }))
             .ToList();
 
         var rows = keys
@@ -720,11 +720,11 @@ app.MapGet("/api/reports/donor-balances", async (AppDbContext db, CancellationTo
             {
                 var d = donors.FirstOrDefault(dd => dd.Id == k.DonorId);
                 var donationsTotal = donationTotals.FirstOrDefault(x =>
-                    x.DonorId == k.DonorId && x.Currency == k.Currency && x.Destination == k.Destination)?.Total ?? 0m;
+                    x.DonorId == k.DonorId && x.Currency == k.Currency && x.DestinationId == k.DestinationId)?.Total ?? 0m;
                 var paymentsTotal = paymentTotals.FirstOrDefault(x =>
-                    x.DonorId == k.DonorId && x.Currency == k.Currency && x.Destination == k.Destination)?.Total ?? 0m;
+                    x.DonorId == k.DonorId && x.Currency == k.Currency && x.DestinationId == k.DestinationId)?.Total ?? 0m;
                 var saldo = donationsTotal - paymentsTotal;
-                var destinationName = destinationsMap.ContainsKey(k.Destination) ? destinationsMap[k.Destination] : k.Destination;
+                var destinationName = destinationsMap.ContainsKey(k.DestinationId.ToString()) ? destinationsMap[k.DestinationId.ToString()] : k.DestinationId.ToString();
                 return new
                 {
                     donorId = k.DonorId,
@@ -771,9 +771,9 @@ app.MapGet("/api/autocomplete/perashot",
 app.MapGet("/api/autocomplete/collectors",
         async (AppDbContext db, string q, int limit = 10, CancellationToken ct = default) =>
         {
-            var vals = await db.Payments.AsNoTracking()
-                .Where(p => p.Collector != null && p.Collector.ToLower().Contains(q.ToLower()))
-                .Select(p => p.Collector!)
+            var vals = await db.Collectors.AsNoTracking()
+                .Where(c => c.Name.ToLower().Contains(q.ToLower()))
+                .Select(c => c.Name)
                 .Distinct()
                 .Take(limit)
                 .ToListAsync(ct);
@@ -887,7 +887,7 @@ app.MapDelete("/api/admin/destinations/{id:guid}", async (AppDbContext db, Guid 
             return Results.Conflict(new { error = $"Cannot delete: destination is already used by {usedInDonations } donations" });
 
         // Block delete if referenced in payments
-        var usedInPayments = await db.Payments.CountAsync(p => p.Destination == destinationIdString, ct);
+        var usedInPayments = await db.Payments.CountAsync(p => p.DestinationId == id, ct);
         if (usedInPayments> 0)
             return Results.Conflict(new { error = $"Cannot delete: destination is already used by {usedInPayments} payments" });
 
@@ -941,9 +941,8 @@ app.MapDelete("/api/admin/collectors/{id:guid}", async (AppDbContext db, Guid id
     {
         var entity = await db.Collectors.FirstOrDefaultAsync(x => x.Id == id, ct);
         if (entity is null) return Results.NotFound();
-        // Block delete if referenced in payments (Collector field stores the ID as lowercase string)
-        var collectorIdString = id.ToString().ToLower();
-        var usedInPayments = await db.Payments.CountAsync(p => p.Collector == collectorIdString, ct);
+        // Block delete if referenced in payments
+        var usedInPayments = await db.Payments.CountAsync(p => p.CollectorId == id, ct);
         if (usedInPayments > 0)
             return Results.Conflict(new { error = $"Cannot delete: collector is already used by {usedInPayments} payments" });
         db.Collectors.Remove(entity);
@@ -1305,7 +1304,7 @@ app.MapPost("/api/admin/backup", async (AppDbContext db) =>
             foreach (var payment in payments)
             {
                 sb.AppendLine(
-                    $"INSERT INTO payments (id, donor_id, currency, amount, payment_date, destination, collector, comment, is_virtual, created_at, created_by, updated_at, updated_by) VALUES ('{payment.Id}', '{payment.DonorId}', {EscapeString(payment.Currency)}, {payment.Amount}, '{payment.PaymentDate:yyyy-MM-dd}', {EscapeString(payment.Destination)}, {EscapeString(payment.Collector)}, {EscapeString(payment.Comment)}, {payment.IsVirtual.ToString().ToUpper()}, '{payment.CreatedAt:yyyy-MM-dd HH:mm:ss}', '{payment.CreatedBy}', {(payment.UpdatedAt.HasValue ? $"'{payment.UpdatedAt:yyyy-MM-dd HH:mm:ss}'" : "NULL")}, {(payment.UpdatedBy.HasValue ? $"'{payment.UpdatedBy}'" : "NULL")});");
+                    $"INSERT INTO payments (id, donor_id, currency, amount, payment_date, destination_id, collector_id, comment, is_virtual, created_at, created_by, updated_at, updated_by) VALUES ('{payment.Id}', '{payment.DonorId}', {EscapeString(payment.Currency)}, {payment.Amount}, '{payment.PaymentDate:yyyy-MM-dd}', '{payment.DestinationId}', {(payment.CollectorId.HasValue ? $"'{payment.CollectorId}'" : "NULL")}, {EscapeString(payment.Comment)}, {payment.IsVirtual.ToString().ToUpper()}, '{payment.CreatedAt:yyyy-MM-dd HH:mm:ss}', '{payment.CreatedBy}', {(payment.UpdatedAt.HasValue ? $"'{payment.UpdatedAt:yyyy-MM-dd HH:mm:ss}'" : "NULL")}, {(payment.UpdatedBy.HasValue ? $"'{payment.UpdatedBy}'" : "NULL")});");
             }
 
             sb.AppendLine();
@@ -1430,13 +1429,17 @@ app.MapGet("/api/admin/export-excel", async (AppDbContext db) =>
                 .Where(d => paymentDonorIds.Contains(d.Id))
                 .ToDictionaryAsync(d => d.Id, d => d.FullName);
 
+            var destinationsDict = await db.Destinations.ToDictionaryAsync(d => d.Id, d => d.Name);
+            var collectorsDict = await db.Collectors.ToDictionaryAsync(c => c.Id, c => c.Name);
+
             paymentsSheet.Cell(1, 1).Value = "Fecha";
             paymentsSheet.Cell(1, 2).Value = "Donante";
             paymentsSheet.Cell(1, 3).Value = "Monto";
             paymentsSheet.Cell(1, 4).Value = "Moneda";
             paymentsSheet.Cell(1, 5).Value = "Destino";
-            paymentsSheet.Cell(1, 6).Value = "Virtual";
-            paymentsSheet.Cell(1, 7).Value = "Comentarios";
+            paymentsSheet.Cell(1, 6).Value = "Cobrador";
+            paymentsSheet.Cell(1, 7).Value = "Virtual";
+            paymentsSheet.Cell(1, 8).Value = "Comentarios";
 
             for (int i = 0; i < payments.Count; i++)
             {
@@ -1445,9 +1448,10 @@ app.MapGet("/api/admin/export-excel", async (AppDbContext db) =>
                 paymentsSheet.Cell(i + 2, 2).Value = paymentDonorsDict.GetValueOrDefault(payment.DonorId, "");
                 paymentsSheet.Cell(i + 2, 3).Value = payment.Amount;
                 paymentsSheet.Cell(i + 2, 4).Value = payment.Currency;
-                paymentsSheet.Cell(i + 2, 5).Value = payment.Destination ?? "";
-                paymentsSheet.Cell(i + 2, 6).Value = payment.IsVirtual ? "Sí" : "No";
-                paymentsSheet.Cell(i + 2, 7).Value = payment.Comment ?? "";
+                paymentsSheet.Cell(i + 2, 5).Value = destinationsDict.GetValueOrDefault(payment.DestinationId, "");
+                paymentsSheet.Cell(i + 2, 6).Value = payment.CollectorId.HasValue ? collectorsDict.GetValueOrDefault(payment.CollectorId.Value, "") : "";
+                paymentsSheet.Cell(i + 2, 7).Value = payment.IsVirtual ? "Sí" : "No";
+                paymentsSheet.Cell(i + 2, 8).Value = payment.Comment ?? "";
             }
 
             paymentsSheet.RangeUsed().Style.Border.OutsideBorder = ClosedXML.Excel.XLBorderStyleValues.Thin;
@@ -1506,15 +1510,19 @@ app.MapGet("/api/admin/export-csv", async (AppDbContext db) =>
 
                 // Export Payments to CSV
                 var payments = await db.Payments.OrderByDescending(p => p.PaymentDate).ToListAsync();
+                var csvDestinations = await db.Destinations.ToDictionaryAsync(d => d.Id, d => d.Name);
+                var csvCollectors = await db.Collectors.ToDictionaryAsync(c => c.Id, c => c.Name);
 
                 var paymentsEntry = archive.CreateEntry("pagos.csv");
                 using (var entryStream = paymentsEntry.Open())
                 using (var writer = new StreamWriter(entryStream, Encoding.UTF8))
                 {
-                    writer.WriteLine("id,donor_id,currency,amount,payment_date,destination,collector,comment,created_at,updated_at,is_virtual,created_by,updated_by");
+                    writer.WriteLine("id,donor_id,currency,amount,payment_date,destination_id,destination_name,collector_id,collector_name,comment,created_at,updated_at,is_virtual,created_by,updated_by");
                     foreach (var payment in payments)
                     {
-                        writer.WriteLine($"{payment.Id},{payment.DonorId},{payment.Currency},{payment.Amount.ToString("0", System.Globalization.CultureInfo.InvariantCulture)},{payment.PaymentDate:yyyy-MM-dd},{EscapeCsv(payment.Destination)},{EscapeCsv(payment.Collector)},{EscapeCsv(payment.Comment)},{payment.CreatedAt:yyyy-MM-dd HH:mm:ss},{payment.UpdatedAt?.ToString("yyyy-MM-dd HH:mm:ss") ?? ""},{(payment.IsVirtual ? "true" : "false")},{payment.CreatedBy},{payment.UpdatedBy?.ToString() ?? ""}");
+                        var destinationName = csvDestinations.GetValueOrDefault(payment.DestinationId, "");
+                        var collectorName = payment.CollectorId.HasValue ? csvCollectors.GetValueOrDefault(payment.CollectorId.Value, "") : "";
+                        writer.WriteLine($"{payment.Id},{payment.DonorId},{payment.Currency},{payment.Amount.ToString("0", System.Globalization.CultureInfo.InvariantCulture)},{payment.PaymentDate:yyyy-MM-dd},{payment.DestinationId},{EscapeCsv(destinationName)},{payment.CollectorId?.ToString() ?? ""},{EscapeCsv(collectorName)},{EscapeCsv(payment.Comment)},{payment.CreatedAt:yyyy-MM-dd HH:mm:ss},{payment.UpdatedAt?.ToString("yyyy-MM-dd HH:mm:ss") ?? ""},{(payment.IsVirtual ? "true" : "false")},{payment.CreatedBy},{payment.UpdatedBy?.ToString() ?? ""}");
                     }
                 }
 
