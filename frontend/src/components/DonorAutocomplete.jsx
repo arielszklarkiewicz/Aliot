@@ -11,6 +11,7 @@ export default function DonorAutocomplete({ value, onChange, placeholder = 'Sear
   const [error, setError] = useState('');
   const [activeIndex, setActiveIndex] = useState(-1);
   const wrapRef = useRef(null);
+  const valueRef = useRef(value);
 
   useEffect(() => {
     function onDocClick(e) {
@@ -21,6 +22,10 @@ export default function DonorAutocomplete({ value, onChange, placeholder = 'Sear
   }, []);
 
   useEffect(() => {
+    valueRef.current = value;
+  }, [value]);
+
+  useEffect(() => {
     if (!debounced) { setResults([]); setLoading(false); setError(''); return; }
     console.log('DonorAutocomplete - Searching for:', debounced);
     setLoading(true); setError('');
@@ -28,7 +33,9 @@ export default function DonorAutocomplete({ value, onChange, placeholder = 'Sear
       .then(r => { 
         console.log('DonorAutocomplete - Results:', r.data.items?.length, 'donors');
         setResults(r.data.items || []); 
-        setOpen(true); 
+        if (!valueRef.current) {
+          setOpen(true);
+        }
         setActiveIndex(-1); 
       })
       .catch(() => { setResults([]); setError('Failed to search'); })
@@ -50,6 +57,7 @@ export default function DonorAutocomplete({ value, onChange, placeholder = 'Sear
     console.log('DonorAutocomplete - Donor selected:', donor);
     onChange?.(donor?.id || '', donor || null);
     setQuery(donor?.fullName || '');
+    setResults([]);
     setOpen(false);
   };
 
@@ -67,8 +75,15 @@ export default function DonorAutocomplete({ value, onChange, placeholder = 'Sear
       <input
         placeholder={placeholder}
         value={query}
-        onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
-        onFocus={() => { if (results.length) setOpen(true); }}
+        onChange={(e) => { 
+          const newValue = e.target.value;
+          setQuery(newValue);
+          if (!newValue && value) {
+            onChange?.('', null);
+          }
+          if (!value) setOpen(true);
+        }}
+        onFocus={() => { if (results.length && !value) setOpen(true); }}
         onKeyDown={onKeyDown}
         aria-autocomplete="list"
         aria-expanded={open}
