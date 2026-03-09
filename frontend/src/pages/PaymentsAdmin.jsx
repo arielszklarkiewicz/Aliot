@@ -25,13 +25,15 @@ export default function PaymentsAdmin() {
   const isNew = useMemo(() => edit && !edit.id, [edit]);
 
   useEffect(() => {
+    // Load currencies from lookups API
     axios.get('/api/lookups').then(r => {
-      setLookups({
-        currencies: r.data.currencies || [],
-        destinations: r.data.destinations || []
-      });
+      setLookups(prev => ({
+        ...prev,
+        currencies: r.data.currencies || []
+      }));
     }).catch(() => {});
 
+    // Load destinations and collectors from admin API
     Promise.all([
       axios.get('/api/admin/destinations'),
       axios.get('/api/admin/collectors')
@@ -62,12 +64,12 @@ export default function PaymentsAdmin() {
     } finally { setLoading(false); }
   }
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [page, pageSize, filterDonorId, filterDestination, filterFrom, filterTo]);
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [page, pageSize, filterDonorId, filterDestinationName, filterFrom, filterTo]);
 
   const clearFilters = () => {
     setFilterDonorId('');
     setFilterDonorName('');
-    setFilterDestination('');
+    setFilterDestinationName('');
     setFilterFrom('');
     setFilterTo('');
     setPage(1);
@@ -85,12 +87,20 @@ export default function PaymentsAdmin() {
     isVirtual: false
   });
 
-  const startEdit = (p) => setEdit({ 
-    ...p, 
-    donorName: p.donorName || '',
-    paymentDate: p.paymentDate?.slice(0,10) || '',
-    amount: p.amount?.toString() || ''
-  });
+  const startEdit = (p) => {
+    // Map destination name to ID
+    const destObj = lookups.destinations.find(d => d.name === p.destination);
+    const collObj = collectors.find(c => c.name === p.collector);
+    
+    setEdit({ 
+      ...p, 
+      donorName: p.donorName || '',
+      paymentDate: p.paymentDate?.slice(0,10) || '',
+      amount: p.amount?.toString() || '',
+      destinationId: destObj?.id || lookups.destinations[0]?.id || '',
+      collectorId: collObj?.id || ''
+    });
+  };
 
   const cancelEdit = () => setEdit(null);
 
@@ -173,14 +183,13 @@ export default function PaymentsAdmin() {
 
             <div className="form-group" style={{ minWidth: 150, marginBottom: 0 }}>
               <label style={{ fontSize: '0.875rem', marginBottom: 4 }}>Destino</label>
-              <select 
-                value={filterDestination} 
-                onChange={e => { setFilterDestination(e.target.value); setPage(1); }} 
-                className="form-select"
-              >
-                <option value="">Todos</option>
-                {lookups.destinations.map(d => <option key={d} value={d}>{d}</option>)}
-              </select>
+              <input 
+                type="text"
+                placeholder="Filtrar..."
+                value={filterDestinationName} 
+                onChange={e => { setFilterDestinationName(e.target.value); setPage(1); }} 
+                className="form-input"
+              />
             </div>
 
             <div className="form-group" style={{ minWidth: 140, marginBottom: 0 }}>
@@ -203,7 +212,7 @@ export default function PaymentsAdmin() {
               />
             </div>
 
-            {(filterDonorId || filterDestination || filterFrom || filterTo) && (
+            {(filterDonorId || filterDestinationName || filterFrom || filterTo) && (
               <button className="btn btn-secondary" onClick={clearFilters} style={{ marginBottom: 0 }}>
                 Limpiar filtros
               </button>

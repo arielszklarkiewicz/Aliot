@@ -230,9 +230,15 @@ public class DonorService(AppDbContext db, IAuthService authService) : IDonorSer
         // Calculate donations considering virtual payment cutoff
         var donationsTotal = allDonations
             .Where(d => {
-                var key = (d.Currency.ToLower(), Guid.Parse(d.Destination));
-                var cutoffDate = lastVirtualPayments.ContainsKey(key) ? lastVirtualPayments[key] : (DateOnly?)null;
-                return !cutoffDate.HasValue || d.DonationDate > cutoffDate.Value;
+                // Try to parse destination as GUID
+                if (Guid.TryParse(d.Destination, out var destGuid))
+                {
+                    var key = (d.Currency.ToLower(), destGuid);
+                    var cutoffDate = lastVirtualPayments.ContainsKey(key) ? lastVirtualPayments[key] : (DateOnly?)null;
+                    return !cutoffDate.HasValue || d.DonationDate > cutoffDate.Value;
+                }
+                // If not a GUID (old text format), include it
+                return true;
             })
             .Sum(d => d.Matana ? 0 : d.Amount);
 
@@ -281,10 +287,19 @@ public class DonorService(AppDbContext db, IAuthService authService) : IDonorSer
                 var total = 0m;
                 foreach (var d in g)
                 {
-                    var key = (g.Key, Guid.Parse(d.Destination));
-                    var cutoffDate = lastVirtualPayments.ContainsKey(key) ? lastVirtualPayments[key] : (DateOnly?)null;
-                    if (!cutoffDate.HasValue || d.DonationDate > cutoffDate.Value)
+                    // Try to parse destination as GUID, if it fails, skip the virtual payment cutoff logic
+                    if (Guid.TryParse(d.Destination, out var destGuid))
                     {
+                        var key = (g.Key, destGuid);
+                        var cutoffDate = lastVirtualPayments.ContainsKey(key) ? lastVirtualPayments[key] : (DateOnly?)null;
+                        if (!cutoffDate.HasValue || d.DonationDate > cutoffDate.Value)
+                        {
+                            total += d.Matana ? 0 : d.Amount;
+                        }
+                    }
+                    else
+                    {
+                        // If destination is not a GUID (old text-based format), just add it without cutoff
                         total += d.Matana ? 0 : d.Amount;
                     }
                 }

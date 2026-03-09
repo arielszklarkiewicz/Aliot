@@ -688,6 +688,7 @@ app.MapGet("/api/reports/donor-balances", async (AppDbContext db, CancellationTo
 
         // Calculate donations and payments considering virtual payment cutoff
         var donationTotals = allDonations
+            .Where(d => Guid.TryParse(d.Destination, out _)) // Only process donations with valid GUID destinations
             .GroupBy(d => new { d.DonorId, Currency = d.Currency.ToLower(), DestinationId = Guid.Parse(d.Destination) })
             .Select(g =>
             {

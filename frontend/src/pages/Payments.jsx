@@ -24,14 +24,16 @@ export default function Payments() {
   const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
+    // Load currencies from lookups API
     axios.get(`/api/lookups`).then(r => {
       const data = r.data || {};
-      setLookups({
-        currencies: data.currencies || [],
-        destinations: data.destinations || []
-      });
+      setLookups(prev => ({
+        ...prev,
+        currencies: data.currencies || []
+      }));
       setCurrency((data.currencies || [])[0] || '');
     });
+    // Load destinations and collectors from admin API
     loadDestinationsAndCollectors();
     /* eslint-disable-next-line */
   }, []);
