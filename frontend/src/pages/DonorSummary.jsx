@@ -233,10 +233,6 @@ export default function DonorSummary() {
       doc.text(`Direccion: ${donor.address}`, 14, yPos);
       yPos += 6;
     }
-    if (donor.observations) {
-      doc.text(`Observaciones: ${donor.observations}`, 14, yPos);
-      yPos += 6;
-    }
     yPos += 5;
 
     // Active Filters
