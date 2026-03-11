@@ -837,6 +837,11 @@ export default function DonorSummary() {
                       <div style={{ marginBottom: '0.25rem' }}>
                         <strong>Destino:</strong> {mostRecentDonation.destination === 'Other' ? 'Otro' : mostRecentDonation.destination}
                       </div>
+                      {mostRecentDonation.perasha && (
+                        <div style={{ marginBottom: '0.25rem' }}>
+                          <strong>Perashá:</strong> {mostRecentDonation.perasha}
+                        </div>
+                      )}
                       {mostRecentDonation.concept && (
                         <div style={{ marginBottom: '0.25rem' }}>
                           <strong>Concepto:</strong> {mostRecentDonation.concept}
