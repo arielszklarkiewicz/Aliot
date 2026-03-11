@@ -7,6 +7,7 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const googleDivRef = useRef(null);
   const googleClientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
 
@@ -47,7 +48,8 @@ export default function Login() {
 
   const onSubmit = async (e) => {
     e.preventDefault();
-    setError(''); // Clear previous errors
+    setError('');
+    setLoading(true);
     try {
       const { data } = await axios.post(`/api/auth/login`, { email, password });
       localStorage.setItem('token', data.accessToken);
@@ -61,6 +63,8 @@ export default function Login() {
       } else {
         setError('Error al intentar iniciar sesión. Intente nuevamente');
       }
+    } finally {
+      setLoading(false);
     }
   };
   return (
@@ -106,9 +110,27 @@ export default function Login() {
 
           {error && <div className="alert alert-error">{error}</div>}
           
-          <button type="submit" className="btn btn-success w-full">
-            Ingresar
+          {loading && (
+            <div style={{ width: '100%', height: '4px', background: '#e5e7eb', borderRadius: '2px', overflow: 'hidden', marginBottom: '1rem' }}>
+              <div style={{ 
+                height: '100%', 
+                background: 'linear-gradient(90deg, #10b981, #059669)', 
+                animation: 'progressBar 1.5s ease-in-out infinite',
+                width: '50%'
+              }} />
+            </div>
+          )}
+          
+          <button type="submit" className="btn btn-success w-full" disabled={loading}>
+            {loading ? 'Ingresando...' : 'Ingresar'}
           </button>
+          
+          <style>{`
+            @keyframes progressBar {
+              0% { transform: translateX(-100%); }
+              100% { transform: translateX(200%); }
+            }
+          `}</style>
         </form>
       </div>
     </div>
