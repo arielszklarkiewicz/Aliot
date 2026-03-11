@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import axios from '../api/client';
-import DonorAutocomplete from '../components/DonorAutocomplete';
 import useDebounced from '../hooks/useDebounced';
 import { formatCurrency, getCurrencyStyle } from '../utils/currency';
 import '../styles/DonationsListImproved.css';
@@ -355,7 +354,7 @@ export default function DonationsList() {
                 aria-label="Filtrar por destino"
               >
                 <option value="">Todos</option>
-                {lookups.destinations.map(d => (<option key={d} value={d}>{d}</option>))}
+                {lookups.destinations.map(d => (<option key={d.id || d} value={d.name || d}>{d.name || d}</option>))}
               </select>
             </div>
             
