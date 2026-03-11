@@ -816,7 +816,7 @@ export default function DonorSummary() {
                     boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
                   }}>
                     <div style={{ fontSize: '0.875rem', opacity: 0.9, marginBottom: '0.5rem', fontWeight: 600 }}>
-                      ÚLTIMA DONACIÓN
+                      ÚLTIMA DONACIÓN CARGADA
                     </div>
                     <div style={{ fontSize: '1.75rem', fontWeight: 700, marginBottom: '1rem' }}>
                       {mostRecentDonation.matana ? (
@@ -865,7 +865,7 @@ export default function DonorSummary() {
                     boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
                   }}>
                     <div style={{ fontSize: '0.875rem', opacity: 0.9, marginBottom: '0.5rem', fontWeight: 600 }}>
-                      ÚLTIMO PAGO
+                      ÚLTIMO PAGO CARGADO
                     </div>
                     <div style={{ fontSize: '1.75rem', fontWeight: 700, marginBottom: '1rem' }}>
                       {mostRecentPayment.isVirtual ? (
