@@ -113,14 +113,14 @@ export default function DonationsAdmin() {
   const save = async () => {
     if (!edit?.donorId) { alert('Seleccione un donante'); return; }
     
-    // If matana is true, amount should be 0; otherwise validate it's greater than 0
-    const amt = edit.matana ? 0 : (parseFloat(edit.amount) || 0);
-    if (!edit.matana && amt <= 0) { alert('Ingrese un monto válido'); return; }
+    // If matana or virtual is true, amount can be 0; otherwise validate it's greater than 0
+    const amt = (edit.matana || edit.isVirtual) ? 0 : (parseFloat(edit.amount) || 0);
+    if (!edit.matana && !edit.isVirtual && amt <= 0) { alert('Ingrese un monto válido'); return; }
     
     const payload = {
       donorId: edit.donorId,
       currency: edit.currency,
-      amount: amt,
+      amount: edit.isVirtual ? 1 : amt,
       donationDate: edit.donationDate,
       perasha: edit.perasha || '',
       minian: edit.minian || '',
@@ -366,12 +366,12 @@ export default function DonationsAdmin() {
                   <label>Monto *</label>
                   <input 
                     type="number" 
-                    value={edit.matana ? '0' : edit.amount} 
+                    value={(edit.matana || edit.isVirtual) ? '0' : edit.amount} 
                     onChange={e => setEdit({ ...edit, amount: e.target.value })} 
                     className="form-input" 
                     step="0.01"
-                    disabled={edit.matana}
-                    style={edit.matana ? { backgroundColor: '#f3f4f6', cursor: 'not-allowed' } : {}}
+                    disabled={edit.matana || edit.isVirtual}
+                    style={(edit.matana || edit.isVirtual) ? { backgroundColor: '#f3f4f6', cursor: 'not-allowed' } : {}}
                   />
                 </div>
 

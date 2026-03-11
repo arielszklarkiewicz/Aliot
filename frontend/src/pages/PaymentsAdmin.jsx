@@ -107,12 +107,12 @@ export default function PaymentsAdmin() {
   const save = async () => {
     if (!edit?.donorId) { alert('Seleccione un donante'); return; }
     const amt = parseFloat(edit.amount) || 0;
-    if (amt <= 0) { alert('Ingrese un monto válido'); return; }
+    if (!edit.isVirtual && amt <= 0) { alert('Ingrese un monto válido'); return; }
     
     const payload = {
       donorId: edit.donorId,
       currency: edit.currency,
-      amount: amt,
+      amount: edit.isVirtual ? 1 : amt,
       paymentDate: edit.paymentDate,
       destinationId: edit.destinationId || '',
       collectorId: edit.collectorId || null,
@@ -318,7 +318,7 @@ export default function PaymentsAdmin() {
 
                 <div className="form-group">
                   <label>Monto *</label>
-                  <input type="number" value={edit.amount} onChange={e => setEdit({ ...edit, amount: e.target.value })} className="form-input" step="0.01" />
+                  <input type="number" value={edit.amount} onChange={e => setEdit({ ...edit, amount: e.target.value })} className="form-input" step="0.01" disabled={edit.isVirtual} />
                 </div>
 
                 <div className="form-group">
