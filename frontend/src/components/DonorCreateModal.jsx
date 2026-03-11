@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import axios from '../api/client';
 import Modal from './Modal';
 
@@ -12,6 +12,13 @@ export default function DonorCreateModal({ open, onClose, onCreated }) {
   const [isOccasionalDonor, setIsOccasionalDonor] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const firstNameRef = useRef(null);
+
+  useEffect(() => {
+    if (open && firstNameRef.current) {
+      setTimeout(() => firstNameRef.current?.focus(), 100);
+    }
+  }, [open]);
 
   const reset = () => {
     setFirstName(''); setLastName(''); setEmail(''); setPhone(''); setAddress(''); setObservations(''); setIsOccasionalDonor(false); setError('');
@@ -52,7 +59,7 @@ export default function DonorCreateModal({ open, onClose, onCreated }) {
         <div className="row">
           <div className="stack" style={{flex:1, minWidth: 220}}>
             <label>Nombre *</label>
-            <input value={firstName} onChange={(e)=>setFirstName(e.target.value)} placeholder="Nombre" required />
+            <input ref={firstNameRef} value={firstName} onChange={(e)=>setFirstName(e.target.value)} placeholder="Nombre" required />
           </div>
           <div className="stack" style={{flex:1, minWidth: 220}}>
             <label>Apellido</label>
