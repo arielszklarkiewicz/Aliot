@@ -148,23 +148,65 @@ export default function Payments() {
         {errorMsg && <div className="alert danger" role="alert">{errorMsg}</div>}
         
         <form onSubmit={handleSubmit} onKeyDown={handleKeyDown}>
-          {/* Submit button at the top */}
-          <div className="form-actions" style={{ marginBottom: '24px', borderBottom: '2px solid var(--primary-color)', paddingBottom: '16px' }}>
+        
+        <div className="form-container" style={{ position: 'relative' }}>
+          {/* Floating Crear button - sticky at top right */}
+          <div style={{ 
+            position: 'sticky', 
+            top: '80px', 
+            float: 'right', 
+            zIndex: 10,
+            marginLeft: '16px',
+            marginBottom: '16px'
+          }}>
             <button
               type="submit"
               className="btn btn-success btn-lg"
               aria-label="Crear nuevo pago (o presione Ctrl+Enter)"
               title="Atajo: Ctrl+Enter"
               disabled={submitting}
+              style={{ 
+                minWidth: '180px',
+                boxShadow: '0 4px 12px rgba(34, 197, 94, 0.3)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                fontSize: '1.1rem'
+              }}
             >
-              {submitting ? '⏳ Guardando...' : '✓ Crear pago'}
+              {submitting ? (
+                <>
+                  <span className="spinner" style={{
+                    width: '16px',
+                    height: '16px',
+                    border: '2px solid rgba(255,255,255,0.3)',
+                    borderTopColor: 'white',
+                    borderRadius: '50%',
+                    animation: 'spin 0.8s linear infinite'
+                  }}></span>
+                  Guardando...
+                </>
+              ) : (
+                <>
+                  <span style={{ fontSize: '1.3rem' }}>✓</span>
+                  Crear Pago
+                </>
+              )}
             </button>
-            <p style={{ fontSize: '0.875rem', color: '#666', marginTop: '8px', marginBottom: 0 }}>
-              💡 Tip: Use Tab para navegar entre campos y <strong>Ctrl+Enter</strong> para crear
-            </p>
+            <div style={{ 
+              fontSize: '0.7rem', 
+              color: '#666', 
+              marginTop: '6px', 
+              textAlign: 'center',
+              background: '#f9fafb',
+              padding: '4px 8px',
+              borderRadius: '4px'
+            }}>
+              <strong>Ctrl+Enter</strong> para crear
+            </div>
           </div>
-        
-        <div className="form-container">
+          
           <div className="form-grid">
             <div className="form-group">
               <label htmlFor="payment-date">Fecha</label>
@@ -185,7 +227,16 @@ export default function Payments() {
                 {collectors.map(c => (<option key={c.id} value={c.id}>{c.name}</option>))}
               </select>
             </div>
+            
+            {/* Add spinner animation */}
+            <style>{`
+              @keyframes spin {
+                to { transform: rotate(360deg); }
+              }
+            `}</style>
           </div>
+          
+          <div style={{ clear: 'both' }}></div>
 
           <hr style={{ margin: '24px 0', border: 'none', borderTop: '1px solid var(--neutral-200)' }} />
 
