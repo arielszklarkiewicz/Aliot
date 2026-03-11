@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import axios from '../api/client';
 import DonorAutocomplete from '../components/DonorAutocomplete';
 import DonorCreateModal from '../components/DonorCreateModal';
@@ -9,6 +9,7 @@ export default function Payments() {
   const [selectedDonorName, setSelectedDonorName] = useState('');
   const [selectedDonorObs, setSelectedDonorObs] = useState('');
   const [openCreateDonor, setOpenCreateDonor] = useState(false);
+  const donorAutocompleteRef = useRef(null);
 
   const [lookups, setLookups] = useState({ currencies: [], destinations: [] });
   const [collectors, setCollectors] = useState([]);
@@ -108,8 +109,23 @@ export default function Payments() {
       setComment('');
       setDate(new Date().toISOString().slice(0,10));
       setCurrency('Pesos');
+      // Focus on donor autocomplete
+      setTimeout(() => donorAutocompleteRef.current?.focus(), 100);
     } catch (e) {
       setErrorMsg('No se pudo crear el pago');
+    }
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    createPayment();
+  };
+
+  const handleKeyDown = (e) => {
+    // Ctrl+Enter or Cmd+Enter to submit
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      e.preventDefault();
+      createPayment();
     }
   };
 
@@ -125,6 +141,22 @@ export default function Payments() {
       <div className="content-wrapper">
         {successMsg && <div className="alert success" role="status">{successMsg}</div>}
         {errorMsg && <div className="alert danger" role="alert">{errorMsg}</div>}
+        
+        <form onSubmit={handleSubmit} onKeyDown={handleKeyDown}>
+          {/* Submit button at the top */}
+          <div className="form-actions" style={{ marginBottom: '24px', borderBottom: '2px solid var(--primary-color)', paddingBottom: '16px' }}>
+            <button
+              type="submit"
+              className="btn btn-success btn-lg"
+              aria-label="Crear nuevo pago (o presione Ctrl+Enter)"
+              title="Atajo: Ctrl+Enter"
+            >
+              ✓ Crear pago
+            </button>
+            <p style={{ fontSize: '0.875rem', color: '#666', marginTop: '8px', marginBottom: 0 }}>
+              💡 Tip: Use Tab para navegar entre campos y <strong>Ctrl+Enter</strong> para crear
+            </p>
+          </div>
         
         <div className="form-container">
           <div className="form-grid">
@@ -157,6 +189,7 @@ export default function Payments() {
               <label style={{fontWeight:600, minWidth:100}}>Donante</label>
               <div style={{display:'flex', alignItems:'center', gap:8, minWidth:0, flex:1}}>
                 <DonorAutocomplete
+                  ref={donorAutocompleteRef}
                   id="donor-autocomplete"
                   value={donorId}
                   onChange={(id, donor)=>{
@@ -312,20 +345,10 @@ export default function Payments() {
 
           <div className="form-group">
             <label htmlFor="payment-comment">Comentarios</label>
-            <textarea id="payment-comment" placeholder="Comentarios" value={comment} onChange={e=>setComment(e.target.value)} style={{minWidth:220}} />
-          </div>
-
-          <div className="form-actions">
-          <button
-            type="button"
-            className="btn btn-success btn-lg"
-            onClick={createPayment}
-            aria-label="Crear nuevo pago"
-          >
-            Crear pago
-          </button>
+            <textarea id="payment-comment" placeholder="Comentarios" value={comment} onChange={e=>setComment(e.target.value)} style={{minWidth:220}} rows={3} />
           </div>
         </div>
+        </form>
 
         <DonorCreateModal
           open={openCreateDonor}

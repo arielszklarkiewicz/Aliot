@@ -1,8 +1,8 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useImperativeHandle, useRef, useState } from 'react';
 import axios from '../api/client';
 import useDebounced from '../hooks/useDebounced';
 
-export default function DonorAutocomplete({ value, onChange, placeholder = 'Search donor by name or observations', style }) {
+const DonorAutocomplete = React.forwardRef(({ value, onChange, placeholder = 'Search donor by name or observations', style }, ref) => {
   const [query, setQuery] = useState('');
   const debounced = useDebounced(query, 250);
   const [results, setResults] = useState([]);
@@ -11,7 +11,15 @@ export default function DonorAutocomplete({ value, onChange, placeholder = 'Sear
   const [error, setError] = useState('');
   const [activeIndex, setActiveIndex] = useState(-1);
   const wrapRef = useRef(null);
+  const inputRef = useRef(null);
   const valueRef = useRef(value);
+
+  // Expose focus method to parent
+  useImperativeHandle(ref, () => ({
+    focus: () => {
+      inputRef.current?.focus();
+    }
+  }));
 
   useEffect(() => {
     function onDocClick(e) {
@@ -78,6 +86,7 @@ export default function DonorAutocomplete({ value, onChange, placeholder = 'Sear
   return (
     <div className="donor-ac" ref={wrapRef} style={{ position: 'relative', display: 'inline-block', width: 360, ...style }}>
       <input
+        ref={inputRef}
         placeholder={placeholder}
         value={query}
         onChange={(e) => { 
@@ -134,4 +143,8 @@ export default function DonorAutocomplete({ value, onChange, placeholder = 'Sear
       )}
     </div>
   );
-}
+});
+
+DonorAutocomplete.displayName = 'DonorAutocomplete';
+
+export default DonorAutocomplete;

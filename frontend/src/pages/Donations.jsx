@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import axios from '../api/client';
 import useDebounced from '../hooks/useDebounced';
 import DonorAutocomplete from '../components/DonorAutocomplete';
@@ -9,6 +9,7 @@ export default function Donations() {
   const [selectedDonorName, setSelectedDonorName] = useState('');
   const [selectedDonorObs, setSelectedDonorObs] = useState('');
   const [openCreateDonor, setOpenCreateDonor] = useState(false);
+  const donorAutocompleteRef = useRef(null);
 
   const [lookups, setLookups] = useState({ currencies: [], minian: [], donationConcepts: [], destinations: [] });
   const [currency, setCurrency] = useState('');
@@ -93,8 +94,23 @@ export default function Donations() {
         const idx = list.findIndex(c => c.id === prev);
         return list[(idx >= 0 ? (idx + 1) % list.length : 0)]?.id || prev;
       });
+      // Focus on donor autocomplete
+      setTimeout(() => donorAutocompleteRef.current?.focus(), 100);
     } catch (e) {
       setErrorMsg('No se pudo crear la donación');
+    }
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    createDonation();
+  };
+
+  const handleKeyDown = (e) => {
+    // Ctrl+Enter or Cmd+Enter to submit
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      e.preventDefault();
+      createDonation();
     }
   };
 
@@ -110,6 +126,23 @@ export default function Donations() {
       <div className="content-wrapper">
         {successMsg && <div className="alert success" role="status">{successMsg}</div>}
         {errorMsg && <div className="alert danger" role="alert">{errorMsg}</div>}
+        
+        <form onSubmit={handleSubmit} onKeyDown={handleKeyDown}>
+          {/* Submit button at the top */}
+          <div className="form-actions" style={{ marginBottom: '24px', borderBottom: '2px solid var(--primary-color)', paddingBottom: '16px' }}>
+            <button
+              type="submit"
+              className="btn btn-success btn-lg"
+              aria-label="Crear nueva donación (o presione Ctrl+Enter)"
+              title="Atajo: Ctrl+Enter"
+            >
+              ✓ Crear donación
+            </button>
+            <p style={{ fontSize: '0.875rem', color: '#666', marginTop: '8px', marginBottom: 0 }}>
+              💡 Tip: Use Tab para navegar entre campos y <strong>Ctrl+Enter</strong> para crear
+            </p>
+          </div>
+          
         {/* Upper section: Fecha, Perashá, Minián, Destino */}
         <div className="form-container">
         <div className="form-grid">
@@ -152,6 +185,7 @@ export default function Donations() {
               <label style={{fontWeight:600, minWidth:100}}>Donante</label>
               <div style={{display:'flex', alignItems:'center', gap:8, minWidth:0, flex:1}}>
                 <DonorAutocomplete
+                  ref={donorAutocompleteRef}
                   id="donor-autocomplete"
                   value={donorId}
                   onChange={(id, donor)=>{
@@ -328,21 +362,11 @@ export default function Donations() {
 
           <div className="form-group">
             <label htmlFor="donation-comment">Comentarios</label>
-            <textarea id="donation-comment" placeholder="Comentarios" value={comment} onChange={e=>setComment(e.target.value)} style={{minWidth:220}} />
+            <textarea id="donation-comment" placeholder="Comentarios" value={comment} onChange={e=>setComment(e.target.value)} style={{minWidth:220}} rows={3} />
           </div>
         </div>
-
-        <div className="form-actions">
-          <button
-            type="button"
-            className="btn btn-success btn-lg"
-            onClick={createDonation}
-            aria-label="Crear nueva donación"
-          >
-            Crear donación
-          </button>
         </div>
-        </div>
+        </form>
 
         <DonorCreateModal
           open={openCreateDonor}
