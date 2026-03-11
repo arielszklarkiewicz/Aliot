@@ -325,14 +325,8 @@ export default function DonorSummary() {
         headStyles: { fillColor: [52, 152, 219], fontSize: 8, fontStyle: 'bold' },
         styles: { fontSize: 7, cellPadding: 2 },
         columnStyles: {
-          0: { cellWidth: 20 },
-          1: { halign: 'right', cellWidth: 18 },
-          2: { cellWidth: 18 },
-          3: { cellWidth: 18 },
-          4: { cellWidth: 20 },
-          5: { cellWidth: 22 },
-          6: { cellWidth: 20 },
-          7: { cellWidth: 15, halign: 'center' }
+          1: { halign: 'right' },
+          7: { halign: 'center' }
         }
       });
 
@@ -368,12 +362,8 @@ export default function DonorSummary() {
         headStyles: { fillColor: [46, 204, 113], fontSize: 9, fontStyle: 'bold' },
         styles: { fontSize: 8, cellPadding: 2.5 },
         columnStyles: {
-          0: { cellWidth: 25 },
-          1: { halign: 'right', cellWidth: 25 },
-          2: { cellWidth: 25 },
-          3: { cellWidth: 35 },
-          4: { cellWidth: 35 },
-          5: { cellWidth: 25, halign: 'center' }
+          1: { halign: 'right' },
+          5: { halign: 'center' }
         }
       });
 
@@ -409,12 +399,8 @@ export default function DonorSummary() {
         headStyles: { fillColor: [156, 39, 176], fontSize: 9, fontStyle: 'bold' },
         styles: { fontSize: 8, cellPadding: 2.5 },
         columnStyles: {
-          0: { cellWidth: 28 },
-          1: { cellWidth: 28 },
-          2: { halign: 'right', cellWidth: 28 },
-          3: { cellWidth: 28 },
-          4: { cellWidth: 35 },
-          5: { cellWidth: 25, halign: 'center' }
+          2: { halign: 'right' },
+          5: { halign: 'center' }
         }
       });
     }
