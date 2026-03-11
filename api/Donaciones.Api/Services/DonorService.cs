@@ -230,15 +230,9 @@ public class DonorService(AppDbContext db, IAuthService authService) : IDonorSer
         // Calculate donations considering virtual payment cutoff
         var donationsTotal = allDonations
             .Where(d => {
-                // Try to parse destination as GUID
-                if (Guid.TryParse(d.Destination, out var destGuid))
-                {
-                    var key = (d.Currency.ToLower(), destGuid);
-                    var cutoffDate = lastVirtualPayments.ContainsKey(key) ? lastVirtualPayments[key] : (DateOnly?)null;
-                    return !cutoffDate.HasValue || d.DonationDate > cutoffDate.Value;
-                }
-                // If not a GUID (old text format), include it
-                return true;
+                var key = (d.Currency.ToLower(), d.DestinationId);
+                var cutoffDate = lastVirtualPayments.ContainsKey(key) ? lastVirtualPayments[key] : (DateOnly?)null;
+                return !cutoffDate.HasValue || d.DonationDate > cutoffDate.Value;
             })
             .Sum(d => d.Matana ? 0 : d.Amount);
 
@@ -287,19 +281,10 @@ public class DonorService(AppDbContext db, IAuthService authService) : IDonorSer
                 var total = 0m;
                 foreach (var d in g)
                 {
-                    // Try to parse destination as GUID, if it fails, skip the virtual payment cutoff logic
-                    if (Guid.TryParse(d.Destination, out var destGuid))
+                    var key = (g.Key, d.DestinationId);
+                    var cutoffDate = lastVirtualPayments.ContainsKey(key) ? lastVirtualPayments[key] : (DateOnly?)null;
+                    if (!cutoffDate.HasValue || d.DonationDate > cutoffDate.Value)
                     {
-                        var key = (g.Key, destGuid);
-                        var cutoffDate = lastVirtualPayments.ContainsKey(key) ? lastVirtualPayments[key] : (DateOnly?)null;
-                        if (!cutoffDate.HasValue || d.DonationDate > cutoffDate.Value)
-                        {
-                            total += d.Matana ? 0 : d.Amount;
-                        }
-                    }
-                    else
-                    {
-                        // If destination is not a GUID (old text-based format), just add it without cutoff
                         total += d.Matana ? 0 : d.Amount;
                     }
                 }
@@ -346,31 +331,28 @@ public class DonorService(AppDbContext db, IAuthService authService) : IDonorSer
 
         // Get donations with concept and destination names
         var donations = await (from d in db.Donations
-                              join c in db.Concepts on d.Concept equals c.Id.ToString().ToLower() into concepts
-                              from concept in concepts.DefaultIfEmpty()
-                              join dest in db.Destinations on d.Destination equals dest.Id.ToString().ToLower() into dests
-                              from destination in dests.DefaultIfEmpty()
+                              join don in db.Donors on d.DonorId equals don.Id
+                              join c in db.Concepts on d.ConceptId equals c.Id
+                              join dest in db.Destinations on d.DestinationId equals dest.Id
                               where d.DonorId == donorId
                               orderby d.DonationDate descending
-                              select new Donation
+                              select new DonationListItem
                               {
                                   Id = d.Id,
                                   DonorId = d.DonorId,
+                                  DonorName = don.FullName,
+                                  DonorObservations = don.Observations,
                                   Currency = d.Currency,
                                   Amount = d.Amount,
                                   DonationDate = d.DonationDate,
                                   Perasha = d.Perasha,
                                   Minian = d.Minian,
-                                  Concept = concept != null ? concept.Name : d.Concept,
-                                  Destination = destination != null ? destination.Name : d.Destination,
+                                  Concept = c.Name,
+                                  Destination = dest.Name,
                                   DestinationOther = d.DestinationOther,
                                   Comment = d.Comment,
-                                  IsVirtual = d.IsVirtual,
                                   Matana = d.Matana,
-                                  CreatedAt = d.CreatedAt,
-                                  CreatedBy = d.CreatedBy,
-                                  UpdatedAt = d.UpdatedAt,
-                                  UpdatedBy = d.UpdatedBy
+                                  IsVirtual = d.IsVirtual
                               })
                               .AsNoTracking()
                               .ToListAsync(ct);

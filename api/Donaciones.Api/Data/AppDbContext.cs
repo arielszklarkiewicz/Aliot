@@ -68,8 +68,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(x => x.DonationDate).HasColumnName("donation_date");
             e.Property(x => x.Perasha).HasColumnName("perasha");
             e.Property(x => x.Minian).HasColumnName("minian").IsRequired();
-            e.Property(x => x.Concept).HasColumnName("concept").IsRequired();
-            e.Property(x => x.Destination).HasColumnName("destination").IsRequired();
+            e.Property(x => x.ConceptId).HasColumnName("concept_id").IsRequired();
+            e.Property(x => x.DestinationId).HasColumnName("destination_id").IsRequired();
             e.Property(x => x.DestinationOther).HasColumnName("destination_other");
             e.Property(x => x.Comment).HasColumnName("comment");
             e.Property(x => x.IsVirtual).HasColumnName("is_virtual").HasDefaultValue(false);

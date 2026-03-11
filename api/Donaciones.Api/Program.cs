@@ -175,9 +175,9 @@ app.MapGet("/api/lookups", async (AppDbContext db, CancellationToken ct) =>
 
     await db.SaveChangesAsync(ct);
 
-    var donationConcepts = await db.Concepts.AsNoTracking().OrderBy(c => c.Name).Select(c => c.Name).ToListAsync(ct);
-    var destinations = await db.Destinations.AsNoTracking().OrderBy(d => d.Name).Select(d => d.Name).ToListAsync(ct);
-    var collectors = await db.Collectors.AsNoTracking().OrderBy(c => c.Name).Select(c => c.Name).ToListAsync(ct);
+    var donationConcepts = await db.Concepts.AsNoTracking().OrderBy(c => c.Name).Select(c => new { c.Id, c.Name }).ToListAsync(ct);
+    var destinations = await db.Destinations.AsNoTracking().OrderBy(d => d.Name).Select(d => new { d.Id, d.Name }).ToListAsync(ct);
+    var collectors = await db.Collectors.AsNoTracking().OrderBy(c => c.Name).Select(c => new { c.Id, c.Name }).ToListAsync(ct);
 
     return Results.Ok(new { currencies, minian, donationConcepts, destinations, collectors });
 });
@@ -688,8 +688,7 @@ app.MapGet("/api/reports/donor-balances", async (AppDbContext db, CancellationTo
 
         // Calculate donations and payments considering virtual payment cutoff
         var donationTotals = allDonations
-            .Where(d => Guid.TryParse(d.Destination, out _)) // Only process donations with valid GUID destinations
-            .GroupBy(d => new { d.DonorId, Currency = d.Currency.ToLower(), DestinationId = Guid.Parse(d.Destination) })
+            .GroupBy(d => new { d.DonorId, Currency = d.Currency.ToLower(), d.DestinationId })
             .Select(g =>
             {
                 var key = (g.Key.DonorId, g.Key.Currency, g.Key.DestinationId);
@@ -826,9 +825,8 @@ app.MapDelete("/api/admin/concepts/{id:guid}", async (AppDbContext db, Guid id, 
     {
         var entity = await db.Concepts.FirstOrDefaultAsync(x => x.Id == id, ct);
         if (entity is null) return Results.NotFound();
-        // Block delete if referenced in donations (Concept field stores the ID as lowercase string)
-        var conceptIdString = id.ToString().ToLower();
-        var usedInDonations = await db.Donations.CountAsync(d => d.Concept == conceptIdString, ct);
+        // Block delete if referenced in donations
+        var usedInDonations = await db.Donations.CountAsync(d => d.ConceptId == id, ct);
         if (usedInDonations > 0)
             return Results.Conflict(new { error = $"Cannot delete: concept is already used by {usedInDonations} donations" });
         db.Concepts.Remove(entity);
@@ -881,15 +879,14 @@ app.MapDelete("/api/admin/destinations/{id:guid}", async (AppDbContext db, Guid 
     {
         var entity = await db.Destinations.FirstOrDefaultAsync(x => x.Id == id, ct);
         if (entity is null) return Results.NotFound();
-        // Block delete if referenced in donations (Destination field stores the ID as lowercase string)
-        var destinationIdString = id.ToString().ToLower();
-        var usedInDonations = await db.Donations.CountAsync(d => d.Destination == destinationIdString, ct);
+        // Block delete if referenced in donations
+        var usedInDonations = await db.Donations.CountAsync(d => d.DestinationId == id, ct);
         if (usedInDonations > 0)
-            return Results.Conflict(new { error = $"Cannot delete: destination is already used by {usedInDonations } donations" });
+            return Results.Conflict(new { error = $"Cannot delete: destination is already used by {usedInDonations} donations" });
 
         // Block delete if referenced in payments
         var usedInPayments = await db.Payments.CountAsync(p => p.DestinationId == id, ct);
-        if (usedInPayments> 0)
+        if (usedInPayments > 0)
             return Results.Conflict(new { error = $"Cannot delete: destination is already used by {usedInPayments} payments" });
 
         db.Destinations.Remove(entity);
@@ -1294,7 +1291,7 @@ app.MapPost("/api/admin/backup", async (AppDbContext db) =>
             foreach (var donation in donations)
             {
                 sb.AppendLine(
-                    $"INSERT INTO donations (id, donor_id, currency, amount, donation_date, perasha, minian, concept, destination, destination_other, comment, is_virtual, matana, created_at, created_by, updated_at, updated_by) VALUES ('{donation.Id}', '{donation.DonorId}', {EscapeString(donation.Currency)}, {donation.Amount}, '{donation.DonationDate:yyyy-MM-dd}', {EscapeString(donation.Perasha)}, {EscapeString(donation.Minian)}, {EscapeString(donation.Concept)}, {EscapeString(donation.Destination)}, {EscapeString(donation.DestinationOther)}, {EscapeString(donation.Comment)}, {donation.IsVirtual.ToString().ToUpper()}, {donation.Matana.ToString().ToUpper()}, '{donation.CreatedAt:yyyy-MM-dd HH:mm:ss}', '{donation.CreatedBy}', {(donation.UpdatedAt.HasValue ? $"'{donation.UpdatedAt:yyyy-MM-dd HH:mm:ss}'" : "NULL")}, {(donation.UpdatedBy.HasValue ? $"'{donation.UpdatedBy}'" : "NULL")});");
+                    $"INSERT INTO donations (id, donor_id, currency, amount, donation_date, perasha, minian, concept_id, destination_id, destination_other, comment, is_virtual, matana, created_at, created_by, updated_at, updated_by) VALUES ('{donation.Id}', '{donation.DonorId}', {EscapeString(donation.Currency)}, {donation.Amount}, '{donation.DonationDate:yyyy-MM-dd}', {EscapeString(donation.Perasha)}, {EscapeString(donation.Minian)}, '{donation.ConceptId}', '{donation.DestinationId}', {EscapeString(donation.DestinationOther)}, {EscapeString(donation.Comment)}, {donation.IsVirtual.ToString().ToUpper()}, {donation.Matana.ToString().ToUpper()}, '{donation.CreatedAt:yyyy-MM-dd HH:mm:ss}', '{donation.CreatedBy}', {(donation.UpdatedAt.HasValue ? $"'{donation.UpdatedAt:yyyy-MM-dd HH:mm:ss}'" : "NULL")}, {(donation.UpdatedBy.HasValue ? $"'{donation.UpdatedBy}'" : "NULL")});");
             }
 
             sb.AppendLine();
@@ -1388,6 +1385,16 @@ app.MapGet("/api/admin/export-excel", async (AppDbContext db) =>
             var donorsDict = await db.Donors
                 .Where(d => donorIds.Contains(d.Id))
                 .ToDictionaryAsync(d => d.Id, d => d.FullName);
+            
+            var conceptIds = donations.Select(d => d.ConceptId).Distinct().ToList();
+            var conceptsDict = await db.Concepts
+                .Where(c => conceptIds.Contains(c.Id))
+                .ToDictionaryAsync(c => c.Id, c => c.Name);
+            
+            var destinationIds = donations.Select(d => d.DestinationId).Distinct().ToList();
+            var destinationsDict = await db.Destinations
+                .Where(d => destinationIds.Contains(d.Id))
+                .ToDictionaryAsync(d => d.Id, d => d.Name);
 
             donationsSheet.Cell(1, 1).Value = "Fecha";
             donationsSheet.Cell(1, 2).Value = "Donante";
@@ -1408,8 +1415,8 @@ app.MapGet("/api/admin/export-excel", async (AppDbContext db) =>
                 donationsSheet.Cell(i + 2, 3).Value = donation.Amount;
                 donationsSheet.Cell(i + 2, 4).Value = donation.Currency;
                 donationsSheet.Cell(i + 2, 5).Value = donation.Minian ?? "";
-                donationsSheet.Cell(i + 2, 6).Value = donation.Concept ?? "";
-                donationsSheet.Cell(i + 2, 7).Value = donation.Destination ?? "";
+                donationsSheet.Cell(i + 2, 6).Value = conceptsDict.GetValueOrDefault(donation.ConceptId, "");
+                donationsSheet.Cell(i + 2, 7).Value = destinationsDict.GetValueOrDefault(donation.DestinationId, "");
                 donationsSheet.Cell(i + 2, 8).Value = donation.Matana ? "Sí" : "No";
                 donationsSheet.Cell(i + 2, 9).Value = donation.IsVirtual ? "Sí" : "No";
                 donationsSheet.Cell(i + 2, 10).Value = donation.Comment ?? "";
@@ -1430,7 +1437,7 @@ app.MapGet("/api/admin/export-excel", async (AppDbContext db) =>
                 .Where(d => paymentDonorIds.Contains(d.Id))
                 .ToDictionaryAsync(d => d.Id, d => d.FullName);
 
-            var destinationsDict = await db.Destinations.ToDictionaryAsync(d => d.Id, d => d.Name);
+            var paymentDestinationsDict = await db.Destinations.ToDictionaryAsync(d => d.Id, d => d.Name);
             var collectorsDict = await db.Collectors.ToDictionaryAsync(c => c.Id, c => c.Name);
 
             paymentsSheet.Cell(1, 1).Value = "Fecha";
@@ -1449,7 +1456,7 @@ app.MapGet("/api/admin/export-excel", async (AppDbContext db) =>
                 paymentsSheet.Cell(i + 2, 2).Value = paymentDonorsDict.GetValueOrDefault(payment.DonorId, "");
                 paymentsSheet.Cell(i + 2, 3).Value = payment.Amount;
                 paymentsSheet.Cell(i + 2, 4).Value = payment.Currency;
-                paymentsSheet.Cell(i + 2, 5).Value = destinationsDict.GetValueOrDefault(payment.DestinationId, "");
+                paymentsSheet.Cell(i + 2, 5).Value = paymentDestinationsDict.GetValueOrDefault(payment.DestinationId, "");
                 paymentsSheet.Cell(i + 2, 6).Value = payment.CollectorId.HasValue ? collectorsDict.GetValueOrDefault(payment.CollectorId.Value, "") : "";
                 paymentsSheet.Cell(i + 2, 7).Value = payment.IsVirtual ? "Sí" : "No";
                 paymentsSheet.Cell(i + 2, 8).Value = payment.Comment ?? "";
@@ -1497,15 +1504,28 @@ app.MapGet("/api/admin/export-csv", async (AppDbContext db) =>
 
                 // Export Donations to CSV
                 var donations = await db.Donations.OrderByDescending(d => d.DonationDate).ToListAsync();
+                
+                // Get lookups for concepts and destinations
+                var conceptIds = donations.Select(d => d.ConceptId).Distinct().ToList();
+                var conceptsDict = await db.Concepts
+                    .Where(c => conceptIds.Contains(c.Id))
+                    .ToDictionaryAsync(c => c.Id, c => c.Name);
+                
+                var destinationIds = donations.Select(d => d.DestinationId).Distinct().ToList();
+                var destinationsDict = await db.Destinations
+                    .Where(d => destinationIds.Contains(d.Id))
+                    .ToDictionaryAsync(d => d.Id, d => d.Name);
 
                 var donationsEntry = archive.CreateEntry("donaciones.csv");
                 using (var entryStream = donationsEntry.Open())
                 using (var writer = new StreamWriter(entryStream, Encoding.UTF8))
                 {
-                    writer.WriteLine("id,donor_id,currency,amount,donation_date,perasha,minian,concept,destination,destination_other,comment,created_at,updated_at,is_virtual,matana,created_by,updated_by");
+                    writer.WriteLine("id,donor_id,currency,amount,donation_date,perasha,minian,concept_id,concept_name,destination_id,destination_name,destination_other,comment,created_at,updated_at,is_virtual,matana,created_by,updated_by");
                     foreach (var donation in donations)
                     {
-                        writer.WriteLine($"{donation.Id},{donation.DonorId},{donation.Currency},{donation.Amount.ToString("0", System.Globalization.CultureInfo.InvariantCulture)},{donation.DonationDate:yyyy-MM-dd},{EscapeCsv(donation.Perasha)},{EscapeCsv(donation.Minian)},{EscapeCsv(donation.Concept)},{EscapeCsv(donation.Destination)},{EscapeCsv(donation.DestinationOther)},{EscapeCsv(donation.Comment)},{donation.CreatedAt:yyyy-MM-dd HH:mm:ss},{donation.UpdatedAt?.ToString("yyyy-MM-dd HH:mm:ss") ?? ""},{(donation.IsVirtual ? "true" : "false")},{(donation.Matana ? "true" : "false")},{donation.CreatedBy},{donation.UpdatedBy?.ToString() ?? ""}");
+                        var conceptName = conceptsDict.GetValueOrDefault(donation.ConceptId, "");
+                        var destinationName = destinationsDict.GetValueOrDefault(donation.DestinationId, "");
+                        writer.WriteLine($"{donation.Id},{donation.DonorId},{donation.Currency},{donation.Amount.ToString("0", System.Globalization.CultureInfo.InvariantCulture)},{donation.DonationDate:yyyy-MM-dd},{EscapeCsv(donation.Perasha)},{EscapeCsv(donation.Minian)},{donation.ConceptId},{EscapeCsv(conceptName)},{donation.DestinationId},{EscapeCsv(destinationName)},{EscapeCsv(donation.DestinationOther)},{EscapeCsv(donation.Comment)},{donation.CreatedAt:yyyy-MM-dd HH:mm:ss},{donation.UpdatedAt?.ToString("yyyy-MM-dd HH:mm:ss") ?? ""},{(donation.IsVirtual ? "true" : "false")},{(donation.Matana ? "true" : "false")},{donation.CreatedBy},{donation.UpdatedBy?.ToString() ?? ""}");
                     }
                 }
 

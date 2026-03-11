@@ -182,10 +182,9 @@ namespace Donaciones.Api.Migrations
                         .HasColumnType("text")
                         .HasColumnName("comment");
 
-                    b.Property<string>("Concept")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("concept");
+                    b.Property<Guid>("ConceptId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("concept_id");
 
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -200,10 +199,9 @@ namespace Donaciones.Api.Migrations
                         .HasColumnType("text")
                         .HasColumnName("currency");
 
-                    b.Property<string>("Destination")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("destination");
+                    b.Property<Guid>("DestinationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("destination_id");
 
                     b.Property<string>("DestinationOther")
                         .HasColumnType("text")

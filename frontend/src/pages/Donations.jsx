@@ -31,8 +31,8 @@ export default function Donations() {
       setLookups(r.data);
       setCurrency(r.data.currencies?.[0] || '');
       setMinian(r.data.minian?.[0] || '');
-      setConcept(r.data.donationConcepts?.[0] || '');
-      setDestination(r.data.destinations?.[0] || '');
+      setConcept(r.data.donationConcepts?.[0]?.id || '');
+      setDestination(r.data.destinations?.[0]?.id || '');
     });
   }, []);
 
@@ -71,8 +71,8 @@ export default function Donations() {
         donationDate: date,
         perasha,
         minian,
-        concept,
-        destination,
+        conceptId: concept,
+        destinationId: destination,
         comment,
         matana
       });
@@ -89,8 +89,8 @@ export default function Donations() {
       setConcept(prev => {
         const list = lookups?.donationConcepts || [];
         if (!list.length) return prev;
-        const idx = list.indexOf(prev);
-        return list[(idx >= 0 ? (idx + 1) % list.length : 0)];
+        const idx = list.findIndex(c => c.id === prev);
+        return list[(idx >= 0 ? (idx + 1) % list.length : 0)]?.id || prev;
       });
     } catch (e) {
       setErrorMsg('No se pudo crear la donación');
@@ -137,7 +137,7 @@ export default function Donations() {
           <div className="form-group">
             <label htmlFor="donation-destination">Destino</label>
             <select id="donation-destination" value={destination} onChange={e=>setDestination(e.target.value)}>
-              {lookups.destinations.map(d => (<option key={d} value={d}>{d}</option>))}
+              {lookups.destinations.map(d => (<option key={d.id} value={d.id}>{d.name}</option>))}
             </select>
           </div>
         </div>
@@ -217,7 +217,7 @@ export default function Donations() {
           <div className="form-group">
             <label htmlFor="donation-concept">Concepto</label>
             <select id="donation-concept" value={concept} onChange={e=>setConcept(e.target.value)}>
-              {lookups.donationConcepts.map(c => (<option key={c} value={c}>{c}</option>))}
+              {lookups.donationConcepts.map(c => (<option key={c.id} value={c.id}>{c.name}</option>))}
             </select>
           </div>
 

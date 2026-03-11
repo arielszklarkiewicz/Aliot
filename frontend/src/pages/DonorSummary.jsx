@@ -19,6 +19,7 @@ export default function DonorSummary() {
   const [allDonations, setAllDonations] = useState([]);
   const [allPayments, setAllPayments] = useState([]);
   const [destinations, setDestinations] = useState([]);
+  const [concepts, setConcepts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [fromDate, setFromDate] = useState('');
@@ -33,17 +34,21 @@ export default function DonorSummary() {
 
   const hasAnyFilters = fromDate || toDate || filterDestination || filterCurrency || filterIsVirtual || filterMatana;
 
-  // Load destinations list
+  // Load destinations and concepts list
   useEffect(() => {
-    async function loadDestinations() {
+    async function loadLookupsData() {
       try {
-        const { data } = await axios.get('/api/admin/destinations');
-        setDestinations(data.items || []);
+        const [destResponse, conceptResponse] = await Promise.all([
+          axios.get('/api/admin/destinations'),
+          axios.get('/api/admin/concepts')
+        ]);
+        setDestinations(destResponse.data.items || []);
+        setConcepts(conceptResponse.data.items || []);
       } catch (e) {
-        console.error('Error loading destinations:', e);
+        console.error('Error loading lookup data:', e);
       }
     }
-    loadDestinations();
+    loadLookupsData();
   }, []);
 
   // Auto-load donor for Donor role users
@@ -142,6 +147,13 @@ export default function DonorSummary() {
         });
       } else if (saldoAmount < 0) {
         // Negative saldo means we owe donor -> create virtual donation
+        // Find a default concept (use first one available)
+        const defaultConcept = concepts[0];
+        if (!defaultConcept) {
+          setError('No se encontró un concepto para crear la donación virtual');
+          return;
+        }
+        
         await axios.post('/api/donations', {
           donorId,
           currency,
@@ -149,8 +161,8 @@ export default function DonorSummary() {
           donationDate: today,
           perasha: '-',
           minian: '-',
-          concept: '-',
-          destination: destination.id.toString(),
+          conceptId: defaultConcept.id,
+          destinationId: destination.id,
           comment: 'Donacion virtual para representar que esta en 0',
           isVirtual: true
         });

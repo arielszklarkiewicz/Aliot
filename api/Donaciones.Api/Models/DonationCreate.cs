@@ -8,8 +8,8 @@ public record DonationCreate
     public DateOnly DonationDate { get; set; }
     public string? Perasha { get; set; }
     public string? Minian { get; set; }
-    public string? Concept { get; set; }
-    public string? Destination { get; set; }
+    public Guid? ConceptId { get; set; }
+    public Guid? DestinationId { get; set; }
     public string? DestinationOther { get; set; }
     public string? Comment { get; set; }
     public bool IsVirtual { get; set; }

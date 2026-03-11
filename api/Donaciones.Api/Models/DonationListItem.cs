@@ -16,4 +16,5 @@ public record DonationListItem
     public string? DestinationOther { get; set; }
     public string? Comment { get; set; }
     public bool Matana { get; set; }
+    public bool IsVirtual { get; set; }
 }

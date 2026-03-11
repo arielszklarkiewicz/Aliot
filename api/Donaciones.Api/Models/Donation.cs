@@ -9,8 +9,8 @@ public record Donation
     public DateOnly DonationDate { get; set; }
     public string? Perasha { get; set; }
     public string Minian { get; set; } = string.Empty;
-    public string Concept { get; set; } = string.Empty;
-    public string Destination { get; set; } = string.Empty;
+    public Guid ConceptId { get; set; }
+    public Guid DestinationId { get; set; }
     public string? DestinationOther { get; set; }
     public string? Comment { get; set; }
     public bool IsVirtual { get; set; }

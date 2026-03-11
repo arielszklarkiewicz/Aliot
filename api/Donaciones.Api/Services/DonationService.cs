@@ -26,7 +26,16 @@ public class DonationService(AppDbContext db) : IDonationService
         
         if (!string.IsNullOrWhiteSpace(currency)) qry = qry.Where(x => x.Currency.ToLower() == currency.ToLower());
         if (!string.IsNullOrWhiteSpace(minian)) qry = qry.Where(x => x.Minian.ToLower() == minian.ToLower());
-        if (!string.IsNullOrWhiteSpace(concept)) qry = qry.Where(x => x.Concept.ToLower() == concept.ToLower());
+        
+        // Filter by concept name (need to join with Concepts table)
+        if (!string.IsNullOrWhiteSpace(concept))
+        {
+            qry = from d in qry
+                  join c in db.Concepts.AsNoTracking() on d.ConceptId equals c.Id
+                  where c.Name.ToLower() == concept.ToLower()
+                  select d;
+        }
+        
         if (!string.IsNullOrWhiteSpace(perasha))
             qry = qry.Where(x => x.Perasha != null && x.Perasha.ToLower().Contains(perasha.ToLower()));
         if (from.HasValue) qry = qry.Where(x => x.DonationDate >= from);
@@ -36,7 +45,7 @@ public class DonationService(AppDbContext db) : IDonationService
         if (!string.IsNullOrWhiteSpace(destination))
         {
             qry = from d in qry
-                  join dest in db.Destinations.AsNoTracking() on d.Destination equals dest.Id.ToString().ToLower()
+                  join dest in db.Destinations.AsNoTracking() on d.DestinationId equals dest.Id
                   where dest.Name.ToLower() == destination.ToLower()
                   select d;
         }
@@ -56,10 +65,8 @@ public class DonationService(AppDbContext db) : IDonationService
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .Join(db.Donors.AsNoTracking(), d => d.DonorId, o => o.Id, (d, o) => new { Donation = d, Donor = o })
-            .GroupJoin(db.Concepts.AsNoTracking(), x => x.Donation.Concept, c => c.Id.ToString().ToLower(), (x, concepts) => new { x.Donation, x.Donor, Concepts = concepts })
-            .SelectMany(x => x.Concepts.DefaultIfEmpty(), (x, concept) => new { x.Donation, x.Donor, Concept = concept })
-            .GroupJoin(db.Destinations.AsNoTracking(), x => x.Donation.Destination, d => d.Id.ToString().ToLower(), (x, dests) => new { x.Donation, x.Donor, x.Concept, Destinations = dests })
-            .SelectMany(x => x.Destinations.DefaultIfEmpty(), (x, dest) => new DonationListItem
+            .Join(db.Concepts.AsNoTracking(), x => x.Donation.ConceptId, c => c.Id, (x, concept) => new { x.Donation, x.Donor, Concept = concept })
+            .Join(db.Destinations.AsNoTracking(), x => x.Donation.DestinationId, d => d.Id, (x, dest) => new DonationListItem
             {
                 Id = x.Donation.Id,
                 DonorId = x.Donation.DonorId,
@@ -72,11 +79,12 @@ public class DonationService(AppDbContext db) : IDonationService
                 DonationDate = x.Donation.DonationDate,
                 Perasha = x.Donation.Perasha,
                 Minian = x.Donation.Minian,
-                Concept = x.Concept != null ? x.Concept.Name : x.Donation.Concept,
-                Destination = dest != null ? dest.Name : x.Donation.Destination,
+                Concept = x.Concept.Name,
+                Destination = dest.Name,
                 DestinationOther = x.Donation.DestinationOther,
                 Comment = x.Donation.Comment,
-                Matana = x.Donation.Matana
+                Matana = x.Donation.Matana,
+                IsVirtual = x.Donation.IsVirtual
             })
             .ToListAsync(ct);
         return (items, total);
@@ -84,42 +92,14 @@ public class DonationService(AppDbContext db) : IDonationService
 
     public async Task<Donation?> GetAsync(Guid id, CancellationToken ct)
     {
-        var result = await (from d in db.Donations
-                           join c in db.Concepts on d.Concept equals c.Id.ToString().ToLower() into concepts
-                           from concept in concepts.DefaultIfEmpty()
-                           join dest in db.Destinations on d.Destination equals dest.Id.ToString().ToLower() into dests
-                           from destination in dests.DefaultIfEmpty()
-                           where d.Id == id
-                           select new Donation
-                           {
-                               Id = d.Id,
-                               DonorId = d.DonorId,
-                               Currency = d.Currency,
-                               Amount = d.Amount,
-                               DonationDate = d.DonationDate,
-                               Perasha = d.Perasha,
-                               Minian = d.Minian,
-                               Concept = concept != null ? concept.Name : d.Concept,
-                               Destination = destination != null ? destination.Name : d.Destination,
-                               DestinationOther = d.DestinationOther,
-                               Comment = d.Comment,
-                               IsVirtual = d.IsVirtual,
-                               Matana = d.Matana,
-                               CreatedAt = d.CreatedAt,
-                               CreatedBy = d.CreatedBy,
-                               UpdatedAt = d.UpdatedAt,
-                               UpdatedBy = d.UpdatedBy
-                           })
-                           .AsNoTracking()
-                           .FirstOrDefaultAsync(ct);
-        return result;
+        return await db.Donations.AsNoTracking().FirstOrDefaultAsync(d => d.Id == id, ct);
     }
 
     public async Task<Donation?> CreateAsync(DonationCreate dto, Guid userId, CancellationToken ct)
     {
         if (dto.DonorId == Guid.Empty || string.IsNullOrWhiteSpace(dto.Currency) ||
-            string.IsNullOrWhiteSpace(dto.Minian) || string.IsNullOrWhiteSpace(dto.Concept) ||
-            string.IsNullOrWhiteSpace(dto.Destination) || string.IsNullOrWhiteSpace(dto.Perasha))
+            string.IsNullOrWhiteSpace(dto.Minian) || !dto.ConceptId.HasValue ||
+            !dto.DestinationId.HasValue || string.IsNullOrWhiteSpace(dto.Perasha))
             return null;
         // For Matana, amount should be 0, otherwise enforce positive integer amounts
         if (dto.Matana)
@@ -131,8 +111,6 @@ public class DonationService(AppDbContext db) : IDonationService
             if (dto.Amount <= 0 || decimal.Truncate(dto.Amount) != dto.Amount)
                 return null;
         }
-        if (dto.Destination == "Other" && string.IsNullOrWhiteSpace(dto.DestinationOther))
-            return null;
         var entity = new Donation
         {
             Id = Guid.NewGuid(),
@@ -142,8 +120,8 @@ public class DonationService(AppDbContext db) : IDonationService
             DonationDate = dto.DonationDate,
             Perasha = dto.Perasha,
             Minian = dto.Minian!,
-            Concept = dto.Concept!,
-            Destination = dto.Destination!,
+            ConceptId = dto.ConceptId.Value,
+            DestinationId = dto.DestinationId.Value,
             DestinationOther = dto.DestinationOther,
             Comment = dto.Comment,
             IsVirtual = dto.IsVirtual,
@@ -177,8 +155,8 @@ public class DonationService(AppDbContext db) : IDonationService
         entity.DonationDate = dto.DonationDate;
         entity.Perasha = dto.Perasha;
         entity.Minian = dto.Minian!;
-        entity.Concept = dto.Concept!;
-        entity.Destination = dto.Destination!;
+        entity.ConceptId = dto.ConceptId ?? entity.ConceptId;
+        entity.DestinationId = dto.DestinationId ?? entity.DestinationId;
         entity.DestinationOther = dto.DestinationOther;
         entity.Comment = dto.Comment;
         entity.IsVirtual = dto.IsVirtual;

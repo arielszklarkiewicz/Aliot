@@ -1,4 +1,4 @@
-# Payment Destination & Collector GUID Migration
+ # Payment Destination & Collector GUID Migration
 
 ## Overview
 This migration converts the `payments.destination` and `payments.collector` columns from text (storing names) to UUID (storing foreign key references).
