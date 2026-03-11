@@ -112,6 +112,9 @@ export default function Payments() {
       setComment('');
       setDate(new Date().toISOString().slice(0,10));
       setCurrency('Pesos');
+      // Reset destination and collector to first option
+      if (lookups.destinations.length > 0) setDestinationId(lookups.destinations[0].id);
+      if (collectors.length > 0) setCollectorId(collectors[0].id);
       // Focus on donor autocomplete
       setTimeout(() => donorAutocompleteRef.current?.focus(), 100);
     } catch (e) {
