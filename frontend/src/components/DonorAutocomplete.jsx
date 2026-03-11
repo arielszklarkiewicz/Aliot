@@ -2,7 +2,7 @@ import React, { useEffect, useImperativeHandle, useRef, useState } from 'react';
 import axios from '../api/client';
 import useDebounced from '../hooks/useDebounced';
 
-const DonorAutocomplete = React.forwardRef(({ value, onChange, placeholder = 'Search donor by name or observations', style }, ref) => {
+function DonorAutocomplete({ value, onChange, placeholder = 'Search donor by name or observations', style }, ref) {
   const [query, setQuery] = useState('');
   const debounced = useDebounced(query, 250);
   const [results, setResults] = useState([]);
@@ -143,8 +143,6 @@ const DonorAutocomplete = React.forwardRef(({ value, onChange, placeholder = 'Se
       )}
     </div>
   );
-});
+}
 
-DonorAutocomplete.displayName = 'DonorAutocomplete';
-
-export default DonorAutocomplete;
+export default React.forwardRef(DonorAutocomplete);
