@@ -23,6 +23,7 @@ export default function Payments() {
 
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     // Load currencies from lookups API
@@ -89,6 +90,8 @@ export default function Payments() {
     if (!donorId) { setErrorMsg('Seleccione o cree un donante primero'); return; }
     const amt = parseInt((amount || '').toString().replace(/[^0-9]/g, ''), 10) || 0;
     if (!isFinite(amt) || amt <= 0) { setErrorMsg('Ingrese un monto entero válido (> 0)'); return; }
+    
+    setSubmitting(true);
     try {
       await axios.post(`/api/payments`, { 
         donorId, 
@@ -113,6 +116,8 @@ export default function Payments() {
       setTimeout(() => donorAutocompleteRef.current?.focus(), 100);
     } catch (e) {
       setErrorMsg('No se pudo crear el pago');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -150,8 +155,9 @@ export default function Payments() {
               className="btn btn-success btn-lg"
               aria-label="Crear nuevo pago (o presione Ctrl+Enter)"
               title="Atajo: Ctrl+Enter"
+              disabled={submitting}
             >
-              ✓ Crear pago
+              {submitting ? '⏳ Guardando...' : '✓ Crear pago'}
             </button>
             <p style={{ fontSize: '0.875rem', color: '#666', marginTop: '8px', marginBottom: 0 }}>
               💡 Tip: Use Tab para navegar entre campos y <strong>Ctrl+Enter</strong> para crear

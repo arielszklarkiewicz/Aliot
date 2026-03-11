@@ -26,6 +26,7 @@ export default function Donations() {
 
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     axios.get(`/api/lookups`).then(r => {
@@ -64,6 +65,8 @@ export default function Donations() {
       if (!isFinite(amt) || amt <= 0) { setErrorMsg('Ingrese un monto entero válido (> 0)'); return; }
     }
     if (!perasha || !perasha.trim()) { setErrorMsg('La Perashá no puede estar vacía'); return; }
+    
+    setSubmitting(true);
     try {
       await axios.post(`/api/donations`, {
         donorId,
@@ -98,6 +101,8 @@ export default function Donations() {
       setTimeout(() => donorAutocompleteRef.current?.focus(), 100);
     } catch (e) {
       setErrorMsg('No se pudo crear la donación');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -135,8 +140,9 @@ export default function Donations() {
               className="btn btn-success btn-lg"
               aria-label="Crear nueva donación (o presione Ctrl+Enter)"
               title="Atajo: Ctrl+Enter"
+              disabled={submitting}
             >
-              ✓ Crear donación
+              {submitting ? '⏳ Guardando...' : '✓ Crear donación'}
             </button>
             <p style={{ fontSize: '0.875rem', color: '#666', marginTop: '8px', marginBottom: 0 }}>
               💡 Tip: Use Tab para navegar entre campos y <strong>Ctrl+Enter</strong> para crear
