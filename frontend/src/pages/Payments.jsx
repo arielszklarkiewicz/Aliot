@@ -107,6 +107,7 @@ export default function Payments() {
       setAmount('');
       setComment('');
       setDate(new Date().toISOString().slice(0,10));
+      setCurrency('Pesos');
     } catch (e) {
       setErrorMsg('No se pudo crear el pago');
     }
