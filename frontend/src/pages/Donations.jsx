@@ -355,6 +355,18 @@ export default function Donations() {
                   </select>
                 );
               })()}
+              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer', padding: '6px 12px', background: '#fff9e6', border: '1px solid #ffd666', borderRadius: 6, whiteSpace: 'nowrap' }}>
+                <input
+                  type="checkbox"
+                  checked={matana}
+                  onChange={e => {
+                    setMatana(e.target.checked);
+                    if (e.target.checked) setAmount('');
+                  }}
+                  style={{ width: 16, height: 16, cursor: 'pointer' }}
+                />
+                <span style={{ fontWeight: 600, color: '#ad6800' }}>Matana</span>
+              </label>
               <div style={{ display:'inline-flex', gap:6, flexWrap:'wrap' }}>
                 {[
                   { label: '+1.000', inc: 1000 },
@@ -400,20 +412,6 @@ export default function Donations() {
                   disabled={matana}
                 >Borrar</button>
               </div>
-            </div>
-            <div style={{ marginTop: 8 }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-                <input
-                  type="checkbox"
-                  checked={matana}
-                  onChange={e => {
-                    setMatana(e.target.checked);
-                    if (e.target.checked) setAmount('');
-                  }}
-                  style={{ width: 18, height: 18, cursor: 'pointer' }}
-                />
-                <span style={{ fontWeight: 600 }}>Matana (sin precio)</span>
-              </label>
             </div>
           </div>
 
