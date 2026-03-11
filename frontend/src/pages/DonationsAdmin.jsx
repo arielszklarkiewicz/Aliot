@@ -12,7 +12,8 @@ export default function DonationsAdmin() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const [lookups, setLookups] = useState({ currencies: [], minian: [], concepts: [], destinations: [] });
+  const [lookups, setLookups] = useState({ currencies: [], minian: [], donationConcepts: [], destinations: [] });
+  const [perashaSuggestions, setPerashaSuggestions] = useState([]);
   
   // Filters
   const [filterDonorId, setFilterDonorId] = useState('');
@@ -25,17 +26,25 @@ export default function DonationsAdmin() {
   
   const [edit, setEdit] = useState(null);
   const isNew = useMemo(() => edit && !edit.id, [edit]);
+  const debouncedPerasha = useDebounced(edit?.perasha || '', 300);
 
   useEffect(() => {
     axios.get('/api/lookups').then(r => {
       setLookups({
         currencies: r.data.currencies || [],
         minian: r.data.minian || [],
-        concepts: r.data.concepts || [],
+        donationConcepts: r.data.donationConcepts || [],
         destinations: r.data.destinations || []
       });
     }).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (!debouncedPerasha) { setPerashaSuggestions([]); return; }
+    axios.get(`/api/autocomplete/perashot`, { params: { q: debouncedPerasha, limit: 8 } })
+      .then(r => setPerashaSuggestions(r.data || []))
+      .catch(() => setPerashaSuggestions([]));
+  }, [debouncedPerasha]);
 
   async function load() {
     setLoading(true); setError('');
@@ -93,20 +102,28 @@ export default function DonationsAdmin() {
     donationDate: new Date().toISOString().slice(0,10),
     perasha: '',
     minian: lookups.minian[0] || '',
-    concept: lookups.concepts[0] || '',
-    destination: lookups.destinations[0] || '',
+    conceptId: lookups.donationConcepts[0]?.id || '',
+    destinationId: lookups.destinations[0]?.id || '',
     destinationOther: '',
     comment: '',
     isVirtual: false,
     matana: false
   });
 
-  const startEdit = (d) => setEdit({ 
-    ...d, 
-    donorName: d.donorName || '',
-    donationDate: d.donationDate?.slice(0,10) || '',
-    amount: d.amount?.toString() || ''
-  });
+  const startEdit = (d) => {
+    // Map concept name to ID
+    const conceptObj = lookups.donationConcepts.find(c => c.name === d.concept);
+    const destObj = lookups.destinations.find(dest => dest.name === d.destination);
+    
+    setEdit({ 
+      ...d, 
+      donorName: d.donorName || '',
+      donationDate: d.donationDate?.slice(0,10) || '',
+      amount: d.amount?.toString() || '',
+      conceptId: conceptObj?.id || '',
+      destinationId: destObj?.id || ''
+    });
+  };
 
   const cancelEdit = () => setEdit(null);
 
@@ -124,8 +141,8 @@ export default function DonationsAdmin() {
       donationDate: edit.donationDate,
       perasha: edit.perasha || '',
       minian: edit.minian || '',
-      concept: edit.concept || '',
-      destination: edit.destination || '',
+      conceptId: edit.conceptId || null,
+      destinationId: edit.destinationId || null,
       destinationOther: edit.destinationOther || '',
       comment: edit.comment || '',
       isVirtual: edit.isVirtual || false,
@@ -200,7 +217,7 @@ export default function DonationsAdmin() {
                 className="form-select"
               >
                 <option value="">Todos</option>
-                {lookups.destinations.map(d => <option key={d} value={d}>{d}</option>)}
+                {lookups.destinations.map(d => <option key={d.id} value={d.name}>{d.name}</option>)}
               </select>
             </div>
 
@@ -369,7 +386,7 @@ export default function DonationsAdmin() {
                     value={(edit.matana || edit.isVirtual) ? '0' : edit.amount} 
                     onChange={e => setEdit({ ...edit, amount: e.target.value })} 
                     className="form-input" 
-                    step="0.01"
+                    step="1"
                     disabled={edit.matana || edit.isVirtual}
                     style={(edit.matana || edit.isVirtual) ? { backgroundColor: '#f3f4f6', cursor: 'not-allowed' } : {}}
                   />
@@ -391,21 +408,30 @@ export default function DonationsAdmin() {
 
                 <div className="form-group">
                   <label>Concepto</label>
-                  <select value={edit.concept} onChange={e => setEdit({ ...edit, concept: e.target.value })} className="form-select">
-                    {lookups.concepts.map(c => <option key={c} value={c}>{c}</option>)}
+                  <select value={edit.conceptId || edit.concept || ''} onChange={e => setEdit({ ...edit, conceptId: e.target.value })} className="form-select">
+                    {lookups.donationConcepts.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
                 </div>
 
                 <div className="form-group">
                   <label>Destino</label>
-                  <select value={edit.destination} onChange={e => setEdit({ ...edit, destination: e.target.value })} className="form-select">
-                    {lookups.destinations.map(d => <option key={d} value={d}>{d}</option>)}
+                  <select value={edit.destinationId || edit.destination || ''} onChange={e => setEdit({ ...edit, destinationId: e.target.value })} className="form-select">
+                    {lookups.destinations.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                   </select>
                 </div>
 
                 <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                   <label>Parasha</label>
-                  <input type="text" value={edit.perasha} onChange={e => setEdit({ ...edit, perasha: e.target.value })} className="form-input" />
+                  <input 
+                    type="text" 
+                    list="perasha-list-admin" 
+                    value={edit.perasha} 
+                    onChange={e => setEdit({ ...edit, perasha: e.target.value })} 
+                    className="form-input" 
+                  />
+                  <datalist id="perasha-list-admin">
+                    {perashaSuggestions.map((s, i) => <option key={i} value={s} />)}
+                  </datalist>
                 </div>
 
                 <div className="form-group" style={{ gridColumn: '1 / -1' }}>

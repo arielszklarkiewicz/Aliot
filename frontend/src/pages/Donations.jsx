@@ -85,6 +85,7 @@ export default function Donations() {
       setAmount('');
       setComment('');
       setMatana(false);
+      setCurrency('Pesos');
       // mover el Concepto al siguiente valor de la lista (cíclico)
       setConcept(prev => {
         const list = lookups?.donationConcepts || [];

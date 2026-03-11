@@ -33,6 +33,7 @@ export default function DonorAutocomplete({ value, onChange, placeholder = 'Sear
       .then(r => { 
         console.log('DonorAutocomplete - Results:', r.data.items?.length, 'donors');
         setResults(r.data.items || []); 
+        // Only open dropdown if we don't have a selected donor
         if (!valueRef.current) {
           setOpen(true);
         }
@@ -43,6 +44,7 @@ export default function DonorAutocomplete({ value, onChange, placeholder = 'Sear
   }, [debounced]);
 
   // When parent clears the selection (value becomes falsy), also clear the input UI
+  // When value changes to a truthy value, set it as the query to display
   useEffect(() => {
     if (!value) {
       setQuery('');
@@ -50,6 +52,9 @@ export default function DonorAutocomplete({ value, onChange, placeholder = 'Sear
       setOpen(false);
       setActiveIndex(-1);
       setError('');
+    } else if (value && query === '') {
+      // Only set query from value if query is empty (initial load)
+      setQuery(value);
     }
   }, [value]);
 
@@ -81,7 +86,10 @@ export default function DonorAutocomplete({ value, onChange, placeholder = 'Sear
           if (!newValue && value) {
             onChange?.('', null);
           }
-          if (!value) setOpen(true);
+          // Clear selection if user modifies the text
+          if (value && newValue !== value) {
+            onChange?.('', null);
+          }
         }}
         onFocus={() => { if (results.length && !value) setOpen(true); }}
         onKeyDown={onKeyDown}

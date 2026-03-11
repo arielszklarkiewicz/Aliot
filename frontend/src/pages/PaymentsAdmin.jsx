@@ -318,7 +318,7 @@ export default function PaymentsAdmin() {
 
                 <div className="form-group">
                   <label>Monto *</label>
-                  <input type="number" value={edit.amount} onChange={e => setEdit({ ...edit, amount: e.target.value })} className="form-input" step="0.01" disabled={edit.isVirtual} />
+                  <input type="number" value={edit.amount} onChange={e => setEdit({ ...edit, amount: e.target.value })} className="form-input" step="1" disabled={edit.isVirtual} />
                 </div>
 
                 <div className="form-group">
