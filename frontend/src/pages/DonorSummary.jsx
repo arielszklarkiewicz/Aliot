@@ -825,6 +825,8 @@ export default function DonorSummary() {
                     <div style={{ fontSize: '1.75rem', fontWeight: 700, marginBottom: '1rem' }}>
                       {mostRecentDonation.matana ? (
                         <span style={{ color: '#f97316' }}>MATANA</span>
+                      ) : mostRecentDonation.isVirtual ? (
+                        <span style={{ opacity: 0.7 }}>—</span>
                       ) : (
                         fmt(mostRecentDonation.amount)
                       )}
@@ -870,7 +872,11 @@ export default function DonorSummary() {
                       ÚLTIMO PAGO
                     </div>
                     <div style={{ fontSize: '1.75rem', fontWeight: 700, marginBottom: '1rem' }}>
-                      {fmt(mostRecentPayment.amount)}
+                      {mostRecentPayment.isVirtual ? (
+                        <span style={{ opacity: 0.7 }}>—</span>
+                      ) : (
+                        fmt(mostRecentPayment.amount)
+                      )}
                     </div>
                     <div style={{ fontSize: '0.875rem', opacity: 0.95, lineHeight: 1.6 }}>
                       <div style={{ marginBottom: '0.25rem' }}>
