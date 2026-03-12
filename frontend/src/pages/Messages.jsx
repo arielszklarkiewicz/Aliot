@@ -52,8 +52,8 @@ export default function Messages() {
   const loadAdminUsers = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/api/admin/users', { params: { pageSize: 1000 } });
-      const admins = response.data.items.filter(u => ['Admin', 'DataEntry'].includes(u.role));
+      const response = await api.get('/api/messages/admin-users');
+      const admins = response.data.items || [];
       setAvailableUsers(admins);
       
       if (admins.length > 0 && !selectedUserId) {

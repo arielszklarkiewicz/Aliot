@@ -1789,4 +1789,20 @@ app.MapGet("/api/admin/messages", async (IMessageService svc, CancellationToken 
     })
     .RequirePermission(Permission.ViewAllMessages);
 
+app.MapGet("/api/messages/admin-users", async (IAuthService authService, CancellationToken ct) =>
+    {
+        var (users, _) = await authService.ListUsersAsync(1, 1000, ct);
+        var adminUsers = users
+            .Where(u => u.Role == UserRole.Admin || u.Role == UserRole.DataEntry)
+            .Select(u => new
+            {
+                u.Id,
+                u.Email,
+                u.FullName,
+                Role = u.Role.ToString()
+            });
+        return Results.Ok(new { items = adminUsers });
+    })
+    .RequirePermission(Permission.ViewMessages);
+
 app.Run();
