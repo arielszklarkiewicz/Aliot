@@ -25,8 +25,23 @@ Replace `https://your-backend-api.onrender.com` with your actual backend API URL
 
 ### Build Settings
 
-- **Build Command**: `npm run build`
+- **Build Command**: `npm install && npm run build`
 - **Publish Directory**: `build`
+- **Service Type**: Static Site
+
+### Routing Configuration
+
+For React Router to work properly on Render.com, you need to configure rewrites so all routes serve `index.html`. This is configured in the main `render.yaml` file at the repository root.
+
+The `render.yaml` includes routing configuration for the frontend service:
+```yaml
+routes:
+  - type: rewrite
+    source: /*
+    destination: /index.html
+```
+
+This ensures that routes like `/login`, `/donations`, etc. all serve the React app instead of returning 404.
 
 ### Important Notes
 
