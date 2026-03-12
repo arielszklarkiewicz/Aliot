@@ -235,6 +235,7 @@ app.MapGet("/api/admin/users",
                 u.FullName,
                 Role = u.Role.ToString(),
                 u.IsActive,
+                u.CanSendMessage,
                 u.CreatedAt,
                 u.UpdatedAt,
                 DonorFirstName = u.Role == UserRole.Donor && donorMap.ContainsKey(u.Id)
@@ -261,6 +262,7 @@ app.MapGet("/api/admin/users/{id:guid}", async (IAuthService authService, Guid i
             user.FullName,
             Role = user.Role.ToString(),
             user.IsActive,
+            user.CanSendMessage,
             user.CreatedAt,
             user.UpdatedAt
         });
@@ -282,7 +284,8 @@ app.MapPost("/api/auth/users", async (IAuthService authService, HttpContext http
                 user.Email,
                 user.FullName,
                 Role = user.Role.ToString(),
-                user.IsActive
+                user.IsActive,
+                user.CanSendMessage
             });
         }
         catch (InvalidOperationException ex)
@@ -313,7 +316,8 @@ app.MapPut("/api/admin/users/{id:guid}",
                 user.Email,
                 user.FullName,
                 Role = user.Role.ToString(),
-                user.IsActive
+                user.IsActive,
+                user.CanSendMessage
             });
         })
     .RequirePermission(Permission.ManageUsers)
@@ -352,6 +356,24 @@ app.MapPost("/api/admin/users/{id:guid}/toggle-active",
         })
     .RequirePermission(Permission.ManageUsers)
     .WithName("ToggleUserActive")
+    .WithOpenApi();
+
+app.MapPost("/api/admin/users/{id:guid}/toggle-can-send-message",
+        async (IAuthService authService, Guid id, CancellationToken ct) =>
+        {
+            var user = await authService.GetUserByIdAsync(id, ct);
+            if (user == null)
+                return Results.NotFound();
+
+            var success = await authService.SetUserCanSendMessageAsync(id, !user.CanSendMessage, ct);
+            return Results.Ok(new
+            {
+                canSendMessage = !user.CanSendMessage,
+                message = $"User messaging {(user.CanSendMessage ? "disabled" : "enabled")} successfully"
+            });
+        })
+    .RequirePermission(Permission.ManageUsers)
+    .WithName("ToggleUserCanSendMessage")
     .WithOpenApi();
 
 app.MapDelete("/api/admin/users/{id:guid}",
@@ -1708,11 +1730,21 @@ app.MapPost("/api/admin/create-missing-users",
 
 // Messages
 app.MapPost("/api/messages",
-        async (IMessageService svc, HttpContext httpContext, MessageCreate dto, CancellationToken ct) =>
+        async (IMessageService svc, IAuthService authService, HttpContext httpContext, MessageCreate dto, CancellationToken ct) =>
         {
             var userId = httpContext.User.GetUserId();
             if (userId == null)
                 return Results.Unauthorized();
+
+            // Check if user can send messages
+            var currentUser = await authService.GetUserByIdAsync(userId.Value, ct);
+            if (currentUser == null || !currentUser.CanSendMessage)
+                return Results.Forbid();
+
+            // Check if recipient can receive messages
+            var recipientUser = await authService.GetUserByIdAsync(dto.ToUserId, ct);
+            if (recipientUser == null || !recipientUser.CanSendMessage)
+                return Results.BadRequest(new { error = "Recipient cannot receive messages" });
 
             var message = await svc.SendMessageAsync(userId.Value, dto, ct);
             return message != null
@@ -1793,7 +1825,7 @@ app.MapGet("/api/messages/admin-users", async (IAuthService authService, Cancell
     {
         var (users, _) = await authService.ListUsersAsync(1, 1000, ct);
         var adminUsers = users
-            .Where(u => u.Role == UserRole.Admin || u.Role == UserRole.DataEntry)
+            .Where(u => (u.Role == UserRole.Admin || u.Role == UserRole.DataEntry) && u.CanSendMessage)
             .Select(u => new
             {
                 u.Id,

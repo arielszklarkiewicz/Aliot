@@ -140,6 +140,20 @@ public class AuthService(AppDbContext db, IConfiguration config, ILogger<AuthSer
         return true;
     }
 
+    public async Task<bool> SetUserCanSendMessageAsync(Guid userId, bool canSendMessage, CancellationToken ct = default)
+    {
+        var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId, ct);
+        if (user == null)
+            return false;
+
+        user.CanSendMessage = canSendMessage;
+        user.UpdatedAt = DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync(ct);
+
+        logger.LogInformation("User {Email} CanSendMessage status set to: {CanSendMessage}", user.Email, canSendMessage);
+        return true;
+    }
+
     public async Task<bool> DeleteUserAsync(Guid userId, CancellationToken ct = default)
     {
         var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId, ct);

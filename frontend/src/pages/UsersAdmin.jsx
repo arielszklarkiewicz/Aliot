@@ -93,6 +93,15 @@ export default function UsersAdmin() {
     }
   };
 
+  const toggleCanSendMessage = async (id) => {
+    try {
+      await axios.post(`/api/admin/users/${id}/toggle-can-send-message`);
+      await load();
+    } catch (e) {
+      alert('No se pudo cambiar el permiso de mensajería');
+    }
+  };
+
   const openChangePassword = (user) => {
     setChangingPassword(user);
     setNewPassword('');
@@ -191,16 +200,17 @@ export default function UsersAdmin() {
                 <th>Rol</th>
                 <th>Contraseña</th>
                 <th>Estado</th>
+                <th>Mensajes</th>
                 <th>Creado</th>
                 <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
               {loading && (
-                <tr><td colSpan="8" style={{textAlign:'center', padding:'20px'}}>Cargando...</td></tr>
+                <tr><td colSpan="9" style={{textAlign:'center', padding:'20px'}}>Cargando...</td></tr>
               )}
               {!loading && filteredItems.length === 0 && (
-                <tr><td colSpan="8" style={{textAlign:'center', padding:'20px'}}>No hay usuarios</td></tr>
+                <tr><td colSpan="9" style={{textAlign:'center', padding:'20px'}}>No hay usuarios</td></tr>
               )}
               {!loading && filteredItems.map(u => (
                 <tr key={u.id}>
@@ -234,6 +244,11 @@ export default function UsersAdmin() {
                       {u.isActive ? 'Activo' : 'Inactivo'}
                     </span>
                   </td>
+                  <td>
+                    <span className={`badge badge-${u.canSendMessage ? 'success' : 'danger'}`}>
+                      {u.canSendMessage ? 'Habilitado' : 'Deshabilitado'}
+                    </span>
+                  </td>
                   <td>{new Date(u.createdAt).toLocaleDateString()}</td>
                   <td>
                     <div style={{display:'flex', gap:8}}>
@@ -245,6 +260,13 @@ export default function UsersAdmin() {
                         title={u.isActive ? 'Desactivar' : 'Activar'}
                       >
                         {u.isActive ? '🚫' : '✅'}
+                      </button>
+                      <button 
+                        className={`btn btn-sm ${u.canSendMessage ? 'btn-warning' : 'btn-success'}`}
+                        onClick={() => toggleCanSendMessage(u.id)}
+                        title={u.canSendMessage ? 'Deshabilitar mensajes' : 'Habilitar mensajes'}
+                      >
+                        {u.canSendMessage ? '💬' : '🔇'}
                       </button>
                       <button className="btn btn-sm btn-danger" onClick={() => del(u.id)} title="Eliminar">🗑️</button>
                     </div>

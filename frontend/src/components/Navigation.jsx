@@ -134,11 +134,22 @@ export default function Navigation() {
     return allowedRoles.includes(user.role);
   };
 
+  const canAccessMessages = () => {
+    if (loading || !user) return false;
+    // Check if user has messaging permission AND canSendMessage flag is true
+    return user.canSendMessage !== false;
+  };
+
   const filteredSections = menuSections
     .filter(section => hasAccess(section.roles))
     .map(section => ({
       ...section,
-      items: section.items.filter(item => hasAccess(item.roles))
+      items: section.items.filter(item => {
+        if (!hasAccess(item.roles)) return false;
+        // Special check for messages
+        if (item.path === '/messages') return canAccessMessages();
+        return true;
+      })
     }))
     .filter(section => section.items.length > 0);
 

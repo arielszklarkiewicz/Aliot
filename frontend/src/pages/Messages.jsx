@@ -16,6 +16,23 @@ export default function Messages() {
 
   const isAdminUser = isAdmin || isDataEntry;
 
+  // Check if user can send messages
+  if (user && user.canSendMessage === false) {
+    return (
+      <div className="messages-container">
+        <div className="messages-header">
+          <h1>💬 Mensajes</h1>
+          <p className="messages-subtitle">Acceso denegado</p>
+        </div>
+        <div className="content-wrapper">
+          <div className="error-message">
+            No tiene permisos para acceder a los mensajes.
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   useEffect(() => {
     if (isAdminUser) {
       loadAvailableUsers();
@@ -35,7 +52,7 @@ export default function Messages() {
     try {
       setLoading(true);
       const response = await api.get('/api/admin/users', { params: { pageSize: 1000 } });
-      const users = response.data.items.filter(u => u.id !== user.id && u.role === 'Donor');
+      const users = response.data.items.filter(u => u.id !== user.id && u.role === 'Donor' && u.canSendMessage !== false);
       setAvailableUsers(users);
       
       if (users.length > 0 && !selectedUserId) {

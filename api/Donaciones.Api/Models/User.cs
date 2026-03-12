@@ -19,6 +19,8 @@ public class User
     
     public bool IsActive { get; set; } = true;
     
+    public bool CanSendMessage { get; set; } = true;
+    
     public DateTimeOffset CreatedAt { get; set; }
     
     public Guid? CreatedBy { get; set; }
