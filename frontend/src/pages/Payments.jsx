@@ -320,7 +320,6 @@ export default function Payments() {
                   id="payment-amount"
                   type="text"
                   inputMode="numeric"
-                  pattern="[0-9]*"
                   placeholder="Monto"
                   value={amount ? amount.replace(/\B(?=(\d{3})+(?!\d))/g, '.') : ''}
                   onChange={e=>{
