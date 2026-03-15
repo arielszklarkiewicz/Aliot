@@ -338,7 +338,7 @@ export default function Donations() {
           </div>
         </div>
 
-        <div className="form-grid" style={{ gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', alignItems: 'start' }}>
+        <div className="form-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', alignItems: 'start' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div className="form-group" style={{ margin: 0 }}>
               <label htmlFor="donation-concept">Concepto</label>
@@ -454,11 +454,11 @@ export default function Donations() {
               >Borrar</button>
             </div>
           </div>
-        </div>
 
-        <div className="form-group" style={{ marginTop: '16px' }}>
-          <label htmlFor="donation-comment">Comentarios</label>
-          <textarea id="donation-comment" placeholder="Comentarios" value={comment} onChange={e=>setComment(e.target.value)} style={{width:'100%'}} rows={3} />
+          <div className="form-group" style={{ margin: 0 }}>
+            <label htmlFor="donation-comment">Comentarios</label>
+            <textarea id="donation-comment" placeholder="Comentarios" value={comment} onChange={e=>setComment(e.target.value)} style={{width:'100%', minHeight: '120px'}} rows={4} />
+          </div>
         </div>
         </div>
         </form>
@@ -466,15 +466,19 @@ export default function Donations() {
         {recentDonations.length > 0 && (
           <div style={{ marginTop: '48px' }}>
             <h2 style={{ marginBottom: '16px', fontSize: '1.5rem', fontWeight: 600 }}>
-              Donaciones - {date} - {perasha} - {minian}
+              Donaciones - {date} - {perasha} - <span style={{ 
+                fontSize: '1.7rem', 
+                fontWeight: 700,
+                color: minian === 'Ashkenazi' ? '#dc2626' : minian === 'Sefaradi' ? '#2563eb' : '#16a34a'
+              }}>{minian}</span>
             </h2>
             <div style={{ overflowX: 'auto' }}>
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th>Concepto</th>
-                    <th>Donante</th>
-                    <th style={{ textAlign: 'right' }}>Monto</th>
+                    <th style={{ width: '15%' }}>Concepto</th>
+                    <th style={{ width: '50%' }}>Donante</th>
+                    <th style={{ width: '35%', textAlign: 'right' }}>Monto</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -499,6 +503,66 @@ export default function Donations() {
                 </tbody>
               </table>
             </div>
+            
+            {(() => {
+              const totalPesos = recentDonations
+                .filter(d => !d.matana && d.currency?.toLowerCase() === 'pesos')
+                .reduce((sum, d) => sum + (d.amount || 0), 0);
+              const totalDolares = recentDonations
+                .filter(d => !d.matana && (d.currency?.toLowerCase() === 'dolares' || d.currency?.toLowerCase() === 'dólares'))
+                .reduce((sum, d) => sum + (d.amount || 0), 0);
+              const totalMatana = recentDonations
+                .filter(d => d.matana)
+                .length;
+              
+              const hasTotals = totalPesos > 0 || totalDolares > 0 || totalMatana > 0;
+              
+              if (!hasTotals) return null;
+              
+              return (
+                <div style={{ 
+                  marginTop: '24px', 
+                  padding: '16px', 
+                  background: '#f9fafb', 
+                  borderRadius: '8px',
+                  display: 'flex',
+                  gap: '24px',
+                  flexWrap: 'wrap',
+                  justifyContent: 'flex-end'
+                }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                    <span style={{ fontSize: '0.85rem', color: '#666', marginBottom: '4px' }}>Donaciones registradas</span>
+                    <strong style={{ fontSize: '1.2rem', color: '#1f2937' }}>
+                      {recentDonations.length}
+                    </strong>
+                  </div>
+                  {totalPesos > 0 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                      <span style={{ fontSize: '0.85rem', color: '#666', marginBottom: '4px' }}>Total Pesos</span>
+                      <strong style={{ ...getCurrencyStyle('Pesos'), fontSize: '1.2rem' }}>
+                        {formatCurrency(totalPesos, 'Pesos')}
+                      </strong>
+                    </div>
+                  )}
+                  {totalDolares > 0 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                      <span style={{ fontSize: '0.85rem', color: '#666', marginBottom: '4px' }}>Total Dólares</span>
+                      <strong style={{ ...getCurrencyStyle('Dolares'), fontSize: '1.2rem' }}>
+                        {formatCurrency(totalDolares, 'Dolares')}
+                      </strong>
+                    </div>
+                  )}
+                  {totalMatana > 0 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                      <span style={{ fontSize: '0.85rem', color: '#666', marginBottom: '4px' }}>Total Matana</span>
+                      <strong style={{ fontSize: '1.2rem', color: '#ad6800' }}>
+                        {totalMatana} MI
+                      </strong>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
           </div>
         )}
 
