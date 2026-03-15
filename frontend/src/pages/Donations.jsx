@@ -3,6 +3,7 @@ import axios from '../api/client';
 import useDebounced from '../hooks/useDebounced';
 import DonorAutocomplete from '../components/DonorAutocomplete';
 import DonorCreateModal from '../components/DonorCreateModal';
+import { formatCurrency, getCurrencyStyle } from '../utils/currency';
 
 export default function Donations() {
   const [donorId, setDonorId] = useState('');
@@ -27,6 +28,8 @@ export default function Donations() {
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  const [recentDonations, setRecentDonations] = useState([]);
 
   useEffect(() => {
     axios.get(`/api/lookups`).then(r => {
@@ -58,6 +61,34 @@ export default function Donations() {
     }
   }, [errorMsg]);
 
+  const loadRecentDonations = async () => {
+    if (!date || !perasha || !minian) return;
+    try {
+      const res = await axios.get('/api/donations', {
+        params: {
+          from: date,
+          to: date,
+          perasha: perasha,
+          minian: minian,
+          pageSize: 100
+        }
+      });
+      const items = res.data?.items || [];
+      const sorted = items.sort((a, b) => {
+        const conceptA = a.concept || '';
+        const conceptB = b.concept || '';
+        return conceptA.localeCompare(conceptB);
+      });
+      setRecentDonations(sorted);
+    } catch (e) {
+      setRecentDonations([]);
+    }
+  };
+
+  useEffect(() => {
+    loadRecentDonations();
+  }, [date, perasha, minian]);
+
   const createDonation = async () => {
     if (!donorId) { setErrorMsg('Seleccione o cree un donante primero'); return; }
     if (!matana) {
@@ -82,6 +113,8 @@ export default function Donations() {
       });
       setSuccessMsg('Donación creada');
       setErrorMsg('');
+      // Load recent donations
+      loadRecentDonations();
       // preparar formulario para una nueva entrada: mantener Perashá y Fecha
       setDonorId('');
       setSelectedDonorName('');
@@ -305,7 +338,7 @@ export default function Donations() {
           </div>
         </div>
 
-        <div className="form-grid">
+        <div className="form-grid" style={{ gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
           <div className="form-group">
             <label htmlFor="donation-concept">Concepto</label>
             <select id="donation-concept" value={concept} onChange={e=>setConcept(e.target.value)}>
@@ -320,7 +353,6 @@ export default function Donations() {
                 id="donation-amount"
                 type="text"
                 inputMode="numeric"
-                pattern="[0-9]*"
                 placeholder={matana ? "Matana - Sin monto" : "Monto"}
                 value={matana ? '' : (amount ? amount.replace(/\B(?=(\d{3})+(?!\d))/g, '.') : '')}
                 onChange={e=>{
@@ -414,14 +446,53 @@ export default function Donations() {
               </div>
             </div>
           </div>
+        </div>
 
-          <div className="form-group">
-            <label htmlFor="donation-comment">Comentarios</label>
-            <textarea id="donation-comment" placeholder="Comentarios" value={comment} onChange={e=>setComment(e.target.value)} style={{minWidth:220}} rows={3} />
-          </div>
+        <div className="form-group" style={{ marginTop: '16px' }}>
+          <label htmlFor="donation-comment">Comentarios</label>
+          <textarea id="donation-comment" placeholder="Comentarios" value={comment} onChange={e=>setComment(e.target.value)} style={{width:'100%'}} rows={3} />
         </div>
         </div>
         </form>
+
+        {recentDonations.length > 0 && (
+          <div style={{ marginTop: '48px' }}>
+            <h2 style={{ marginBottom: '16px', fontSize: '1.5rem', fontWeight: 600 }}>
+              Donaciones - {date} - {perasha} - {minian}
+            </h2>
+            <div style={{ overflowX: 'auto' }}>
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Concepto</th>
+                    <th>Donante</th>
+                    <th style={{ textAlign: 'right' }}>Monto</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recentDonations.map(d => (
+                    <tr key={d.id}>
+                      <td>{d.concept || '-'}</td>
+                      <td>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <strong>{d.donorName || '-'}</strong>
+                          {d.comment && <span style={{ fontSize: '0.85rem', color: '#666' }}>{d.comment}</span>}
+                        </div>
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        {d.matana ? (
+                          <span style={{ fontStyle: 'italic', color: '#ad6800' }}>Matana</span>
+                        ) : (
+                          <span style={getCurrencyStyle(d.currency)}>{formatCurrency(d.amount, d.currency)}</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         <DonorCreateModal
           open={openCreateDonor}
