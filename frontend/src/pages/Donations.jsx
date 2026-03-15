@@ -338,56 +338,17 @@ export default function Donations() {
           </div>
         </div>
 
-        <div className="form-grid" style={{ gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
-          <div className="form-group">
-            <label htmlFor="donation-concept">Concepto</label>
-            <select id="donation-concept" value={concept} onChange={e=>setConcept(e.target.value)}>
-              {lookups.donationConcepts.map(c => (<option key={c.id} value={c.id}>{c.name}</option>))}
-            </select>
-          </div>
+        <div className="form-grid" style={{ gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', alignItems: 'start' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div className="form-group" style={{ margin: 0 }}>
+              <label htmlFor="donation-concept">Concepto</label>
+              <select id="donation-concept" value={concept} onChange={e=>setConcept(e.target.value)}>
+                {lookups.donationConcepts.map(c => (<option key={c.id} value={c.id}>{c.name}</option>))}
+              </select>
+            </div>
 
-          <div className="form-group">
-            <label htmlFor="donation-amount">Monto</label>
-            <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
-              <input
-                id="donation-amount"
-                type="text"
-                inputMode="numeric"
-                placeholder={matana ? "Matana - Sin monto" : "Monto"}
-                value={matana ? '' : (amount ? amount.replace(/\B(?=(\d{3})+(?!\d))/g, '.') : '')}
-                onChange={e=>{
-                  const digits = (e.target.value || '').toString().replace(/[^0-9]/g, '');
-                  setAmount(digits);
-                }}
-                style={{ flex:'0 1 220px' }}
-                disabled={matana}
-              />
-              {(() => {
-                const cur = (currency || '').toString();
-                const curNorm = cur.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-                const isUsd = curNorm === 'dolares' || curNorm === 'usd' || curNorm === 'dolares estadounidenses' || curNorm === 'u$s' || curNorm === 'us$';
-                const style = {
-                  padding: '6px 10px',
-                  border: isUsd ? '1px solid #a7f3d0' : '1px solid #d6e4ff',
-                  background: isUsd ? '#ecfdf5' : '#f0f5ff',
-                  color: isUsd ? '#065f46' : '#1d39c4',
-                  borderRadius: 6,
-                  fontWeight: 600
-                };
-                return (
-                  <select
-                    aria-label="Moneda"
-                    id="donation-currency"
-                    value={currency}
-                    onChange={e=>setCurrency(e.target.value)}
-                    style={style}
-                    title="Moneda"
-                  >
-                    {lookups.currencies.map(c => (<option key={c} value={c}>{c}</option>))}
-                  </select>
-                );
-              })()}
-              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer', padding: '6px 12px', background: '#fff9e6', border: '1px solid #ffd666', borderRadius: 6, whiteSpace: 'nowrap' }}>
+            <div className="form-group" style={{ margin: 0 }}>
+              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer', padding: '6px 12px', background: '#fff9e6', border: '1px solid #ffd666', borderRadius: 6, whiteSpace: 'nowrap', width: 'fit-content' }}>
                 <input
                   type="checkbox"
                   checked={matana}
@@ -399,51 +360,98 @@ export default function Donations() {
                 />
                 <span style={{ fontWeight: 600, color: '#ad6800' }}>Matana</span>
               </label>
-              <div style={{ display:'inline-flex', gap:6, flexWrap:'wrap' }}>
-                {[
-                  { label: '+1.000', inc: 1000 },
-                  { label: '+10.000', inc: 10000 },
-                  { label: '+18.000', inc: 18000 },
-                  { label: '+26.000', inc: 26000 },
-                  { label: '+52.000', inc: 52000 },
-                  { label: '+100.000', inc: 100000 }
-                ].map(btn => (
-                  <button
-                    key={btn.label}
-                    type="button"
-                    aria-label={`Sumar ${btn.label.replace('+','')}`}
-                    onClick={()=>{
-                      const current = parseInt((amount || '0'), 10) || 0;
-                      const next = current + btn.inc;
-                      setAmount(String(next));
-                    }}
-                    style={{
-                      padding:'6px 10px',
-                      border:'1px solid #d9d9d9',
-                      background:'#fafafa',
-                      borderRadius:6,
-                      cursor:'pointer',
-                      fontWeight:600
-                    }}
-                    disabled={matana}
-                  >{btn.label}</button>
-                ))}
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div className="form-group" style={{ margin: 0 }}>
+              <label htmlFor="donation-amount">Monto</label>
+              <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
+                <input
+                  id="donation-amount"
+                  type="text"
+                  inputMode="numeric"
+                  placeholder={matana ? "Matana - Sin monto" : "Monto"}
+                  value={matana ? '' : (amount ? amount.replace(/\B(?=(\d{3})+(?!\d))/g, '.') : '')}
+                  onChange={e=>{
+                    const digits = (e.target.value || '').toString().replace(/[^0-9]/g, '');
+                    setAmount(digits);
+                  }}
+                  style={{ flex:'0 1 220px' }}
+                  disabled={matana}
+                />
+                {(() => {
+                  const cur = (currency || '').toString();
+                  const curNorm = cur.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+                  const isUsd = curNorm === 'dolares' || curNorm === 'usd' || curNorm === 'dolares estadounidenses' || curNorm === 'u$s' || curNorm === 'us$';
+                  const style = {
+                    padding: '6px 10px',
+                    border: isUsd ? '1px solid #a7f3d0' : '1px solid #d6e4ff',
+                    background: isUsd ? '#ecfdf5' : '#f0f5ff',
+                    color: isUsd ? '#065f46' : '#1d39c4',
+                    borderRadius: 6,
+                    fontWeight: 600
+                  };
+                  return (
+                    <select
+                      aria-label="Moneda"
+                      id="donation-currency"
+                      value={currency}
+                      onChange={e=>setCurrency(e.target.value)}
+                      style={style}
+                      title="Moneda"
+                    >
+                      {lookups.currencies.map(c => (<option key={c} value={c}>{c}</option>))}
+                    </select>
+                  );
+                })()}
+              </div>
+            </div>
+
+            <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+              {[
+                { label: '+1.000', inc: 1000 },
+                { label: '+10.000', inc: 10000 },
+                { label: '+18.000', inc: 18000 },
+                { label: '+26.000', inc: 26000 },
+                { label: '+52.000', inc: 52000 },
+                { label: '+100.000', inc: 100000 }
+              ].map(btn => (
                 <button
+                  key={btn.label}
                   type="button"
-                  aria-label="Borrar monto"
-                  onClick={()=>setAmount('')}
+                  aria-label={`Sumar ${btn.label.replace('+','')}`}
+                  onClick={()=>{
+                    const current = parseInt((amount || '0'), 10) || 0;
+                    const next = current + btn.inc;
+                    setAmount(String(next));
+                  }}
                   style={{
                     padding:'6px 10px',
                     border:'1px solid #d9d9d9',
-                    background:'#fff1f0',
+                    background:'#fafafa',
                     borderRadius:6,
                     cursor:'pointer',
-                    fontWeight:600,
-                    color:'#cf1322'
+                    fontWeight:600
                   }}
                   disabled={matana}
-                >Borrar</button>
-              </div>
+                >{btn.label}</button>
+              ))}
+              <button
+                type="button"
+                aria-label="Borrar monto"
+                onClick={()=>setAmount('')}
+                style={{
+                  padding:'6px 10px',
+                  border:'1px solid #d9d9d9',
+                  background:'#fff1f0',
+                  borderRadius:6,
+                  cursor:'pointer',
+                  fontWeight:600,
+                  color:'#cf1322'
+                }}
+                disabled={matana}
+              >Borrar</button>
             </div>
           </div>
         </div>
