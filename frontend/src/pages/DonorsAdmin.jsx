@@ -51,12 +51,7 @@ export default function DonorsAdmin() {
     if (!edit?.firstName?.trim()) { alert('El nombre es obligatorio'); return; }
     try {
       if (isNew) {
-        const response = await axios.post('/api/donors', edit);
-        const createdDonor = response.data;
-        
-        // Show message about user account creation
-        alert(`Donante creado exitosamente.\n\nSe ha creado una cuenta de usuario automáticamente.\n\nUsuario: ${edit.firstName.toLowerCase()}.${(edit.lastName || '').toLowerCase()}\nContraseña: 123456\n\n⚠️ El donante deberá cambiar su contraseña al iniciar sesión por primera vez.`);
-        
+        await axios.post('/api/donors', edit);
         setEdit(null);
         setPage(1); // Reset to first page - will trigger load via useEffect
       } else {
